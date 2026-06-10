@@ -1,0 +1,316 @@
+// src/lib/assignment.ts
+// Core job assignment engine
+// Called after Paystack payment webhook confirms a payment
+
+import { prisma } from "@/lib/prisma";
+import { AssigneeRole, ChapterStatus, DegreeGroup, Role } from "@prisma/client";
+
+// ─────────────────────────────────────────────────────────────
+// CHAPTER DEFINITIONS
+// Standard split: Writer → Ch 1,2,5 | Analyst → Ch 3,4
+// Exception dept: Writer → ALL chapters
+// ─────────────────────────────────────────────────────────────
+
+const WRITER_CHAPTERS  = [1, 2, 5];
+const ANALYST_CHAPTERS = [3, 4];
+
+// Chapter 1 always requires preliminary uploads (in non-exception depts)
+const PRELIM_REQUIRED_CHAPTER = 1;
+
+// ─────────────────────────────────────────────────────────────
+// FIND STAFF WITH FEWEST ACTIVE JOBS
+// ─────────────────────────────────────────────────────────────
+
+async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
+  // Get all approved, non-suspended staff of this role
+  const staffList = await prisma.user.findMany({
+    where: {
+      role,
+      isApproved:  true,
+      isSuspended: false,
+    },
+    select: { id: true },
+  });
+
+  if (staffList.length === 0) return null;
+
+  // Count active chapters per staff member
+  const activeCounts = await Promise.all(
+    staffList.map(async (staff) => {
+      const count = await prisma.orderChapter.count({
+        where: {
+          assignedToId: staff.id,
+          status: {
+            notIn: [ChapterStatus.DELIVERED, ChapterStatus.QC_DONE],
+          },
+        },
+      });
+      return { id: staff.id, count };
+    })
+  );
+
+  // Sort ascending — pick the one with the least active jobs
+  activeCounts.sort((a, b) => a.count - b.count);
+  return activeCounts[0].id;
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHECK IF DEPARTMENT IS AN EXCEPTION
+// ─────────────────────────────────────────────────────────────
+
+async function isExceptionDepartment(department: string): Promise<boolean> {
+  const match = await prisma.exceptionDepartment.findFirst({
+    where: { name: { equals: department, mode: "insensitive" } },
+  });
+  return !!match;
+}
+
+// ─────────────────────────────────────────────────────────────
+// MAIN ASSIGNMENT FUNCTION
+// Called with orderId after payment is confirmed
+// ─────────────────────────────────────────────────────────────
+
+export async function assignChaptersForOrder(orderId: string): Promise<void> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { plan: true },
+  });
+
+  if (!order) throw new Error(`Order ${orderId} not found`);
+
+  const isException = await isExceptionDepartment(order.department);
+
+  // Update the order flag
+  await prisma.order.update({
+    where: { id: orderId },
+    data:  { isExceptionDept: isException },
+  });
+
+  // ── Determine what chapters to create ────────────────────
+  // For BASIC plan (flat fee) — still create chapters 1-5 for tracking
+  const chaptersToCreate: Array<{
+    chapterNumber: number;
+    chapterLabel:  string;
+    role:          Role;
+    assigneeRole:  AssigneeRole;
+    requiresPrelim: boolean;
+  }> = [];
+
+  if (isException) {
+    // All 5 chapters → Writer
+    for (const num of [1, 2, 3, 4, 5]) {
+      chaptersToCreate.push({
+        chapterNumber: num,
+        chapterLabel:  `Chapter ${num}`,
+        role:          Role.WRITER,
+        assigneeRole:  AssigneeRole.WRITER,
+        requiresPrelim: num === PRELIM_REQUIRED_CHAPTER,
+      });
+    }
+  } else {
+    // Writer chapters
+    for (const num of WRITER_CHAPTERS) {
+      chaptersToCreate.push({
+        chapterNumber: num,
+        chapterLabel:  `Chapter ${num}`,
+        role:          Role.WRITER,
+        assigneeRole:  AssigneeRole.WRITER,
+        requiresPrelim: num === PRELIM_REQUIRED_CHAPTER,
+      });
+    }
+    // Analyst chapters
+    for (const num of ANALYST_CHAPTERS) {
+      chaptersToCreate.push({
+        chapterNumber: num,
+        chapterLabel:  `Chapter ${num}`,
+        role:          Role.ANALYST,
+        assigneeRole:  AssigneeRole.ANALYST,
+        requiresPrelim: false,
+      });
+    }
+  }
+
+  // ── Find best staff for each role ────────────────────────
+  const writerId  = await getStaffWithFewestJobs(Role.WRITER);
+  const analystId = isException ? null : await getStaffWithFewestJobs(Role.ANALYST);
+
+  // ── Create OrderChapter records ──────────────────────────
+  for (const ch of chaptersToCreate) {
+    const assignedToId =
+      ch.role === Role.WRITER ? writerId : analystId;
+
+    await prisma.orderChapter.create({
+      data: {
+        orderId,
+        chapterNumber:  ch.chapterNumber,
+        chapterLabel:   ch.chapterLabel,
+        assignedToId:   assignedToId ?? undefined,
+        assigneeRole:   assignedToId ? ch.assigneeRole : undefined,
+        status:         assignedToId
+                          ? ChapterStatus.IN_PROGRESS
+                          : ChapterStatus.NOT_STARTED,
+        requiresPrelim: ch.requiresPrelim,
+      },
+    });
+  }
+
+  // ── Notify assigned staff ─────────────────────────────────
+  const notified = new Set<string>();
+
+  if (writerId && !notified.has(writerId)) {
+    await prisma.notification.create({
+      data: {
+        userId:  writerId,
+        orderId,
+        title:   "New Writing Job Assigned",
+        message: `You have been assigned chapters for a new order: "${order.topic}". Please log in to your dashboard to begin.`,
+        type:    "ACTION_REQUIRED",
+      },
+    });
+    notified.add(writerId);
+  }
+
+  if (analystId && !notified.has(analystId)) {
+    await prisma.notification.create({
+      data: {
+        userId:  analystId,
+        orderId,
+        title:   "New Analysis Job Assigned",
+        message: `You have been assigned chapters for a new order: "${order.topic}". Please log in to your dashboard to begin.`,
+        type:    "ACTION_REQUIRED",
+      },
+    });
+    notified.add(analystId);
+  }
+
+  // ── Notify client ─────────────────────────────────────────
+  await prisma.notification.create({
+    data: {
+      userId:  order.clientId,
+      orderId,
+      title:   "Your Order is Now In Progress",
+      message: `Great news! Your order for "${order.topic}" has been assigned to our writing team. You can track the progress from your dashboard.`,
+      type:    "INFO",
+    },
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// ROUTE CHAPTER TO QC
+// Called when a writer/analyst submits a chapter on an order
+// that requires plagiarism or AI check
+// ─────────────────────────────────────────────────────────────
+
+export async function routeChapterToQC(chapterId: string): Promise<void> {
+  const chapter = await prisma.orderChapter.findUnique({
+    where: { id: chapterId },
+    include: { order: true },
+  });
+
+  if (!chapter) throw new Error(`Chapter ${chapterId} not found`);
+
+  const order = chapter.order;
+  const needsQc = order.requiresPlagiarismCheck || order.requiresAiCheck;
+
+  if (!needsQc) return; // no QC needed — caller handles direct delivery
+
+  const qcUserId = await getStaffWithFewestJobs(Role.QC);
+
+  await prisma.orderChapter.update({
+    where: { id: chapterId },
+    data: {
+      status:       ChapterStatus.QC_IN_PROGRESS,
+      routedToQcId: qcUserId ?? undefined,
+      routedToQcAt: new Date(),
+      assigneeRole: AssigneeRole.QC,
+    },
+  });
+
+  if (qcUserId) {
+    await prisma.notification.create({
+      data: {
+        userId:  qcUserId,
+        orderId: order.id,
+        title:   "QC Check Required",
+        message: `A chapter from order "${order.topic}" has been submitted and requires ${
+          order.requiresPlagiarismCheck && order.requiresAiCheck
+            ? "plagiarism and AI checks"
+            : order.requiresPlagiarismCheck
+            ? "a plagiarism check"
+            : "an AI check"
+        }. Please log in to review.`,
+        type: "ACTION_REQUIRED",
+      },
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// DELIVER CHAPTER TO CLIENT
+// Called after QC clears a chapter (or directly if no QC needed)
+// ─────────────────────────────────────────────────────────────
+
+export async function deliverChapterToClient(
+  chapterId: string,
+  deliveredFileUrl: string
+): Promise<void> {
+  const chapter = await prisma.orderChapter.findUnique({
+    where: { id: chapterId },
+    include: {
+      order:      true,
+      assignedTo: true,
+      earnings:   true,
+    },
+  });
+
+  if (!chapter) throw new Error(`Chapter ${chapterId} not found`);
+
+  // Mark chapter as delivered
+  await prisma.orderChapter.update({
+    where: { id: chapterId },
+    data: {
+      status:          ChapterStatus.DELIVERED,
+      deliveredFileUrl,
+      deliveredAt:     new Date(),
+    },
+  });
+
+  // Unlock earnings for all staff on this chapter
+  await prisma.earning.updateMany({
+    where: {
+      orderChapterId: chapterId,
+      status:         "PENDING",
+    },
+    data: {
+      status:      "AVAILABLE",
+      availableAt: new Date(),
+    },
+  });
+
+  // Notify client
+  await prisma.notification.create({
+    data: {
+      userId:  chapter.order.clientId,
+      orderId: chapter.order.id,
+      title:   `${chapter.chapterLabel} Delivered`,
+      message: `Your ${chapter.chapterLabel} for "${chapter.order.topic}" is ready. Log in to your dashboard to download it.`,
+      type:    "SUCCESS",
+    },
+  });
+
+  // Check if all chapters are delivered → mark order as DELIVERED
+  const allChapters = await prisma.orderChapter.findMany({
+    where: { orderId: chapter.orderId },
+  });
+
+  const allDone = allChapters.every(
+    (c) => c.status === ChapterStatus.DELIVERED
+  );
+
+  if (allDone) {
+    await prisma.order.update({
+      where: { id: chapter.orderId },
+      data:  { status: "DELIVERED" },
+    });
+  }
+}

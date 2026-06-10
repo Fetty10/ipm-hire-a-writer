@@ -1,0 +1,420 @@
+// iProjectMaster — Hire a Writer
+// Prisma Schema — Phase 1
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum Role {
+  CLIENT
+  WRITER
+  ANALYST
+  QC
+  SUB_ADMIN
+  MAIN_ADMIN
+}
+
+enum DegreeGroup {
+  OND_HND_NCE
+  BSC_BED_BA
+  PGD_MSC_PHD
+}
+
+enum PlanName {
+  BASIC
+  STANDARD
+  PROFESSIONAL
+  PHD_PROFESSIONAL
+}
+
+enum PricingType {
+  FLAT       // one price for complete project
+  PER_CHAPTER
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAYMENT_CONFIRMED
+  IN_PROGRESS
+  QC_REVIEW
+  DELIVERED
+  REVISION_REQUESTED
+  CANCELLED
+}
+
+enum ChapterStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  PRELIM_SUBMITTED   // writer uploaded objectives/questions/hypotheses/scope
+  SUBMITTED          // chapter file uploaded by writer/analyst
+  QC_IN_PROGRESS
+  QC_DONE
+  DELIVERED
+}
+
+enum AssigneeRole {
+  WRITER
+  ANALYST
+  QC
+}
+
+enum EarningStatus {
+  PENDING      // job not yet delivered to client
+  AVAILABLE    // delivered, can withdraw
+  WITHDRAWN
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum ServiceType {
+  HIRE_WRITER
+  PROPOSAL_SEMINAR
+  JOURNAL_SOURCING
+  JOURNAL_WRITING
+  CORRECTIONS
+  TOPIC_SUGGESTION
+  CASE_STUDY_ADJUSTMENT
+  COMPLETE_PROJECT
+  GHANA_STUDENT
+  FOREIGN_STUDENT
+}
+
+enum NotificationType {
+  INFO
+  ACTION_REQUIRED
+  ALERT
+  SUCCESS
+}
+
+// ─────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  emailVerified   DateTime?
+  password        String    // hashed with bcrypt
+  role            Role      @default(CLIENT)
+  phone           String?
+
+  // Staff-only fields
+  isApproved      Boolean   @default(false) // main admin must approve staff
+  isSuspended     Boolean   @default(false)
+  suspendReason   String?
+  approvedAt      DateTime?
+  approvedById    String?   // main admin user id
+
+  // Client-only fields
+  institution     String?
+  department      String?
+
+  // Bank details for withdrawals (staff only)
+  bankName        String?
+  accountNumber   String?
+  accountName     String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  orders              Order[]           @relation("ClientOrders")
+  assignedChapters    OrderChapter[]    @relation("AssignedTo")
+  earnings            Earning[]
+  withdrawals         Withdrawal[]
+  notifications       Notification[]
+  accounts            Account[]
+  sessions            Session[]
+
+  @@index([role])
+  @@index([isApproved, isSuspended])
+}
+
+// ─────────────────────────────────────────
+// NEXTAUTH TABLES
+// ─────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────
+// PLANS & PRICING (Admin-editable)
+// ─────────────────────────────────────────
+
+model Plan {
+  id                      String      @id @default(cuid())
+  degreeGroup             DegreeGroup
+  planName                PlanName
+  pricingType             PricingType
+  priceKobo               Int         // price in kobo (₦ × 100) for Paystack
+  includesCorrections     Boolean     @default(false)
+  includesFormat          Boolean     @default(false)
+  includesPlagiarismCheck Boolean     @default(false)
+  isActive                Boolean     @default(true)
+  updatedAt               DateTime    @updatedAt
+  updatedById             String?
+
+  orders Order[]
+
+  @@unique([degreeGroup, planName])
+  @@index([isActive])
+}
+
+model ProposalPricing {
+  id           String      @id @default(cuid())
+  degreeGroup  DegreeGroup
+  priceKobo    Int
+  deliveryDays Int         @default(3)
+  isActive     Boolean     @default(true)
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([degreeGroup])
+}
+
+model JournalPricing {
+  id          String      @id @default(cuid())
+  type        String      // "sourcing" | "writing"
+  degreeGroup DegreeGroup?
+  priceKobo   Int
+  isActive    Boolean     @default(true)
+  updatedAt   DateTime    @updatedAt
+}
+
+// ─────────────────────────────────────────
+// PAY RATES (Admin-editable per role/chapter)
+// ─────────────────────────────────────────
+
+model PayRate {
+  id            String      @id @default(cuid())
+  role          AssigneeRole
+  chapterNumber Int?        // null = applies to all chapters for that role
+  degreeGroup   DegreeGroup
+  planName      PlanName
+  amountKobo    Int         // what the staff member earns
+  updatedAt     DateTime    @updatedAt
+  updatedById   String?
+
+  @@unique([role, chapterNumber, degreeGroup, planName])
+}
+
+// ─────────────────────────────────────────
+// EXCEPTION DEPARTMENTS
+// ─────────────────────────────────────────
+
+model ExceptionDepartment {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g. "Law", "Philosophy", "Microbiology"
+  createdAt DateTime @default(now())
+  createdBy String?
+}
+
+// ─────────────────────────────────────────
+// ORDERS
+// ─────────────────────────────────────────
+
+model Order {
+  id                  String      @id @default(cuid())
+  clientId            String
+  planId              String
+  serviceType         ServiceType @default(HIRE_WRITER)
+
+  // Academic details
+  topic               String
+  department          String
+  degreeGroup         DegreeGroup
+  institution         String?
+  numberOfPages       Int?
+  specialInstructions String?     @db.Text
+  guidelineFileUrl    String?     // client-uploaded format/guideline
+
+  // Add-ons
+  requiresPlagiarismCheck Boolean @default(false)
+  requiresAiCheck         Boolean @default(false)
+  requiresCorrections     Boolean @default(false)
+
+  // Is this an exception department? (computed at order creation)
+  isExceptionDept     Boolean @default(false)
+
+  // Payment
+  paystackReference   String?  @unique
+  amountPaidKobo      Int?
+  paidAt              DateTime?
+
+  // Status
+  status              OrderStatus @default(PENDING_PAYMENT)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  client              User          @relation("ClientOrders", fields: [clientId], references: [id])
+  plan                Plan          @relation(fields: [planId], references: [id])
+  chapters            OrderChapter[]
+  notifications       Notification[]
+
+  @@index([clientId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────
+// ORDER CHAPTERS
+// ─────────────────────────────────────────
+
+model OrderChapter {
+  id              String        @id @default(cuid())
+  orderId         String
+  chapterNumber   Int           // 1, 2, 3, 4, 5 — use 0 for "preliminary items"
+  chapterLabel    String        // e.g. "Chapter 1", "Chapter 3 & 4", "Proposal"
+  assignedToId    String?
+  assigneeRole    AssigneeRole?
+  status          ChapterStatus @default(NOT_STARTED)
+
+  // Pre-delivery requirements (Chapter 1, non-exception depts only)
+  requiresPrelim        Boolean  @default(false)
+  researchObjectives    String?  @db.Text
+  researchQuestions     String?  @db.Text
+  hypotheses            String?  @db.Text
+  scopeOfStudy          String?  @db.Text
+  prelimSubmittedAt     DateTime?
+
+  // File uploads
+  submittedFileUrl      String?   // writer/analyst upload
+  submittedAt           DateTime?
+  qcFileUrl             String?   // QC cleared version
+  qcClearedAt           DateTime?
+  deliveredFileUrl      String?   // final file sent to client
+  deliveredAt           DateTime?
+
+  // QC routing
+  routedToQcId          String?   // QC user assigned
+  routedToQcAt          DateTime?
+
+  // Notes/feedback
+  writerNotes           String?  @db.Text
+  adminNotes            String?  @db.Text
+  correctionNotes       String?  @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  order       Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  assignedTo  User?  @relation("AssignedTo", fields: [assignedToId], references: [id])
+  earnings    Earning[]
+
+  @@index([orderId])
+  @@index([assignedToId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────
+// EARNINGS
+// ─────────────────────────────────────────
+
+model Earning {
+  id              String        @id @default(cuid())
+  userId          String
+  orderChapterId  String
+  amountKobo      Int
+  status          EarningStatus @default(PENDING)
+  availableAt     DateTime?     // when it became withdrawable
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id])
+  orderChapter OrderChapter @relation(fields: [orderChapterId], references: [id])
+
+  @@index([userId, status])
+}
+
+// ─────────────────────────────────────────
+// WITHDRAWALS
+// ─────────────────────────────────────────
+
+model Withdrawal {
+  id             String           @id @default(cuid())
+  userId         String
+  amountKobo     Int
+  bankName       String
+  accountNumber  String
+  accountName    String
+  status         WithdrawalStatus @default(PENDING)
+  adminNote      String?
+  requestedAt    DateTime         @default(now())
+  processedAt    DateTime?
+  processedById  String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  orderId   String?
+  title     String
+  message   String           @db.Text
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead])
+}

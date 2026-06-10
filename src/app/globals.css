@@ -1,0 +1,70 @@
+/* src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --sky:        #38BDF8;
+    --sky-dark:   #0EA5E9;
+    --sky-deep:   #0284C7;
+    --sky-light:  #BAE6FD;
+    --sky-pale:   #E0F2FE;
+    --navy:       #0C1A2E;
+    --navy-mid:   #102339;
+    --navy-soft:  #16304D;
+    --muted:      #5B7EA6;
+    --border:     rgba(56,189,248,0.20);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'Satoshi', sans-serif;
+    background: #F0F9FF;
+    color: #0C1A2E;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Clash Display', sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .font-clash  { font-family: 'Clash Display', sans-serif; }
+  .font-satoshi { font-family: 'Satoshi', sans-serif; }
+
+  .text-navy   { color: #0C1A2E; }
+  .text-muted  { color: #5B7EA6; }
+  .text-sky    { color: #38BDF8; }
+  .text-sky-dark { color: #0EA5E9; }
+
+  .bg-navy     { background-color: #0C1A2E; }
+  .bg-sky-pale { background-color: #E0F2FE; }
+
+  .border-sky-border { border-color: rgba(56,189,248,0.20); }
+
+  /* Card shadow */
+  .card-shadow       { box-shadow: 0 4px 24px rgba(14,165,233,0.10); }
+  .card-shadow-hover { box-shadow: 0 12px 40px rgba(14,165,233,0.18); }
+
+  /* Animate in */
+  .fade-up {
+    animation: fadeUp 0.45s ease both;
+  }
+  .fade-up-1 { animation-delay: 0.05s; }
+  .fade-up-2 { animation-delay: 0.10s; }
+  .fade-up-3 { animation-delay: 0.15s; }
+  .fade-up-4 { animation-delay: 0.20s; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: #E0F2FE; }
+::-webkit-scrollbar-thumb { background: #38BDF8; border-radius: 3px; }
