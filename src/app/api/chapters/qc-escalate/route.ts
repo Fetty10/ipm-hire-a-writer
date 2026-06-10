@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/chapters/qc-escalate/route.ts
 // QC sends a chapter back to the original writer/analyst with instructions
 // Both QC notes AND student's correction request are visible to writer
