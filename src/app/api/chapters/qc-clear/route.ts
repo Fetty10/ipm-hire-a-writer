@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/chapters/qc-clear/route.ts
 // QC clears a chapter after plagiarism/AI checks → delivers to student
 // Also handles correction clearances (student correction flow)
