@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/chapters/corrections/route.ts
 // Student submits a correction request on a delivered chapter
 // Routes to QC — QC handles it (with option to escalate to writer)
