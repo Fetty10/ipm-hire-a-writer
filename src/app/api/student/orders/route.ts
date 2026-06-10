@@ -1,6 +1,7 @@
 // src/app/api/student/orders/route.ts
 // Returns orders for the logged-in student with full chapter status
 
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
