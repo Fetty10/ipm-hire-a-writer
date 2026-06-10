@@ -88,6 +88,7 @@ export default function WriterPendingJobs() {
               <JobCard
                 key={job.id}
                 {...job}
+                planName={job.planName || "STANDARD"}
                 onStarted={() => handleStarted(job.id)}
                 onRejected={() => handleRejected(job.id)}
               />
