@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/orders/route.ts
 // POST — student places a new order and gets a Paystack payment URL
 
