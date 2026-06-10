@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/chapters/start/route.ts
 // Called when a writer/analyst/QC clicks "Start Job"
 // Marks chapter as IN_PROGRESS and notifies admin
