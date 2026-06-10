@@ -20,20 +20,20 @@
   * { box-sizing: border-box; }
 
   body {
-    font-family: 'Satoshi', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     background: #F0F9FF;
     color: #0C1A2E;
   }
 
   h1, h2, h3, h4 {
-    font-family: 'Clash Display', sans-serif;
+    font-family: 'Syne', sans-serif;
     letter-spacing: -0.02em;
   }
 }
 
 @layer utilities {
-  .font-clash  { font-family: 'Clash Display', sans-serif; }
-  .font-satoshi { font-family: 'Satoshi', sans-serif; }
+  .font-clash   { font-family: 'Syne', sans-serif; }
+  .font-satoshi { font-family: 'DM Sans', sans-serif; }
 
   .text-navy   { color: #0C1A2E; }
   .text-muted  { color: #5B7EA6; }
