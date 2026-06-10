@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/staff/profile/route.ts
 // GET  — fetch own profile
 // PATCH — update name, phone, bank details, password
