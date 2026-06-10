@@ -1,7 +1,7 @@
+export const dynamic = "force-dynamic";
 // src/app/api/upload/route.ts
 // Universal file upload endpoint — writer/analyst/QC/student uploads
 // Returns a Cloudinary URL stored in DB by the calling API
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
