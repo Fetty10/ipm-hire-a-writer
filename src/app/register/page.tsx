@@ -1,316 +1,144 @@
 "use client";
 export const dynamic = "force-dynamic";
-// src/app/register/page.tsx
-// Smart registration: detects ?role=client or ?role=staff from URL
-
+import { Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { AuthLayout } from "@/components/layout/AuthLayout";
-import { Button, Input, Select, Card } from "@/components/ui";
-import { UserPlus, Eye, EyeOff, CheckCircle, Clock } from "lucide-react";
-import toast from "react-hot-toast";
 
-const ROLE_OPTIONS = [
-  { value: "WRITER",  label: "Writer"          },
-  { value: "ANALYST", label: "Analyst"          },
-  { value: "QC",      label: "Quality Control"  },
-];
-
-export default function RegisterPage() {
-  const router       = useRouter();
+function RegisterForm() {
   const searchParams = useSearchParams();
-  const mode         = searchParams.get("role") === "staff" ? "staff" : "client";
-
-  const [step, setStep] = useState<"form" | "pending" | "success">("form");
+  const router = useRouter();
+  const isStaff = searchParams.get("role") === "staff";
+  const [role, setRole] = useState<"CLIENT"|"WRITER"|"ANALYST"|"QC">(
+    isStaff ? "WRITER" : "CLIENT"
+  );
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPw,  setShowPw]  = useState(false);
-
-  const [form, setForm] = useState({
-    name:        "",
-    email:       "",
-    password:    "",
-    confirmPw:   "",
-    phone:       "",
-    role:        "WRITER",
-    institution: "",
-    department:  "",
-  });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  function set(field: string, value: string) {
-    setForm((f) => ({ ...f, [field]: value }));
-    setErrors((e) => ({ ...e, [field]: "" }));
-  }
-
-  function validate() {
-    const e: Record<string, string> = {};
-    if (!form.name.trim())                   e.name     = "Full name is required.";
-    if (!form.email.trim())                  e.email    = "Email is required.";
-    if (form.password.length < 8)            e.password = "Password must be at least 8 characters.";
-    if (form.password !== form.confirmPw)    e.confirmPw = "Passwords do not match.";
-    if (mode === "client" && !form.institution) e.institution = "Institution is required.";
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  }
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!validate()) return;
-
-    setLoading(true);
+    if (password !== confirm) { setError("Passwords do not match."); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
+    setLoading(true); setError("");
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name:        form.name,
-          email:       form.email,
-          password:    form.password,
-          role:        mode === "staff" ? form.role : "CLIENT",
-          phone:       form.phone || undefined,
-          institution: form.institution || undefined,
-          department:  form.department || undefined,
-        }),
+        body: JSON.stringify({ name, email, phone, password, role }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        toast.error(data.error || "Registration failed.");
-        return;
-      }
-
-      if (mode === "staff") {
-        setStep("pending"); // staff must wait for approval
-      } else {
-        setStep("success"); // clients can log in immediately
-      }
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+      if (!res.ok) { setError(data.error || "Registration failed."); return; }
+      setSuccess(true);
+    } catch { setError("Something went wrong."); }
+    finally { setLoading(false); }
   }
 
-  // ── Pending approval screen (staff) ──────────────────────
-  if (step === "pending") {
+  if (success) {
     return (
-      <AuthLayout>
-        <div className="w-full max-w-md text-center fade-up">
-          <div className="w-20 h-20 bg-yellow-50 border-2 border-yellow-200 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Clock className="w-10 h-10 text-yellow-600" />
-          </div>
-          <h1 className="font-clash text-2xl font-700 text-navy-DEFAULT mb-3">
-            Application Submitted!
-          </h1>
-          <p className="text-navy-muted text-sm leading-relaxed mb-2">
-            Your account has been created and is now <strong>pending admin approval</strong>.
-            Our admin team will review your application and get back to you within 24–48 hours.
+      <div className="min-h-screen bg-sky-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl border border-sky-100 shadow-sm p-8 max-w-md w-full text-center">
+          <div className="text-4xl mb-4">{role === "CLIENT" ? "🎉" : "⏳"}</div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            {role === "CLIENT" ? "Account Created!" : "Application Submitted!"}
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            {role === "CLIENT"
+              ? "You can now log in and place your first order."
+              : "Your application is under review. Admin will notify you once approved."}
           </p>
-          <p className="text-navy-muted text-sm leading-relaxed mb-8">
-            You'll receive an email at <strong className="text-sky-600">{form.email}</strong> once your account is approved or if further information is needed.
-          </p>
-          <Card className="text-left">
-            <p className="text-xs font-700 text-navy-muted uppercase tracking-wider mb-3">What happens next</p>
-            <div className="flex flex-col gap-3">
-              {[
-                "Admin reviews your registration",
-                "Account is approved or declined",
-                "You receive an email notification",
-                "If approved, log in and start working",
-              ].map((step, i) => (
-                <div key={i} className="flex gap-3 items-start">
-                  <span className="w-6 h-6 rounded-full bg-sky-100 text-sky-700 text-xs font-700 flex items-center justify-center flex-shrink-0">
-                    {i + 1}
-                  </span>
-                  <p className="text-sm text-navy-DEFAULT pt-0.5">{step}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-          <button
-            onClick={() => router.push("/login")}
-            className="mt-6 text-sm text-sky-600 font-700 hover:underline"
-          >
-            Back to Login →
+          <button onClick={() => router.push("/login")}
+            className="w-full py-3 rounded-xl bg-sky-400 text-navy-DEFAULT font-700 text-sm hover:bg-sky-500 transition-all">
+            Go to Login →
           </button>
         </div>
-      </AuthLayout>
-    );
-  }
-
-  // ── Success screen (client) ───────────────────────────────
-  if (step === "success") {
-    return (
-      <AuthLayout>
-        <div className="w-full max-w-md text-center fade-up">
-          <div className="w-20 h-20 bg-green-50 border-2 border-green-200 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-600" />
-          </div>
-          <h1 className="font-clash text-2xl font-700 text-navy-DEFAULT mb-3">
-            Account Created!
-          </h1>
-          <p className="text-navy-muted text-sm leading-relaxed mb-8">
-            Welcome to iProjectMaster. Your account is ready — you can log in and place your first order right away.
-          </p>
-          <Button size="lg" className="w-full" onClick={() => router.push("/login")}>
-            Log In Now
-          </Button>
-        </div>
-      </AuthLayout>
-    );
-  }
-
-  // ── Registration form ─────────────────────────────────────
-  return (
-    <AuthLayout>
-      <div className="w-full max-w-lg fade-up">
-        {/* Mode switcher */}
-        <div className="flex gap-2 p-1 bg-sky-100 rounded-2xl mb-8">
-          {[
-            { key: "client", label: "I'm a Client" },
-            { key: "staff",  label: "I'm a Writer / Analyst / QC" },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => router.push(`/register?role=${key}`)}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-700 transition-all ${
-                mode === key
-                  ? "bg-navy-DEFAULT text-sky-400 shadow-sm"
-                  : "text-navy-muted hover:text-navy-DEFAULT"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="text-center mb-6">
-          <h1 className="font-clash text-3xl font-700 text-navy-DEFAULT mb-2">
-            {mode === "client" ? "Create your account" : "Apply to join our team"}
-          </h1>
-          <p className="text-sm text-navy-muted">
-            {mode === "client"
-              ? "Start ordering professional academic writing"
-              : "Submit your application — admin will review and approve it"}
-          </p>
-        </div>
-
-        {/* Staff info banner */}
-        {mode === "staff" && (
-          <div className="mb-5 bg-sky-50 border border-sky-200 rounded-2xl p-4 flex gap-3">
-            <Clock className="w-5 h-5 text-sky-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-sky-800">
-              <strong>Note:</strong> Staff accounts require admin approval before you can log in. You'll be notified by email once your account is reviewed.
-            </p>
-          </div>
-        )}
-
-        <Card className="shadow-card-hover">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {mode === "staff" && (
-              <Select
-                label="I am applying as"
-                options={ROLE_OPTIONS}
-                value={form.role}
-                onChange={(e) => set("role", e.target.value)}
-              />
-            )}
-
-            <Input
-              label="Full Name"
-              placeholder="Chukwuemeka Okonkwo"
-              value={form.name}
-              onChange={(e) => set("name", e.target.value)}
-              error={errors.name}
-              required
-            />
-
-            <Input
-              label="Email Address"
-              type="email"
-              placeholder="you@example.com"
-              value={form.email}
-              onChange={(e) => set("email", e.target.value)}
-              error={errors.email}
-              required
-            />
-
-            <Input
-              label="Phone Number"
-              type="tel"
-              placeholder="+234 800 000 0000"
-              value={form.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              hint="Optional but recommended for updates"
-            />
-
-            {mode === "client" && (
-              <>
-                <Input
-                  label="Institution / University"
-                  placeholder="University of Lagos"
-                  value={form.institution}
-                  onChange={(e) => set("institution", e.target.value)}
-                  error={errors.institution}
-                />
-                <Input
-                  label="Department"
-                  placeholder="Business Administration"
-                  value={form.department}
-                  onChange={(e) => set("department", e.target.value)}
-                  hint="Optional — helps us assign the right expert"
-                />
-              </>
-            )}
-
-            <div className="relative">
-              <Input
-                label="Password"
-                type={showPw ? "text" : "password"}
-                placeholder="Min. 8 characters"
-                value={form.password}
-                onChange={(e) => set("password", e.target.value)}
-                error={errors.password}
-                className="pr-12"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-[38px] text-navy-muted hover:text-sky-500 transition-colors"
-              >
-                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-
-            <Input
-              label="Confirm Password"
-              type="password"
-              placeholder="Re-enter your password"
-              value={form.confirmPw}
-              onChange={(e) => set("confirmPw", e.target.value)}
-              error={errors.confirmPw}
-              required
-            />
-
-            <Button type="submit" loading={loading} size="lg" className="w-full mt-2">
-              <UserPlus className="w-4 h-4" />
-              {mode === "staff" ? "Submit Application" : "Create Account"}
-            </Button>
-          </form>
-
-          <div className="mt-5 pt-5 border-t border-sky-100 text-center">
-            <p className="text-sm text-navy-muted">
-              Already have an account?{" "}
-              <a href="/login" className="text-sky-600 font-700 hover:underline">
-                Sign in
-              </a>
-            </p>
-          </div>
-        </Card>
       </div>
-    </AuthLayout>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-sky-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            iProject<span className="text-sky-500">Master</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Create your account</p>
+        </div>
+
+        <div className="flex rounded-xl overflow-hidden border border-sky-200 mb-6">
+          <button onClick={() => setRole("CLIENT")}
+            className={`flex-1 py-3 text-sm font-600 transition-all ${role==="CLIENT" ? "bg-sky-400 text-gray-900" : "bg-white text-gray-500"}`}>
+            🎓 Student
+          </button>
+          <button onClick={() => setRole("WRITER")}
+            className={`flex-1 py-3 text-sm font-600 transition-all ${role!=="CLIENT" ? "bg-gray-900 text-sky-400" : "bg-white text-gray-500"}`}>
+            ✍️ Staff
+          </button>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-sky-100 shadow-sm p-6">
+          {role !== "CLIENT" && (
+            <div className="mb-4">
+              <label className="text-xs font-700 text-gray-700 uppercase tracking-wider block mb-1.5">Role</label>
+              <select value={role} onChange={e=>setRole(e.target.value as any)}
+                className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
+                <option value="WRITER">Writer</option>
+                <option value="ANALYST">Analyst</option>
+                <option value="QC">Quality Control</option>
+              </select>
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div>
+              <label className="text-xs font-700 text-gray-700 uppercase tracking-wider block mb-1.5">Full Name</label>
+              <input value={name} onChange={e=>setName(e.target.value)} required placeholder="Your full name"
+                className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+            </div>
+            <div>
+              <label className="text-xs font-700 text-gray-700 uppercase tracking-wider block mb-1.5">Phone Number</label>
+              <input value={phone} onChange={e=>setPhone(e.target.value)} required placeholder="08012345678"
+                className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+            </div>
+            <div>
+              <label className="text-xs font-700 text-gray-700 uppercase tracking-wider block mb-1.5">Email Address</label>
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="you@email.com"
+                className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+            </div>
+            <div>
+              <label className="text-xs font-700 text-gray-700 uppercase tracking-wider block mb-1.5">Password</label>
+              <input type="password" value={password} onChange={e=>setPassword(e.target.value)} required placeholder="Min. 8 characters"
+                className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+            </div>
+            <div>
+              <label className="text-xs font-700 text-gray-700 uppercase tracking-wider block mb-1.5">Confirm Password</label>
+              <input type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} required placeholder="Re-enter password"
+                className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+            </div>
+            {error && <p className="text-xs text-red-500 font-600">{error}</p>}
+            <button type="submit" disabled={loading}
+              className="w-full py-3 rounded-xl bg-sky-400 text-gray-900 font-700 text-sm hover:bg-sky-500 disabled:opacity-50 transition-all">
+              {loading ? "Creating..." : role==="CLIENT" ? "Create Account →" : "Submit Application →"}
+            </button>
+          </form>
+          <p className="text-center text-xs text-gray-500 mt-4">
+            Already have an account?{" "}
+            <button onClick={() => router.push("/login")} className="text-sky-600 font-700 hover:underline">Sign in</button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }
