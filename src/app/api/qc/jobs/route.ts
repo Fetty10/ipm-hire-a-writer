@@ -1,7 +1,7 @@
+export const dynamic = "force-dynamic";
 // src/app/api/qc/jobs/route.ts
 // Returns chapters assigned to QC — split by flow: checks or corrections
 
-export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
