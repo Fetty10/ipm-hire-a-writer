@@ -1,4 +1,5 @@
 // src/app/api/plans/route.ts
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { DegreeGroup } from "@prisma/client";
