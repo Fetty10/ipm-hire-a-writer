@@ -1,6 +1,7 @@
 // src/app/api/student/downloads/route.ts
 // Returns all delivered chapters for the logged-in student
 
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
