@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/withdrawals/route.ts
 // POST  — staff requests a withdrawal
 // PATCH — admin approves → fires Paystack Transfer automatically
