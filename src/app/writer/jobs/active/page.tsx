@@ -79,6 +79,7 @@ export default function WriterActiveJobs() {
               <JobCard
                 key={job.id}
                 {...job}
+                planName={job.planName || "STANDARD"}
                 onSubmitted={() => handleSubmitted(job.id)}
               />
             ))}
