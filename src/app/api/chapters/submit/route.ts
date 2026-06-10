@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/chapters/submit/route.ts
 // Called when a writer/analyst submits a completed chapter
 // Flow:
