@@ -1,5 +1,5 @@
-export const dynamic = "force-dynamic";
 "use client";
+export const dynamic = "force-dynamic";
 // src/app/register/page.tsx
 // Smart registration: detects ?role=client or ?role=staff from URL
 
