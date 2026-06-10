@@ -1,7 +1,6 @@
+export const dynamic = "force-dynamic";
 // src/app/api/staff/earnings/route.ts
 // Returns earnings summary + per-job breakdown for logged-in staff
-
-export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
