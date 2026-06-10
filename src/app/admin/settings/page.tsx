@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 "use client";
 // src/app/admin/settings/page.tsx
 import { useState } from "react";
