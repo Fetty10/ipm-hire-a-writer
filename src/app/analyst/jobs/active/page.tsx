@@ -77,10 +77,10 @@ export default function AnalystActiveJobs() {
           <div className="flex flex-col gap-4">
             {jobs.map((job) => (
               <JobCard
-  key={job.id}
-  {...job}
-  planName={job.planName || "STANDARD"}
-  onSubmitted={() => handleSubmitted(job.id)}
+                key={job.id}
+                {...job}
+                planName={job.planName || "STANDARD"}
+                onSubmitted={() => handleSubmitted(job.id)}
               />
             ))}
           </div>
