@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/chapters/reject/route.ts
 // Called when a writer/analyst/QC rejects an assigned job
 // Reassigns to the next available staff with fewest active jobs
