@@ -1,9 +1,9 @@
+export const dynamic = "force-dynamic";
 // src/app/api/admin/settings/route.ts
 // GET  — fetch pay rates, plans, departments
 // PATCH — update pay rates or plan prices
 // POST  — add exception department
 // DELETE — remove exception department
-export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
