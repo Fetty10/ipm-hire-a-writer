@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/qc/start/route.ts
 // QC clicks "Start Check" — marks chapter QC_IN_PROGRESS
 
