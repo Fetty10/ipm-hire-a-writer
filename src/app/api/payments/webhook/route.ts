@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/payments/webhook/route.ts
 // Paystack webhook — confirms payment and triggers job assignment
 
