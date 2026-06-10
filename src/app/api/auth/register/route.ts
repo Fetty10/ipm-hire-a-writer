@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/auth/register/route.ts
 // Handles registration for clients AND staff
 // Staff accounts start as isApproved: false — Main Admin must approve
