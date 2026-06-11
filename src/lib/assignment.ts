@@ -87,7 +87,12 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   });
 
   // ── Determine what chapters to create ────────────────────
-  // For BASIC plan (flat fee) — still create chapters 1-5 for tracking
+  // If student selected specific chapters (per-chapter plan), only create those
+  // Otherwise create all 5 chapters
+  const requestedNums: number[] = order.selectedChapters
+    ? order.selectedChapters.split(",").map(Number).filter(Boolean)
+    : [1, 2, 3, 4, 5];
+
   const chaptersToCreate: Array<{
     chapterNumber: number;
     chapterLabel:  string;
@@ -97,8 +102,8 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   }> = [];
 
   if (isException) {
-    // All 5 chapters → Writer
-    for (const num of [1, 2, 3, 4, 5]) {
+    // All requested chapters → Writer
+    for (const num of requestedNums) {
       chaptersToCreate.push({
         chapterNumber: num,
         chapterLabel:  `Chapter ${num}`,
@@ -108,8 +113,8 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
       });
     }
   } else {
-    // Writer chapters
-    for (const num of WRITER_CHAPTERS) {
+    // Writer chapters (1, 2, 5) that were requested
+    for (const num of WRITER_CHAPTERS.filter(n => requestedNums.includes(n))) {
       chaptersToCreate.push({
         chapterNumber: num,
         chapterLabel:  `Chapter ${num}`,
@@ -118,8 +123,8 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
         requiresPrelim: num === PRELIM_REQUIRED_CHAPTER,
       });
     }
-    // Analyst chapters
-    for (const num of ANALYST_CHAPTERS) {
+    // Analyst chapters (3, 4) that were requested
+    for (const num of ANALYST_CHAPTERS.filter(n => requestedNums.includes(n))) {
       chaptersToCreate.push({
         chapterNumber: num,
         chapterLabel:  `Chapter ${num}`,
@@ -146,7 +151,9 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
         chapterLabel:   ch.chapterLabel,
         assignedToId:   assignedToId ?? undefined,
         assigneeRole:   assignedToId ? ch.assigneeRole : undefined,
-        status:         ChapterStatus.NOT_STARTED,
+        status:         assignedToId
+                          ? ChapterStatus.IN_PROGRESS
+                          : ChapterStatus.NOT_STARTED,
         requiresPrelim: ch.requiresPrelim,
       },
     });
