@@ -2,28 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: #F0F9FF;
-    color: #0C1A2E;
-  }
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-@layer utilities {
-  .font-clash { font-family: 'Syne', sans-serif; }
-  .font-800 { font-weight: 800; }
-  .font-700 { font-weight: 700; }
-  .font-600 { font-weight: 600; }
-  .font-500 { font-weight: 500; }
-  .text-navy-DEFAULT { color: #0C1A2E; }
-  .text-navy-muted { color: #5B7EA6; }
-  .text-sky-deep { color: #0369A1; }
-  .bg-navy-DEFAULT { background-color: #0C1A2E; }
-  .bg-navy-mid { background-color: #112240; }
-  .bg-sky-pale { background-color: #F0F9FF; }
-  .border-sky-light { border-color: #BAE6FD; }
-  .shadow-card { box-shadow: 0 2px 12px rgba(14,165,233,0.06); }
-  .shadow-card-hover { box-shadow: 0 8px 24px rgba(14,165,233,0.12); }
-  .tracking-tight { letter-spacing: -0.02em; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #F0F9FF;
+  color: #0C1A2E;
 }
