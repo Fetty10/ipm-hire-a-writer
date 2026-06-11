@@ -73,7 +73,7 @@ export default function WriterProfile() {
     setPwSaving(false);
   }
 
-  if(loading) return <StaffLayout navItems={NAV} role="Quality Control" initials={initials}><div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div></StaffLayout>;
+  if(loading) return <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}><div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div></StaffLayout>;
 
   return (
     <StaffLayout navItems={NAV} role="Quality Control" initials={initials}>
