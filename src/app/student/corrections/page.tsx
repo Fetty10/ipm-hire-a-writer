@@ -40,7 +40,11 @@ export default function StudentCorrections() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(()=>{
-    fetch("/api/student/orders?filter=completed").then(r=>r.json()).then(d=>{ if(d.success) setOrders(d.data); setLoading(false); });
+    fetch("/api/student/orders?filter=completed")
+  .then(r=>r.json())
+  .then(d=>{ if(d.success) setOrders(d.data); })
+  .catch(()=>{})
+  .finally(()=>setLoading(false));
   },[]);
 
   const selOrder = orders.find(o=>o.id===orderId);
