@@ -47,7 +47,7 @@ export default function WriterDelivered() {
   },[search]);
 
   return (
-    <StaffLayout navItems={NAV} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>Cleared Checks</h1>
         <p style={C.sub}>All chapters you've completed and delivered.</p>
