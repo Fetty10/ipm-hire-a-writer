@@ -191,8 +191,8 @@ function StaffApplyForm() {
             <div style={C.fg}>
               <label style={C.lbl}>Applying as</label>
               <select style={C.sel} value={role} onChange={e => setRole(e.target.value)}>
-                <option value="WRITER">Writer (Chapters 1, 2 & 5)</option>
-                <option value="ANALYST">Analyst (Chapters 3 & 4)</option>
+                <option value="WRITER">Writer</option>
+                <option value="ANALYST">Analyst</option>
                 <option value="QC">Quality Control</option>
               </select>
             </div>
