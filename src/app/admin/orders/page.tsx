@@ -4,75 +4,85 @@ import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Spinner } from "@/components/ui";
+
+const C = {
+  page:  { maxWidth:"1100px", margin:"0 auto" },
+  h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.25rem" },
+  sbar:  { display:"flex", gap:".75rem", marginBottom:"1rem", flexWrap:"wrap" as const },
+  sinput:{ flex:1, minWidth:"200px", padding:".65rem 1rem .65rem 2.2rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none" },
+  sel:   { padding:".65rem 1rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none" },
+  total: { fontSize:".78rem", color:"#5B7EA6", marginBottom:".75rem" },
+  card:  { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", overflow:"hidden" },
+  table: { width:"100%", borderCollapse:"collapse" as const, fontSize:".78rem" },
+  th:    { textAlign:"left" as const, padding:".6rem 1rem", fontSize:".6rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#5B7EA6", borderBottom:"1px solid #E0F2FE", whiteSpace:"nowrap" as const, background:"#F8FBFF" },
+  td:    { padding:".65rem 1rem", borderBottom:"1px solid #F0F9FF", color:"#0C1A2E", verticalAlign:"middle" as const },
+  badge: { display:"inline-flex", padding:"2px 8px", borderRadius:"999px", fontSize:".65rem", fontWeight:700, whiteSpace:"nowrap" as const },
+};
 
 const STATUSES = ["all","IN_PROGRESS","QC_REVIEW","DELIVERED","PENDING_PAYMENT","CANCELLED"];
+const STATUS_COLORS:Record<string,React.CSSProperties> = {
+  DELIVERED:{background:"#D1FAE5",color:"#065F46"},
+  QC_REVIEW:{background:"#E0F2FE",color:"#0369A1"},
+  IN_PROGRESS:{background:"#FEF9C3",color:"#854D0E"},
+  PENDING_PAYMENT:{background:"#F1F5F9",color:"#64748B"},
+  CANCELLED:{background:"#FEE2E2",color:"#991B1B"},
+};
 
 function AdminOrdersContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
-  const [search, setSearch] = useState(searchParams.get("search")||"");
-  const [status, setStatus] = useState(searchParams.get("status")||"all");
+  const [total,   setTotal]   = useState(0);
+  const [search,  setSearch]  = useState(searchParams.get("search")||"");
+  const [status,  setStatus]  = useState(searchParams.get("status")||"all");
 
-  useEffect(() => {
+  useEffect(()=>{
     async function load() {
       setLoading(true);
-      const res = await fetch(`/api/admin/orders?status=${status}&search=${encodeURIComponent(search)}`);
+      const res  = await fetch(`/api/admin/orders?status=${status}&search=${encodeURIComponent(search)}`);
       const data = await res.json();
-      if (data.success) { setOrders(data.data.orders); setTotal(data.data.total); }
+      if(data.success){ setOrders(data.data.orders); setTotal(data.data.total); }
       setLoading(false);
     }
     load();
-  }, [status, search]);
+  },[status,search]);
 
   return (
     <AdminLayout>
-      <div className="max-w-6xl mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">All Orders</h1>
-        <p className="text-sm text-navy-muted mb-5">Complete order list with full management controls.</p>
-        <div className="flex gap-2 mb-4 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by topic, student name or phone..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+      <div style={C.page}>
+        <h1 style={C.h1}>All Orders</h1>
+        <p style={C.sub}>Complete order list with full management controls.</p>
+        <div style={C.sbar}>
+          <div style={{position:"relative",flex:1,minWidth:"200px"}}>
+            <span style={{position:"absolute",left:".75rem",top:"50%",transform:"translateY(-50%)",fontSize:".85rem"}}>🔍</span>
+            <input style={C.sinput} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by topic, student name or phone..." />
           </div>
-          <select value={status} onChange={e=>setStatus(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
+          <select style={C.sel} value={status} onChange={e=>setStatus(e.target.value)}>
             {STATUSES.map(s=><option key={s} value={s}>{s==="all"?"All Statuses":s.replace(/_/g," ")}</option>)}
           </select>
         </div>
-        <p className="text-xs text-gray-500 mb-3">{total} orders found</p>
-        {loading ? <div className="flex justify-center py-12"><Spinner size="lg"/></div> : (
-          <div className="bg-white rounded-2xl border border-sky-100 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead><tr className="border-b border-sky-100 bg-sky-50/50">
-                  {["#","Student","Phone","Topic","Level","Plan","Amount","Status","Chapters"].map(h=>
-                    <th key={h} className="text-left py-3 px-4 text-[.6rem] font-700 uppercase tracking-wider text-gray-400 whitespace-nowrap">{h}</th>
-                  )}
-                </tr></thead>
+        <p style={C.total}>{total} orders found</p>
+        {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div> : (
+          <div style={C.card}>
+            <div style={{overflowX:"auto"}}>
+              <table style={C.table}>
+                <thead>
+                  <tr>{["#","Student","Phone","Topic","Level","Plan","Amount","Status","Chapters"].map(h=><th key={h} style={C.th}>{h}</th>)}</tr>
+                </thead>
                 <tbody>
                   {orders.map((o:any)=>(
-                    <tr key={o.id} className="border-b border-sky-50 hover:bg-sky-50/30">
-                      <td className="py-3 px-4 text-gray-400 font-600">{o.id.slice(-6).toUpperCase()}</td>
-                      <td className="py-3 px-4 font-700 whitespace-nowrap">{o.student?.name}</td>
-                      <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{o.student?.phone}</td>
-                      <td className="py-3 px-4 max-w-[160px] truncate">{o.topic}</td>
-                      <td className="py-3 px-4 whitespace-nowrap text-gray-500">{o.degreeGroup?.replace(/_/g,"/")}</td>
-                      <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[.65rem] font-700 bg-sky-100 text-sky-700 whitespace-nowrap">{o.planName}</span></td>
-                      <td className="py-3 px-4 font-700 text-sky-600 whitespace-nowrap">₦{(o.amountPaid||0).toLocaleString()}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[.65rem] font-700 whitespace-nowrap ${
-                          o.status==="DELIVERED"?"bg-green-50 text-green-700":
-                          o.status==="QC_REVIEW"?"bg-sky-100 text-sky-700":
-                          o.status==="IN_PROGRESS"?"bg-yellow-50 text-yellow-700":"bg-gray-100 text-gray-500"}`}>
-                          {o.status?.replace(/_/g," ")}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-500 whitespace-nowrap">
+                    <tr key={o.id} style={{cursor:"pointer"}} onClick={()=>{}}>
+                      <td style={{...C.td,color:"#5B7EA6",fontWeight:600}}>{o.id.slice(-6).toUpperCase()}</td>
+                      <td style={{...C.td,fontWeight:700,whiteSpace:"nowrap" as const}}>{o.student?.name}</td>
+                      <td style={{...C.td,color:"#5B7EA6",whiteSpace:"nowrap" as const}}>{o.student?.phone}</td>
+                      <td style={{...C.td,maxWidth:"160px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{o.topic}</td>
+                      <td style={{...C.td,color:"#5B7EA6",whiteSpace:"nowrap" as const}}>{o.degreeGroup?.replace(/_/g,"/")}</td>
+                      <td style={C.td}><span style={{...C.badge,background:"#E0F2FE",color:"#0369A1"}}>{o.planName}</span></td>
+                      <td style={{...C.td,fontWeight:700,color:"#0284C7",whiteSpace:"nowrap" as const}}>₦{(o.amountPaid||0).toLocaleString()}</td>
+                      <td style={C.td}><span style={{...C.badge,...(STATUS_COLORS[o.status]||{background:"#F1F5F9",color:"#64748B"})}}>{o.status?.replace(/_/g," ")}</span></td>
+                      <td style={{...C.td,color:"#5B7EA6",whiteSpace:"nowrap" as const}}>
                         {o.chapters?.filter((c:any)=>c.status==="DELIVERED").length}/{o.chapters?.length}
                       </td>
                     </tr>
@@ -89,7 +99,7 @@ function AdminOrdersContent() {
 
 export default function AdminOrders() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Spinner size="lg"/></div>}>
+    <Suspense fallback={<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#5B7EA6"}}>Loading...</div>}>
       <AdminOrdersContent />
     </Suspense>
   );
