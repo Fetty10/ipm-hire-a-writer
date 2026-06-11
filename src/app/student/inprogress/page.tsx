@@ -41,7 +41,11 @@ export default function StudentInProgress() {
   const [loading, setLoading] = useState(true);
 
   useEffect(()=>{
-    fetch("/api/student/orders?filter=active").then(r=>r.json()).then(d=>{ if(d.success) setOrders(d.data); setLoading(false); });
+    fetch("/api/student/orders?filter=active")
+  .then(r=>r.json())
+  .then(d=>{ if(d.success) setOrders(d.data); })
+  .catch(()=>{})
+  .finally(()=>setLoading(false));
   },[]);
 
   return (
