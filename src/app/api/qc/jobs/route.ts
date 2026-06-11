@@ -22,20 +22,27 @@ export async function GET(req: NextRequest) {
   // Corrections flow: chapters routed after student correction request (correctionNotes set)
 
   let statusFilter: ChapterStatus[] = [];
+  let routingFilter: any = {};
 
-  if (status === "pending") statusFilter = [ChapterStatus.QC_IN_PROGRESS];
-  if (status === "active")  statusFilter = [ChapterStatus.QC_IN_PROGRESS];
-  if (status === "cleared") statusFilter = [ChapterStatus.QC_DONE, ChapterStatus.DELIVERED];
+  if (status === "pending") {
+    // Pending = QC_IN_PROGRESS but not yet claimed by any QC
+    statusFilter  = [ChapterStatus.QC_IN_PROGRESS];
+    routingFilter = { routedToQcId: null };
+  }
+  if (status === "active") {
+    // Active = QC_IN_PROGRESS and claimed by this QC
+    statusFilter  = [ChapterStatus.QC_IN_PROGRESS];
+    routingFilter = { routedToQcId: session.user.id };
+  }
+  if (status === "cleared") {
+    statusFilter  = [ChapterStatus.QC_DONE, ChapterStatus.DELIVERED];
+    routingFilter = { routedToQcId: session.user.id };
+  }
 
   const chapters = await prisma.orderChapter.findMany({
     where: {
-      // Show chapters routed to this QC OR unassigned QC chapters (routedToQcId is null)
-      OR: [
-        { routedToQcId: session.user.id },
-        { routedToQcId: null, status: { in: [ChapterStatus.QC_IN_PROGRESS] } },
-      ],
+      ...routingFilter,
       status: { in: statusFilter },
-      // Differentiate corrections from normal checks via correctionNotes
       ...(flow === "corrections"
         ? { correctionNotes: { not: null } }
         : { correctionNotes: null }),
