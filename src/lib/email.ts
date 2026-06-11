@@ -131,7 +131,7 @@ export async function sendAccountApprovedEmail(opts: {
       <div class="title">Welcome to iProjectMaster!</div>
       <p class="text">Hi ${opts.name}, your <strong>${opts.role}</strong> account has been reviewed and approved by our admin team.</p>
       <p class="text">You can now log in and start accepting jobs. Jobs will be automatically assigned to you based on your availability.</p>
-      <a href="${APP}/login" class="btn">Log In Now →</a>
+      <a href="${APP}/staff/login" class="btn">Log In to Staff Portal →</a>
     `),
   });
 }
