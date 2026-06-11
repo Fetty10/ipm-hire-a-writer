@@ -2,7 +2,6 @@
 // Returns all chapters assigned to the currently logged-in staff member
 // Filtered by status: pending | active | delivered | all
 
-export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -13,7 +12,7 @@ const STATUS_GROUPS = {
   pending:   [ChapterStatus.NOT_STARTED],
   active:    [ChapterStatus.IN_PROGRESS, ChapterStatus.PRELIM_SUBMITTED],
   qc:        [ChapterStatus.QC_IN_PROGRESS],
-  delivered: [ChapterStatus.DELIVERED],
+  delivered: [ChapterStatus.SUBMITTED, ChapterStatus.QC_IN_PROGRESS, ChapterStatus.QC_DONE, ChapterStatus.DELIVERED],
   all:       Object.values(ChapterStatus),
 };
 
