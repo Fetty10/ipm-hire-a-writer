@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // src/app/api/qc/jobs/route.ts
 // Returns chapters assigned to QC — split by flow: checks or corrections
 
@@ -24,14 +23,18 @@ export async function GET(req: NextRequest) {
 
   let statusFilter: ChapterStatus[] = [];
 
-  if (status === "pending") statusFilter = [ChapterStatus.NOT_STARTED];
+  if (status === "pending") statusFilter = [ChapterStatus.QC_IN_PROGRESS];
   if (status === "active")  statusFilter = [ChapterStatus.QC_IN_PROGRESS];
   if (status === "cleared") statusFilter = [ChapterStatus.QC_DONE, ChapterStatus.DELIVERED];
 
   const chapters = await prisma.orderChapter.findMany({
     where: {
-      routedToQcId: session.user.id,
-      status:       { in: statusFilter },
+      // Show chapters routed to this QC OR unassigned QC chapters (routedToQcId is null)
+      OR: [
+        { routedToQcId: session.user.id },
+        { routedToQcId: null, status: { in: [ChapterStatus.QC_IN_PROGRESS] } },
+      ],
+      status: { in: statusFilter },
       // Differentiate corrections from normal checks via correctionNotes
       ...(flow === "corrections"
         ? { correctionNotes: { not: null } }
