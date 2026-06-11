@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 // src/app/api/upload/route.ts
-// Universal file upload endpoint — writer/analyst/QC/student uploads
-// Returns a Cloudinary URL stored in DB by the calling API
+
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -13,7 +12,10 @@ import {
 } from "@/lib/upload";
 import { Role } from "@prisma/client";
 
-// Map role → allowed folders
+// Folders that don't require authentication (staff application uploads)
+const PUBLIC_FOLDERS: UploadFolder[] = ["staff/cv", "staff/samples"];
+
+// Map role → allowed folders (for authenticated users)
 const ROLE_FOLDERS: Record<Role, UploadFolder[]> = {
   [Role.CLIENT]:     ["orders/guidelines", "orders/supervisor-notes"],
   [Role.WRITER]:     ["chapters/submitted", "staff/cv", "staff/samples"],
@@ -24,11 +26,6 @@ const ROLE_FOLDERS: Record<Role, UploadFolder[]> = {
 };
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const formData = await req.formData();
   const file     = formData.get("file") as File | null;
   const folder   = formData.get("folder") as UploadFolder | null;
@@ -37,13 +34,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "File and folder are required." }, { status: 400 });
   }
 
-  // ── Validate folder access ────────────────────────────────
-  const allowed = ROLE_FOLDERS[session.user.role] || [];
-  if (!allowed.includes(folder)) {
-    return NextResponse.json(
-      { error: "You are not allowed to upload to this folder." },
-      { status: 403 }
-    );
+  // ── Public folders don't require login (staff applicants) ──
+  const isPublicFolder = PUBLIC_FOLDERS.includes(folder);
+
+  if (!isPublicFolder) {
+    // Require authentication for all other folders
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // Validate folder access for logged-in users
+    const allowed = ROLE_FOLDERS[session.user.role] || [];
+    if (!allowed.includes(folder)) {
+      return NextResponse.json(
+        { error: "You are not allowed to upload to this folder." },
+        { status: 403 }
+      );
+    }
   }
 
   // ── Validate MIME type ────────────────────────────────────
