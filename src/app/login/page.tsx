@@ -1,18 +1,14 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 
 function LoginForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [tab, setTab] = useState<"student"|"staff">(
-    (searchParams.get("role") as "student"|"staff") || "student"
-  );
+  const [tab, setTab] = useState<"student"|"staff">("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,85 +17,75 @@ function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    const result = await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-    });
+    setLoading(true); setError("");
+    const result = await signIn("credentials", { redirect: false, email, password });
     if (result?.error) {
       setError(
-        result.error === "ACCOUNT_PENDING_APPROVAL"
-          ? "Your account is pending admin approval."
-          : result.error === "ACCOUNT_SUSPENDED"
-          ? "Your account has been suspended. Contact admin."
-          : "Invalid email or password."
+        result.error === "ACCOUNT_PENDING_APPROVAL" ? "Your account is pending admin approval." :
+        result.error === "ACCOUNT_SUSPENDED" ? "Your account has been suspended. Contact admin." :
+        "Invalid email or password."
       );
-      setLoading(false);
-      return;
+      setLoading(false); return;
     }
     router.push(tab === "student" ? "/student/dashboard" : "/writer/dashboard");
   }
 
   return (
-    <div className="min-h-screen bg-sky-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-navy-DEFAULT">
-            iProject<span className="text-sky-500">Master</span>
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Hire a Writer Platform</p>
+    <div style={{minHeight:"100vh",background:"#F0F9FF",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{width:"100%",maxWidth:"420px"}}>
+        {/* Logo */}
+        <div style={{textAlign:"center",marginBottom:"2rem"}}>
+          <div style={{fontSize:"1.8rem",fontWeight:"800",color:"#0C1A2E",fontFamily:"'Syne',sans-serif"}}>
+            iProject<span style={{color:"#38BDF8"}}>Master</span>
+          </div>
+          <p style={{fontSize:".85rem",color:"#5B7EA6",marginTop:".3rem"}}>Hire a Writer Platform</p>
         </div>
 
-        <div className="flex rounded-xl overflow-hidden border border-sky-200 mb-6">
-          <button onClick={() => setTab("student")}
-            className={`flex-1 py-3 text-sm font-600 transition-all ${tab==="student" ? "bg-sky-400 text-navy-DEFAULT" : "bg-white text-gray-500"}`}>
+        {/* Tab switcher */}
+        <div style={{display:"flex",borderRadius:"12px",overflow:"hidden",border:"1.5px solid #BAE6FD",marginBottom:"1.5rem"}}>
+          <button onClick={() => setTab("student")} style={{flex:1,padding:".75rem",fontSize:".82rem",fontWeight:"700",cursor:"pointer",border:"none",background:tab==="student"?"#38BDF8":"#fff",color:tab==="student"?"#0C1A2E":"#5B7EA6",transition:"all .2s"}}>
             🎓 Student Login
           </button>
-          <button onClick={() => setTab("staff")}
-            className={`flex-1 py-3 text-sm font-600 transition-all ${tab==="staff" ? "bg-navy-DEFAULT text-sky-400" : "bg-white text-gray-500"}`}>
+          <button onClick={() => setTab("staff")} style={{flex:1,padding:".75rem",fontSize:".82rem",fontWeight:"700",cursor:"pointer",border:"none",background:tab==="staff"?"#0C1A2E":"#fff",color:tab==="staff"?"#38BDF8":"#5B7EA6",transition:"all .2s"}}>
             👤 Staff Login
           </button>
         </div>
 
-        <div className="bg-white rounded-2xl border border-sky-100 shadow-sm p-6">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* Card */}
+        <div style={{background:"#fff",borderRadius:"20px",border:"1.5px solid #E0F2FE",boxShadow:"0 4px 24px rgba(14,165,233,.08)",padding:"1.75rem"}}>
+          <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:"1rem"}}>
             <div>
-              <label className="text-xs font-700 text-gray-700 uppercase tracking-wider block mb-1.5">Email or Phone</label>
-              <input type="text" value={email} onChange={e=>setEmail(e.target.value)} required
-                placeholder="you@email.com or 08012345678"
-                className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+              <label style={{fontSize:".72rem",fontWeight:"700",textTransform:"uppercase",letterSpacing:".08em",color:"#0C1A2E",display:"block",marginBottom:".5rem"}}>Email or Phone</label>
+              <input type="text" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="you@email.com or 08012345678"
+                style={{width:"100%",padding:".75rem 1rem",borderRadius:"12px",border:"1.5px solid #BAE6FD",fontSize:".85rem",outline:"none",fontFamily:"'DM Sans',sans-serif",boxSizing:"border-box"}} />
             </div>
             <div>
-              <label className="text-xs font-700 text-gray-700 uppercase tracking-wider block mb-1.5">Password</label>
-              <div className="relative">
-                <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} required
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 pr-10" />
-                <button type="button" onClick={()=>setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+              <label style={{fontSize:".72rem",fontWeight:"700",textTransform:"uppercase",letterSpacing:".08em",color:"#0C1A2E",display:"block",marginBottom:".5rem"}}>Password</label>
+              <div style={{position:"relative"}}>
+                <input type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} required placeholder="••••••••"
+                  style={{width:"100%",padding:".75rem 2.5rem .75rem 1rem",borderRadius:"12px",border:"1.5px solid #BAE6FD",fontSize:".85rem",outline:"none",fontFamily:"'DM Sans',sans-serif",boxSizing:"border-box"}} />
+                <button type="button" onClick={()=>setShowPw(!showPw)} style={{position:"absolute",right:"12px",top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:"1rem"}}>
                   {showPw?"🙈":"👁"}
                 </button>
               </div>
             </div>
-            {error && <p className="text-xs text-red-500 font-600">{error}</p>}
+            {error && <p style={{fontSize:".78rem",color:"#EF4444",fontWeight:"600",margin:"-.25rem 0"}}>{error}</p>}
             <button type="submit" disabled={loading}
-              className="w-full py-3 rounded-xl bg-sky-400 text-navy-DEFAULT font-700 text-sm hover:bg-sky-500 disabled:opacity-50 transition-all">
+              style={{width:"100%",padding:".85rem",borderRadius:"12px",border:"none",background:tab==="student"?"#38BDF8":"#0C1A2E",color:tab==="student"?"#0C1A2E":"#38BDF8",fontWeight:"700",fontSize:".88rem",cursor:"pointer",opacity:loading?.6:1,fontFamily:"'DM Sans',sans-serif",transition:"all .2s"}}>
               {loading ? "Signing in..." : "Sign In →"}
             </button>
           </form>
-          <div className="mt-4 text-center">
-            <p className="text-xs text-gray-500">
+          <div style={{marginTop:"1.25rem",textAlign:"center"}}>
+            <p style={{fontSize:".78rem",color:"#5B7EA6"}}>
               New student?{" "}
-              <button onClick={()=>router.push("/register")} className="text-sky-600 font-700 hover:underline">
+              <button onClick={()=>router.push("/register")} style={{background:"none",border:"none",color:"#0369A1",fontWeight:"700",cursor:"pointer",fontSize:".78rem"}}>
                 Create account
               </button>
             </p>
             {tab==="staff" && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p style={{fontSize:".78rem",color:"#5B7EA6",marginTop:".4rem"}}>
                 Want to join as staff?{" "}
-                <button onClick={()=>router.push("/register?role=staff")} className="text-sky-600 font-700 hover:underline">
+                <button onClick={()=>router.push("/register?role=staff")} style={{background:"none",border:"none",color:"#0369A1",fontWeight:"700",cursor:"pointer",fontSize:".78rem"}}>
                   Apply here
                 </button>
               </p>
@@ -113,7 +99,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense fallback={<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>Loading...</div>}>
       <LoginForm />
     </Suspense>
   );
