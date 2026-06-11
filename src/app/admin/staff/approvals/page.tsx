@@ -1,9 +1,25 @@
 "use client";
-// src/app/admin/staff/approvals/page.tsx
+export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Spinner, Button } from "@/components/ui";
-import toast from "react-hot-toast";
+
+const C = {
+  page:  { maxWidth:"760px", margin:"0 auto" },
+  h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.5rem" },
+  card:  { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", boxShadow:"0 2px 12px rgba(14,165,233,.06)", padding:"1.25rem", marginBottom:"1rem" },
+  head:  { display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"1rem", marginBottom:"1rem" },
+  name:  { fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
+  meta:  { fontSize:".78rem", color:"#5B7EA6", marginTop:".25rem" },
+  badge: { display:"inline-flex", padding:"3px 10px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, background:"#FEF9C3", color:"#854D0E", flexShrink:0 as const },
+  info:  { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem", fontSize:".78rem", color:"#5B7EA6" },
+  btns:  { display:"flex", gap:".5rem" },
+  btnG:  { padding:".55rem 1.25rem", borderRadius:"10px", background:"#D1FAE5", color:"#065F46", fontSize:".82rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  btnR:  { padding:".55rem 1.25rem", borderRadius:"10px", background:"#FEE2E2", color:"#991B1B", fontSize:".82rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  empty: { textAlign:"center" as const, padding:"4rem 1rem" },
+  eicon: { fontSize:"2.5rem", marginBottom:".75rem" },
+  etitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
+};
 
 export default function StaffApprovals() {
   const [staff,   setStaff]   = useState<any[]>([]);
@@ -13,68 +29,52 @@ export default function StaffApprovals() {
   async function load() {
     const res  = await fetch("/api/admin/staff?filter=pending");
     const data = await res.json();
-    if (data.success) setStaff(data.data);
+    if(data.success) setStaff(data.data);
     setLoading(false);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(()=>{ load(); },[]);
 
-  async function act(staffId: string, action: string) {
-    setActing(staffId + action);
-    const res  = await fetch("/api/admin/staff", {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ staffId, action }),
-    });
+  async function act(staffId:string, action:string) {
+    setActing(staffId+action);
+    const res  = await fetch("/api/admin/staff",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({staffId,action})});
     const data = await res.json();
-    if (res.ok) { toast.success(data.message); load(); }
-    else toast.error(data.error);
+    if(res.ok) load(); else alert(data.error);
     setActing(null);
   }
 
   return (
-    <AdminLayout badges={{ "/admin/staff/approvals": staff.length }}>
-      <div className="max-w-3xl mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">Staff Approvals</h1>
-        <p className="text-sm text-navy-muted mb-5">Review CV and work sample before approving or declining.</p>
+    <AdminLayout badges={{"/admin/staff/approvals":staff.length}}>
+      <div style={C.page}>
+        <h1 style={C.h1}>Staff Approvals</h1>
+        <p style={C.sub}>Review applications before approving or declining.</p>
 
-        {loading ? <div className="flex justify-center py-12"><Spinner size="lg" /></div>
-        : staff.length === 0 ? (
-          <div className="text-center py-16"><div className="text-4xl mb-3">✅</div><p className="text-navy-muted font-600">No pending approvals.</p></div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {staff.map((s: any) => (
-              <div key={s.id} className="bg-white rounded-2xl border border-sky-100 shadow-card p-5">
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <div>
-                    <h3 className="text-base font-700 text-navy-DEFAULT">{s.name}</h3>
-                    <p className="text-xs text-navy-muted mt-1">
-                      Applying as <strong>{s.role}</strong> · {s.email} · {s.phone}
-                    </p>
-                    <p className="text-xs text-navy-muted">Registered: {new Date(s.createdAt).toLocaleDateString("en-NG")}</p>
-                  </div>
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-700 bg-yellow-50 text-yellow-700 flex-shrink-0">Pending</span>
-                </div>
-
-                {/* CV and Sample links would come from Cloudinary URLs stored on registration */}
-                <div className="flex gap-2 mb-4 flex-wrap">
-                  <span className="text-xs text-navy-muted italic">CV and work sample files would appear here after staff upload during registration.</span>
-                </div>
-
-                <div className="flex gap-2 flex-wrap">
-                  <Button variant="primary" size="sm"
-                    loading={acting === s.id + "approve"}
-                    onClick={() => act(s.id, "approve")}>
-                    ✓ Approve
-                  </Button>
-                  <Button variant="danger" size="sm"
-                    loading={acting === s.id + "decline"}
-                    onClick={() => act(s.id, "decline")}>
-                    ✕ Decline
-                  </Button>
-                </div>
-              </div>
-            ))}
+        {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
+        : staff.length===0 ? (
+          <div style={C.empty}>
+            <div style={C.eicon}>✅</div>
+            <div style={C.etitle}>No pending approvals.</div>
           </div>
-        )}
+        ) : staff.map((s:any)=>(
+          <div key={s.id} style={C.card}>
+            <div style={C.head}>
+              <div>
+                <div style={C.name}>{s.name}</div>
+                <div style={C.meta}>Applying as <strong>{s.role}</strong> · {s.email}</div>
+                <div style={C.meta}>Phone: {s.phone} · Registered: {new Date(s.createdAt).toLocaleDateString("en-NG")}</div>
+              </div>
+              <span style={C.badge}>Pending Review</span>
+            </div>
+            <div style={C.info}>CV and work sample files will appear here once upload is configured in the registration form.</div>
+            <div style={C.btns}>
+              <button style={C.btnG} disabled={acting===s.id+"approve"} onClick={()=>act(s.id,"approve")}>
+                {acting===s.id+"approve"?"Approving...":"✓ Approve"}
+              </button>
+              <button style={C.btnR} disabled={acting===s.id+"decline"} onClick={()=>act(s.id,"decline")}>
+                {acting===s.id+"decline"?"Declining...":"✕ Decline"}
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </AdminLayout>
   );
