@@ -5,15 +5,18 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { StaffLayout } from "@/components/staff/StaffLayout";
 
-const WRITER_NAV = [
-  { label:"Dashboard",    icon:"📊", href:"/qc/dashboard" },
-  { label:"Pending Checks", icon:"📋", href:"/qc/jobs/pending" },
-  { label:"Active Checks",  icon:"✍️", href:"/qc/jobs/active" },
-  { label:"Delivered",    icon:"✅", href:"/qc/jobs/delivered" },
-  { label:"Earnings",     icon:"💰", href:"/qc/earnings" },
-  { label:"Withdraw",     icon:"🏦", href:"/qc/withdraw" },
-  { label:"Notifications",icon:"🔔", href:"/qc/notifications" },
-  { label:"Profile",      icon:"👤", href:"/qc/profile" },
+const QC_NAV = [
+  { label:"Dashboard",           icon:"📊", href:"/qc/dashboard"              },
+  { label:"Pending Checks",      icon:"🔍", href:"/qc/checks/pending"          },
+  { label:"Active Checks",       icon:"⚙️", href:"/qc/checks/active"           },
+  { label:"Cleared & Sent",      icon:"✅", href:"/qc/checks/cleared"          },
+  { label:"Pending Corrections", icon:"🔧", href:"/qc/corrections/pending"     },
+  { label:"Working on Corrections",icon:"✏️",href:"/qc/corrections/active"     },
+  { label:"Corrections Sent",    icon:"📨", href:"/qc/corrections/done"        },
+  { label:"Earnings",            icon:"💰", href:"/qc/earnings"                },
+  { label:"Withdraw",            icon:"🏦", href:"/qc/withdraw"                },
+  { label:"Notifications",       icon:"🔔", href:"/qc/notifications"           },
+  { label:"Profile",             icon:"👤", href:"/qc/profile"                 },
 ];
 
 const C = {
@@ -82,7 +85,7 @@ export default function WriterPendingJobs() {
   }
 
   const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
-  const nav = WRITER_NAV.map(item=>item.href==="/qc/jobs/pending"?{...item,badge:jobs.length}:item);
+  const nav = QC_NAV.map(item=>item.href==="/qc/jobs/pending"?{...item,badge:jobs.length}:item);
 
   const DEG:Record<string,string> = {OND_HND_NCE:"HND/OND",BSC_BED_BA:"BSc/BEd",PGD_MSC_PHD:"PGD/MSc"};
   const PLAN:Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Pro"};
