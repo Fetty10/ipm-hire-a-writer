@@ -10,12 +10,12 @@ const DEG_GROUPS = [
   {value:"PGD_MSC_PHD",label:"PGD | MSc | MBA | MBBS | LL.B | PhD"},
 ];
 const SERVICES = [
-  {value:"project",  label:"Project / Thesis / Dissertation", hasPlan:true},
-  {value:"seminar",  label:"Seminar Paper",                   hasPlan:false},
-  {value:"proposal", label:"Research Proposal",               hasPlan:false},
-  {value:"journal",  label:"Journal / Article",               hasPlan:false},
-  {value:"topic",    label:"Topic Coining",                   hasPlan:false},
-  {value:"assignment",label:"Assignment",                     hasPlan:false},
+  {value:"project",   label:"Project / Thesis / Dissertation", hasPlan:true},
+  {value:"seminar",   label:"Seminar Paper",                   hasPlan:false},
+  {value:"proposal",  label:"Research Proposal",               hasPlan:false},
+  {value:"journal",   label:"Journal / Article",               hasPlan:false},
+  {value:"topic",     label:"Topic Coining",                   hasPlan:false},
+  {value:"assignment",label:"Assignment",                      hasPlan:false},
 ];
 const FLAT:Record<string,Record<string,number>> = {
   seminar:    {OND_HND_NCE:10000,BSC_BED_BA:10000,PGD_MSC_PHD:20000},
@@ -45,8 +45,20 @@ const C = {
   radio: { width:"18px", height:"18px", borderRadius:"50%", border:"2px solid #BAE6FD", flexShrink:0, transition:"all .2s" },
   radioA:{ borderColor:"#38BDF8", background:"#38BDF8" },
   chips: { display:"flex", gap:".4rem", flexWrap:"wrap" as const, marginBottom:".5rem" },
-  chip:  { padding:".45rem .9rem", borderRadius:"8px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontWeight:600, cursor:"pointer", transition:"all .2s", color:"#5B7EA6" },
+  chip:  { padding:".45rem .9rem", borderRadius:"8px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontWeight:600, cursor:"pointer", transition:"all .2s", color:"#5B7EA6", background:"none" },
   chipA: { borderColor:"#38BDF8", background:"#E0F2FE", color:"#0C1A2E" },
+  // Upload zone
+  upzone:{ border:"2px dashed #BAE6FD", borderRadius:"12px", padding:"1rem", textAlign:"center" as const, cursor:"pointer", background:"#F0F9FF", marginBottom:".5rem", transition:"all .2s" },
+  upzoneH:{ border:"2px dashed #38BDF8", borderRadius:"12px", padding:"1rem", textAlign:"center" as const, cursor:"pointer", background:"#E0F2FE", marginBottom:".5rem" },
+  upi:   { fontSize:"1.1rem", marginBottom:".2rem" },
+  uplbl: { fontSize:".8rem", fontWeight:600, color:"#0C1A2E" },
+  upsub: { fontSize:".7rem", color:"#5B7EA6", marginTop:".15rem" },
+  // Uploaded files list
+  fileList:{ display:"flex", flexDirection:"column" as const, gap:".4rem", marginBottom:".5rem" },
+  fileItem:{ display:"flex", alignItems:"center", gap:".5rem", padding:".5rem .75rem", borderRadius:"8px", background:"#F0FDF4", border:"1px solid #86EFAC" },
+  fileName:{ flex:1, fontSize:".78rem", fontWeight:600, color:"#16A34A", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const },
+  fileRemove:{ background:"none", border:"none", cursor:"pointer", color:"#EF4444", fontSize:"1rem", flexShrink:0, padding:0, lineHeight:1 },
+  addMore:{ fontSize:".75rem", color:"#0369A1", fontWeight:600, cursor:"pointer", background:"none", border:"none", padding:0, textDecoration:"underline" },
   sum:   { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"12px", padding:"1rem 1.25rem", marginBottom:"1rem" },
   sumT:  { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0369A1", marginBottom:".75rem" },
   sumR:  { display:"flex", justifyContent:"space-between", fontSize:".82rem", marginBottom:".4rem" },
@@ -57,39 +69,36 @@ const C = {
   btnP:  { width:"100%", padding:".85rem", borderRadius:"12px", background:"#38BDF8", color:"#0C1A2E", fontSize:".88rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", transition:"all .2s" },
   btnD:  { background:"#E0F2FE", color:"#5B7EA6", cursor:"not-allowed" as const },
   foot:  { textAlign:"center" as const, fontSize:".72rem", color:"#5B7EA6", marginTop:".75rem" },
-  upzone:{ border:"2px dashed #BAE6FD", borderRadius:"12px", padding:"1.25rem", textAlign:"center" as const, cursor:"pointer", background:"#F0F9FF" },
-  upi:   { fontSize:"1.3rem", marginBottom:".3rem" },
-  uplbl: { fontSize:".8rem", fontWeight:600, color:"#0C1A2E" },
-  upsub: { fontSize:".7rem", color:"#5B7EA6", marginTop:".15rem" },
-  upok:  { fontSize:".8rem", fontWeight:600, color:"#16A34A" },
   planTags:{ display:"flex", gap:".4rem", marginTop:".5rem", flexWrap:"wrap" as const },
   tag:   { padding:"2px 8px", borderRadius:"999px", fontSize:".65rem", fontWeight:700, background:"#E0F2FE", color:"#0369A1" },
 };
 
+interface UploadedFile { url: string; name: string; }
+
 export default function HireAWriter() {
   const router = useRouter();
-  const [plans,    setPlans]    = useState<any[]>([]);
-  const [deg,      setDeg]      = useState("");
-  const [svc,      setSvc]      = useState("");
-  const [planId,   setPlanId]   = useState("");
-  const [chapters, setChapters] = useState<number[]>([]);
-  const [topic,    setTopic]    = useState("");
-  const [dept,     setDept]     = useState("");
-  const [notes,    setNotes]    = useState("");
-  const [guideUrl, setGuideUrl] = useState("");
-  const [uploading,setUploading]= useState(false);
-  const [loading,  setLoading]  = useState(false);
+  const [plans,      setPlans]      = useState<any[]>([]);
+  const [deg,        setDeg]        = useState("");
+  const [svc,        setSvc]        = useState("");
+  const [planId,     setPlanId]     = useState("");
+  const [chapters,   setChapters]   = useState<number[]>([]);
+  const [topic,      setTopic]      = useState("");
+  const [dept,       setDept]       = useState("");
+  const [notes,      setNotes]      = useState("");
+  const [guideFiles, setGuideFiles] = useState<UploadedFile[]>([]);
+  const [uploading,  setUploading]  = useState(false);
+  const [loading,    setLoading]    = useState(false);
 
   useEffect(()=>{
-    if(!deg) { setPlans([]); return; }
+    if(!deg){ setPlans([]); return; }
     fetch(`/api/plans?degreeGroup=${deg}`).then(r=>r.json()).then(d=>{ if(d.success) setPlans(d.data); });
   },[deg]);
 
-  const selSvc   = SERVICES.find(s=>s.value===svc);
-  const selPlan  = plans.find(p=>p.id===planId);
-  const isProj   = svc==="project";
-  const perCh    = selPlan?.pricingType==="PER_CHAPTER";
-  const showSum  = deg && svc && (isProj ? planId && (!perCh || chapters.length>0) : true);
+  const selSvc  = SERVICES.find(s=>s.value===svc);
+  const selPlan = plans.find(p=>p.id===planId);
+  const isProj  = svc==="project";
+  const perCh   = selPlan?.pricingType==="PER_CHAPTER";
+  const showSum = deg && svc && (isProj ? planId && (!perCh || chapters.length>0) : true);
 
   function calcTotal() {
     if(!deg) return 0;
@@ -103,14 +112,42 @@ export default function HireAWriter() {
     setChapters(prev=>prev.includes(n)?prev.filter(c=>c!==n):[...prev,n]);
   }
 
-  async function handleGuideUpload(file:File) {
-    if(file.size>20*1024*1024){ alert("Max 20MB"); return; }
+  async function handleGuideUpload(files: FileList) {
+    const MAX = 5;
+    if (guideFiles.length >= MAX) { alert(`Maximum ${MAX} files allowed.`); return; }
+    const remaining = MAX - guideFiles.length;
+    const toUpload  = Array.from(files).slice(0, remaining);
+
     setUploading(true);
-    const fd = new FormData(); fd.append("file",file); fd.append("folder","orders/guidelines");
-    const res  = await fetch("/api/upload",{method:"POST",body:fd});
-    const data = await res.json();
-    if(res.ok) setGuideUrl(data.url); else alert(data.error||"Upload failed");
+    const uploaded: UploadedFile[] = [];
+    for (const file of toUpload) {
+      if (file.size > 20*1024*1024) { alert(`${file.name} exceeds 20MB limit.`); continue; }
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "orders/guidelines");
+      const res  = await fetch("/api/upload", { method:"POST", body:fd });
+      const data = await res.json();
+      if (res.ok) uploaded.push({ url: data.url, name: data.fileName||file.name });
+      else alert(`Failed to upload ${file.name}`);
+    }
+    setGuideFiles(prev => [...prev, ...uploaded]);
     setUploading(false);
+  }
+
+  function removeFile(index: number) {
+    setGuideFiles(prev => prev.filter((_,i) => i !== index));
+  }
+
+  function openFilePicker() {
+    const inp = document.createElement("input");
+    inp.type     = "file";
+    inp.accept   = ".pdf,.doc,.docx";
+    inp.multiple = true;
+    inp.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files?.length) handleGuideUpload(files);
+    };
+    inp.click();
   }
 
   async function submit(e:React.FormEvent) {
@@ -121,10 +158,18 @@ export default function HireAWriter() {
     if(isProj&&perCh&&chapters.length===0) { alert("Select at least one chapter."); return; }
     if(!topic.trim()) { alert("Enter your topic."); return; }
     setLoading(true);
+
+    // Store multiple file URLs as comma-separated string
+    const guidelineFileUrl = guideFiles.length > 0
+      ? guideFiles.map(f=>f.url).join(",")
+      : undefined;
+
     const res  = await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       planId:isProj?planId:"flat", topic:topic.trim(), department:dept.trim(), degreeGroup:deg,
-      specialInstructions:notes.trim()||undefined, guidelineFileUrl:guideUrl||undefined,
-      chaptersRequested:isProj&&perCh?chapters:undefined, serviceType:svc.toUpperCase(),
+      specialInstructions:notes.trim()||undefined,
+      guidelineFileUrl,
+      chaptersRequested:isProj&&perCh?chapters:undefined,
+      serviceType:svc.toUpperCase(),
     })});
     const data = await res.json();
     if(res.ok) window.location.href=data.paymentUrl;
@@ -181,7 +226,7 @@ export default function HireAWriter() {
           {/* Chapter selector */}
           {isProj && perCh && planId && (
             <div style={C.fg}>
-              <label style={C.lbl}>Which Chapters? <span style={{fontWeight:400,textTransform:"none",letterSpacing:0}}>(select all you need)</span></label>
+              <label style={C.lbl}>Which Chapters? <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0}}>(select all you need)</span></label>
               <div style={C.chips}>
                 {CH_LBL.map((label,i)=>{
                   const n=i+1;
@@ -208,18 +253,51 @@ export default function HireAWriter() {
 
           {/* Notes */}
           <div style={C.fg}>
-            <label style={C.lbl}>Special Instructions <span style={{fontWeight:400,textTransform:"none",letterSpacing:0}}>(optional)</span></label>
+            <label style={C.lbl}>Special Instructions <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0}}>(optional)</span></label>
             <textarea style={C.ta} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="e.g. Use APA 7th edition. Focus on Nigerian context." rows={3} />
           </div>
 
-          {/* Upload */}
+          {/* Multi-file upload */}
           <div style={C.fg}>
-            <label style={C.lbl}>Upload School Format/Guideline <span style={{fontWeight:400,textTransform:"none",letterSpacing:0}}>(optional)</span></label>
-            <div style={C.upzone} onClick={()=>{ const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleGuideUpload(f);};inp.click(); }}>
-              {uploading ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
-              : guideUrl  ? <div><div style={C.upi}>✅</div><div style={C.upok}>File uploaded</div><div style={C.upsub}>Tap to replace</div></div>
-              : <div><div style={C.upi}>📎</div><div style={C.uplbl}>Upload your format guide</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
-            </div>
+            <label style={C.lbl}>
+              School Format / Guidelines
+              <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0}}> (optional · up to 5 files)</span>
+            </label>
+
+            {/* Uploaded files list */}
+            {guideFiles.length > 0 && (
+              <div style={C.fileList}>
+                {guideFiles.map((f,i)=>(
+                  <div key={i} style={C.fileItem}>
+                    <span style={{fontSize:".9rem"}}>📄</span>
+                    <span style={C.fileName}>{f.name}</span>
+                    <button type="button" style={C.fileRemove} onClick={()=>removeFile(i)}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload zone — show if under limit */}
+            {guideFiles.length < 5 && (
+              <div style={C.upzone} onClick={openFilePicker}
+                onDragOver={e=>{ e.preventDefault(); (e.currentTarget as HTMLElement).style.borderColor="#38BDF8"; }}
+                onDragLeave={e=>{ (e.currentTarget as HTMLElement).style.borderColor="#BAE6FD"; }}
+                onDrop={e=>{ e.preventDefault(); (e.currentTarget as HTMLElement).style.borderColor="#BAE6FD"; if(e.dataTransfer.files.length) handleGuideUpload(e.dataTransfer.files); }}>
+                {uploading ? (
+                  <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
+                ) : (
+                  <div>
+                    <div style={C.upi}>📎</div>
+                    <div style={C.uplbl}>{guideFiles.length===0?"Upload format guide or school template":"Add more files"}</div>
+                    <div style={C.upsub}>PDF or Word (.docx) · Max 20MB each · Up to 5 files · Drag & drop or tap</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {guideFiles.length >= 5 && (
+              <p style={{fontSize:".72rem",color:"#CA8A04",fontWeight:600}}>Maximum 5 files reached.</p>
+            )}
           </div>
 
           {/* Summary */}
@@ -229,6 +307,7 @@ export default function HireAWriter() {
               <div style={C.sumR}><span style={C.sumRL}>Service</span><span style={C.sumRV}>{selSvc?.label||svc}</span></div>
               {isProj&&selPlan&&<div style={C.sumR}><span style={C.sumRL}>Plan</span><span style={C.sumRV}>{PLAN_LBL[selPlan.planName]||selPlan.planName}</span></div>}
               {isProj&&perCh&&chapters.length>0&&<div style={C.sumR}><span style={C.sumRL}>Chapters</span><span style={C.sumRV}>{chapters.sort().map(n=>`Ch ${n}`).join(", ")}</span></div>}
+              {guideFiles.length>0&&<div style={C.sumR}><span style={C.sumRL}>Guideline Files</span><span style={C.sumRV}>{guideFiles.length} file{guideFiles.length>1?"s":""} attached</span></div>}
               <div style={C.sumTotal}><span>Total</span><span style={C.sumPrice}>₦{calcTotal().toLocaleString()}</span></div>
             </div>
           )}
