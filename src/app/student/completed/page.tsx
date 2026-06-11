@@ -28,7 +28,11 @@ export default function StudentCompleted() {
   const [loading, setLoading] = useState(true);
 
   useEffect(()=>{
-    fetch("/api/student/orders?filter=completed").then(r=>r.json()).then(d=>{ if(d.success) setOrders(d.data); setLoading(false); });
+    fetch("/api/student/orders?filter=completed")
+  .then(r=>r.json())
+  .then(d=>{ if(d.success) setOrders(d.data); })
+  .catch(()=>{})
+  .finally(()=>setLoading(false));
   },[]);
 
   return (
