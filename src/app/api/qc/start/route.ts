@@ -1,12 +1,10 @@
-export const dynamic = "force-dynamic";
 // src/app/api/qc/start/route.ts
-// QC clicks "Start Check" — marks chapter QC_IN_PROGRESS
-
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ChapterStatus, Role } from "@prisma/client";
+import { AssigneeRole, ChapterStatus, Role } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -19,25 +17,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "chapterId is required." }, { status: 400 });
   }
 
+  // Allow starting chapters routed to this QC OR unassigned QC chapters
   const chapter = await prisma.orderChapter.findFirst({
     where: {
-      id:           chapterId,
-      routedToQcId: session.user.id,
-      status:       ChapterStatus.NOT_STARTED,
+      id:     chapterId,
+      status: ChapterStatus.QC_IN_PROGRESS,
+      OR: [
+        { routedToQcId: session.user.id },
+        { routedToQcId: null },
+      ],
     },
     include: { order: { select: { topic: true } } },
   });
 
   if (!chapter) {
     return NextResponse.json(
-      { error: "Chapter not found or already started." },
+      { error: "Chapter not found or not available for QC." },
       { status: 404 }
     );
   }
 
+  // Assign to this QC if not already assigned
   await prisma.orderChapter.update({
     where: { id: chapterId },
-    data:  { status: ChapterStatus.QC_IN_PROGRESS },
+    data: {
+      status:       ChapterStatus.QC_IN_PROGRESS,
+      routedToQcId: session.user.id,
+      assigneeRole: AssigneeRole.QC,
+      routedToQcAt: chapter.routedToQcAt || new Date(),
+    },
   });
 
   return NextResponse.json({ success: true, message: "QC check started." });
