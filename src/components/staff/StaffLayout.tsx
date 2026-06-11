@@ -67,7 +67,7 @@ export function StaffLayout({ children, navItems, role, initials }: {
             <div style={S.urole}>{role}</div>
           </div>
         </div>
-        <button style={S.logout} onClick={()=>signOut({callbackUrl:"/login"})}>🚪 Logout</button>
+        <button style={S.logout} onClick={()=>signOut({callbackUrl:"/staff/login"})}>🚪 Logout</button>
       </div>
 
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
