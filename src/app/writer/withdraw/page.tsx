@@ -1,233 +1,153 @@
 "use client";
-// src/app/writer/withdraw/page.tsx
-
+export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
-import { Card, Input, Button, Spinner } from "@/components/ui";
-import toast from "react-hot-toast";
 
-const WRITER_NAV = [
-  { label: "Dashboard",     icon: "📊", href: "/writer/dashboard"    },
-  { label: "Pending Jobs",  icon: "📋", href: "/writer/jobs/pending"  },
-  { label: "Active Jobs",   icon: "✍️", href: "/writer/jobs/active"   },
-  { label: "Delivered",     icon: "✅", href: "/writer/jobs/delivered" },
-  { label: "Earnings",      icon: "💰", href: "/writer/earnings"      },
-  { label: "Withdraw",      icon: "🏦", href: "/writer/withdraw"      },
-  { label: "Notifications", icon: "🔔", href: "/writer/notifications" },
-  { label: "Profile",       icon: "👤", href: "/writer/profile"       },
+const NAV = [
+  { label:"Dashboard",    icon:"📊", href:"/writer/dashboard" },
+  { label:"Pending Jobs", icon:"📋", href:"/writer/jobs/pending" },
+  { label:"Active Jobs",  icon:"✍️", href:"/writer/jobs/active" },
+  { label:"Delivered",    icon:"✅", href:"/writer/jobs/delivered" },
+  { label:"Earnings",     icon:"💰", href:"/writer/earnings" },
+  { label:"Withdraw",     icon:"🏦", href:"/writer/withdraw" },
+  { label:"Notifications",icon:"🔔", href:"/writer/notifications" },
+  { label:"Profile",      icon:"👤", href:"/writer/profile" },
 ];
 
-const BANKS = [
-  "GT Bank", "First Bank", "Access Bank", "UBA", "Zenith Bank",
-  "Fidelity Bank", "Sterling Bank", "Wema Bank", "Polaris Bank",
-  "Union Bank", "Ecobank", "Keystone Bank", "Heritage Bank",
-  "Stanbic IBTC", "Standard Chartered", "Citibank",
-];
+const BANKS = ["GT Bank","First Bank","Access Bank","UBA","Zenith Bank","Fidelity Bank","Sterling Bank","Wema Bank","Polaris Bank","Union Bank","Ecobank","Keystone Bank","Stanbic IBTC"];
 
-interface Withdrawal {
-  id: string; amountNaira: number; status: string;
-  bankName: string; requestedAt: string;
-}
+const C = {
+  page:  { maxWidth:"520px", margin:"0 auto" },
+  h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.5rem" },
+  balBox:{ background:"#0C1A2E", borderRadius:"20px", padding:"1.5rem", color:"#fff", marginBottom:"1.5rem", position:"relative" as const, overflow:"hidden" },
+  balLbl:{ fontSize:".68rem", color:"#7DD3FC", textTransform:"uppercase" as const, letterSpacing:".08em", fontWeight:700, marginBottom:".3rem" },
+  balVal:{ fontFamily:"'Syne',sans-serif", fontSize:"2.5rem", fontWeight:800, color:"#fff" },
+  card:  { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", padding:"1.5rem", marginBottom:"1rem" },
+  ctitle:{ fontFamily:"'Syne',sans-serif", fontSize:".9rem", fontWeight:700, color:"#0C1A2E", marginBottom:"1.25rem" },
+  fg:    { marginBottom:"1rem" },
+  lbl:   { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0C1A2E", display:"block", marginBottom:".4rem" },
+  inp:   { width:"100%", padding:".75rem 1rem", borderRadius:"12px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" as const },
+  sel:   { width:"100%", padding:".75rem 1rem", borderRadius:"12px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" as const, background:"#fff" },
+  notice:{ background:"#FEF9C3", border:"1px solid #FDE68A", borderRadius:"10px", padding:".75rem 1rem", fontSize:".78rem", color:"#854D0E", marginBottom:"1rem" },
+  btnP:  { width:"100%", padding:".85rem", borderRadius:"12px", background:"#38BDF8", color:"#0C1A2E", fontSize:".88rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  btnD:  { opacity:.5, cursor:"not-allowed" as const },
+  success:{ textAlign:"center" as const, padding:"2rem" },
+  sicon: { fontSize:"2.5rem", marginBottom:"1rem" },
+  stitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1.1rem", fontWeight:800, color:"#0C1A2E", marginBottom:".5rem" },
+  ssub:  { fontSize:".83rem", color:"#5B7EA6", lineHeight:1.6 },
+  prevCard:{ background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", padding:"1.25rem" },
+  prevRow:{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:".5rem 0", borderBottom:"1px solid #F0F9FF" },
+  prevName:{ fontSize:".82rem", fontWeight:700, color:"#0C1A2E" },
+  prevMeta:{ fontSize:".72rem", color:"#5B7EA6" },
+  badge: { display:"inline-flex", padding:"2px 8px", borderRadius:"999px", fontSize:".65rem", fontWeight:700 },
+};
 
 export default function WriterWithdraw() {
   const { data: session } = useSession();
-  const [available,   setAvailable]   = useState(0);
-  const [pastWithdrawals, setPastWithdrawals] = useState<Withdrawal[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [success,  setSuccess]  = useState(false);
+  const [available, setAvailable]   = useState(0);
+  const [prevWds,   setPrevWds]     = useState<any[]>([]);
+  const [loading,   setLoading]     = useState(true);
+  const [submitting,setSubmitting]  = useState(false);
+  const [success,   setSuccess]     = useState(false);
+  const [bankName,  setBankName]    = useState("");
+  const [accNum,    setAccNum]      = useState("");
+  const [accName,   setAccName]     = useState("");
+  const [amount,    setAmount]      = useState("");
+  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
 
-  const [bankName,       setBankName]       = useState("");
-  const [accountNumber,  setAccountNumber]  = useState("");
-  const [accountName,    setAccountName]    = useState("");
-  const [amount,         setAmount]         = useState("");
-  const [errors,         setErrors]         = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    async function load() {
-      const res  = await fetch("/api/staff/earnings");
-      const data = await res.json();
-      if (data.success) {
-        setAvailable(data.data.summary.available);
-        setPastWithdrawals(
-          (data.data.pendingWithdrawals || []).map((w: any) => ({
-            ...w, amountNaira: w.amountKobo / 100,
-          }))
-        );
-      }
+  useEffect(()=>{
+    fetch("/api/staff/earnings").then(r=>r.json()).then(d=>{
+      if(d.success){ setAvailable(d.data.summary.available||0); setPrevWds((d.data.pendingWithdrawals||[]).map((w:any)=>({...w,amountNaira:w.amountKobo/100}))); }
       setLoading(false);
-    }
-    load();
-  }, []);
+    });
+  },[]);
 
-  function validate() {
-    const e: Record<string, string> = {};
-    if (!bankName)      e.bankName      = "Please select your bank.";
-    if (!accountNumber) e.accountNumber = "Account number is required.";
-    if (accountNumber.length !== 10) e.accountNumber = "Account number must be 10 digits.";
-    if (!accountName)   e.accountName   = "Account name is required.";
-    const amt = parseFloat(amount);
-    if (!amount || isNaN(amt)) e.amount = "Enter a valid amount.";
-    else if (amt < 1000)       e.amount = "Minimum withdrawal is ₦1,000.";
-    else if (amt > available)  e.amount = `Maximum is ₦${available.toLocaleString()} (your available balance).`;
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
+  async function submit(e:React.FormEvent) {
     e.preventDefault();
-    if (!validate()) return;
+    const amt = parseFloat(amount);
+    if(!bankName) { alert("Select a bank."); return; }
+    if(accNum.length!==10) { alert("Account number must be 10 digits."); return; }
+    if(!accName.trim()) { alert("Enter account name."); return; }
+    if(isNaN(amt)||amt<1000) { alert("Minimum withdrawal is ₦1,000."); return; }
+    if(amt>available) { alert(`Max is ₦${available.toLocaleString()}`); return; }
     setSubmitting(true);
-    try {
-      const res = await fetch("/api/withdrawals", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amountKobo:    Math.round(parseFloat(amount) * 100),
-          bankName, accountNumber, accountName,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error); return; }
-      toast.success("Withdrawal request submitted!");
-      setSuccess(true);
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    const res  = await fetch("/api/withdrawals",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({amountKobo:Math.round(amt*100),bankName,accountNumber:accNum,accountName:accName})});
+    const data = await res.json();
+    if(res.ok) setSuccess(true); else alert(data.error);
+    setSubmitting(false);
   }
-
-  const initials = session?.user?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "WR";
 
   return (
-    <StaffLayout navItems={WRITER_NAV} role="Writer" initials={initials}>
-      <div className="max-w-lg mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">
-          Request Withdrawal
-        </h1>
-        <p className="text-sm text-navy-muted mb-5">
-          Withdraw your available balance to your bank account via Paystack.
-        </p>
+    <StaffLayout navItems={NAV} role="Writer" initials={initials}>
+      <div style={C.page}>
+        <h1 style={C.h1}>Request Withdrawal</h1>
+        <p style={C.sub}>Withdraw your available balance via Paystack.</p>
 
-        {loading ? (
-          <div className="flex justify-center py-12"><Spinner size="lg" /></div>
-        ) : (
+        {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div> : (
           <>
-            {/* Available balance */}
-            <div className="bg-navy-DEFAULT rounded-2xl p-5 text-white mb-5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-sky-400/10 rounded-full -translate-y-1/3 translate-x-1/3" />
-              <p className="text-xs text-sky-300 uppercase tracking-wider font-700 mb-1">Available Balance</p>
-              <p className="font-clash text-3xl font-800 text-white">₦{available.toLocaleString()}</p>
+            <div style={C.balBox}>
+              <div style={{position:"absolute",top:"-20px",right:"-20px",width:"100px",height:"100px",background:"rgba(56,189,248,.1)",borderRadius:"50%"}}/>
+              <div style={C.balLbl}>Available Balance</div>
+              <div style={C.balVal}>₦{available.toLocaleString()}</div>
             </div>
 
             {success ? (
-              <Card>
-                <div className="text-center py-6">
-                  <div className="text-4xl mb-3">🎉</div>
-                  <p className="font-700 text-navy-DEFAULT mb-2">Request Submitted!</p>
-                  <p className="text-sm text-navy-muted">
-                    Admin will review and approve your withdrawal. Once approved, Paystack will
-                    automatically transfer the funds to your bank account.
-                  </p>
+              <div style={C.card}>
+                <div style={C.success}>
+                  <div style={C.sicon}>🎉</div>
+                  <div style={C.stitle}>Request Submitted!</div>
+                  <div style={C.ssub}>Admin will review and approve. Once approved, Paystack will automatically transfer the funds to your bank account.</div>
                 </div>
-              </Card>
+              </div>
             ) : (
-              <Card>
-                <h2 className="font-clash text-sm font-700 text-navy-DEFAULT mb-4">Bank Details</h2>
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
-                  {/* Bank selector */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider">
-                      Bank Name
-                    </label>
-                    <select
-                      value={bankName}
-                      onChange={(e) => setBankName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-                    >
+              <div style={C.card}>
+                <div style={C.ctitle}>Bank Details</div>
+                <form onSubmit={submit}>
+                  <div style={C.fg}>
+                    <label style={C.lbl}>Bank Name</label>
+                    <select style={C.sel} value={bankName} onChange={e=>setBankName(e.target.value)}>
                       <option value="">Select your bank</option>
-                      {BANKS.map((b) => (
-                        <option key={b} value={b}>{b}</option>
-                      ))}
+                      {BANKS.map(b=><option key={b} value={b}>{b}</option>)}
                     </select>
-                    {errors.bankName && <p className="text-xs text-red-500">{errors.bankName}</p>}
                   </div>
-
-                  <Input
-                    label="Account Number"
-                    placeholder="10-digit NUBAN"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    error={errors.accountNumber}
-                  />
-
-                  <Input
-                    label="Account Name"
-                    placeholder="As it appears on your bank account"
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value)}
-                    error={errors.accountName}
-                  />
-
-                  <Input
-                    label="Amount to Withdraw (₦)"
-                    type="number"
-                    placeholder={`Min. ₦1,000 — Max. ₦${available.toLocaleString()}`}
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    error={errors.amount}
-                  />
-
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-800">
-                    ⏱ Admin must approve this request before Paystack auto-transfers funds to your account.
+                  <div style={C.fg}>
+                    <label style={C.lbl}>Account Number</label>
+                    <input style={C.inp} value={accNum} onChange={e=>setAccNum(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="10-digit NUBAN" />
                   </div>
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="lg"
-                    loading={submitting}
-                    className="w-full"
-                    disabled={available < 1000}
-                  >
-                    Submit Withdrawal Request →
-                  </Button>
-
-                  {available < 1000 && (
-                    <p className="text-xs text-red-500 text-center">
-                      Minimum withdrawal is ₦1,000. Your current balance is ₦{available.toLocaleString()}.
-                    </p>
-                  )}
+                  <div style={C.fg}>
+                    <label style={C.lbl}>Account Name</label>
+                    <input style={C.inp} value={accName} onChange={e=>setAccName(e.target.value)} placeholder="As it appears on your bank account" />
+                  </div>
+                  <div style={C.fg}>
+                    <label style={C.lbl}>Amount to Withdraw (₦)</label>
+                    <input style={C.inp} type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder={`Min ₦1,000 · Max ₦${available.toLocaleString()}`} />
+                  </div>
+                  <div style={C.notice}>⏱ Admin must approve before Paystack auto-transfers to your account.</div>
+                  <button type="submit" style={{...C.btnP,...(available<1000?C.btnD:{})}} disabled={submitting||available<1000}>
+                    {submitting?"Submitting...":"Submit Withdrawal Request →"}
+                  </button>
+                  {available<1000&&<p style={{textAlign:"center" as const,fontSize:".75rem",color:"#EF4444",marginTop:".5rem"}}>Minimum withdrawal is ₦1,000.</p>}
                 </form>
-              </Card>
+              </div>
             )}
 
-            {/* Past withdrawals */}
-            {pastWithdrawals.length > 0 && (
-              <Card className="mt-4">
-                <h2 className="font-clash text-sm font-700 text-navy-DEFAULT mb-3">Recent Requests</h2>
-                <div className="flex flex-col gap-2">
-                  {pastWithdrawals.map((w) => (
-                    <div key={w.id} className="flex items-center justify-between py-2 border-b border-sky-50 last:border-0">
-                      <div>
-                        <p className="text-sm font-600">₦{w.amountNaira.toLocaleString()}</p>
-                        <p className="text-xs text-navy-muted">{w.bankName} · {new Date(w.requestedAt).toLocaleDateString("en-NG")}</p>
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[.65rem] font-700 ${
-                        w.status === "PAID"     ? "bg-green-50 text-green-700"  :
-                        w.status === "PENDING"  ? "bg-yellow-50 text-yellow-700" :
-                        w.status === "APPROVED" ? "bg-sky-100 text-sky-700"    :
-                        "bg-red-50 text-red-700"
-                      }`}>
-                        {w.status}
-                      </span>
+            {prevWds.length>0 && (
+              <div style={C.prevCard}>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:".85rem",fontWeight:700,color:"#0C1A2E",marginBottom:"1rem"}}>Recent Requests</div>
+                {prevWds.map((w:any)=>(
+                  <div key={w.id} style={C.prevRow}>
+                    <div>
+                      <div style={C.prevName}>₦{w.amountNaira.toLocaleString()}</div>
+                      <div style={C.prevMeta}>{w.bankName} · {new Date(w.requestedAt).toLocaleDateString("en-NG")}</div>
                     </div>
-                  ))}
-                </div>
-              </Card>
+                    <span style={{...C.badge,...(w.status==="PAID"?{background:"#D1FAE5",color:"#065F46"}:w.status==="PENDING"?{background:"#FEF9C3",color:"#854D0E"}:{background:"#E0F2FE",color:"#0369A1"})}}>
+                      {w.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </>
         )}
