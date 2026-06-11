@@ -12,7 +12,12 @@ const C = {
   name:  { fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
   meta:  { fontSize:".78rem", color:"#5B7EA6", marginTop:".25rem" },
   badge: { display:"inline-flex", padding:"3px 10px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, background:"#FEF9C3", color:"#854D0E", flexShrink:0 as const },
-  info:  { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem", fontSize:".78rem", color:"#5B7EA6" },
+  files: { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".9rem 1rem", marginBottom:"1rem" },
+  filest:{ fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0369A1", marginBottom:".6rem" },
+  fileRow:{ display:"flex", alignItems:"center", gap:".75rem", marginBottom:".4rem" },
+  fileIcon:{ fontSize:"1.1rem" },
+  fileLink:{ fontSize:".82rem", fontWeight:600, color:"#0369A1", textDecoration:"none" as const },
+  noFile:{ fontSize:".78rem", color:"#5B7EA6", fontStyle:"italic" as const },
   btns:  { display:"flex", gap:".5rem" },
   btnG:  { padding:".55rem 1.25rem", borderRadius:"10px", background:"#D1FAE5", color:"#065F46", fontSize:".82rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
   btnR:  { padding:".55rem 1.25rem", borderRadius:"10px", background:"#FEE2E2", color:"#991B1B", fontSize:".82rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
@@ -29,48 +34,68 @@ export default function StaffApprovals() {
   async function load() {
     const res  = await fetch("/api/admin/staff?filter=pending");
     const data = await res.json();
-    if(data.success) setStaff(data.data);
+    if (data.success) setStaff(data.data);
     setLoading(false);
   }
-  useEffect(()=>{ load(); },[]);
+  useEffect(() => { load(); }, []);
 
-  async function act(staffId:string, action:string) {
-    setActing(staffId+action);
-    const res  = await fetch("/api/admin/staff",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({staffId,action})});
+  async function act(staffId: string, action: string) {
+    setActing(staffId + action);
+    const res  = await fetch("/api/admin/staff", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ staffId, action }),
+    });
     const data = await res.json();
-    if(res.ok) load(); else alert(data.error);
+    if (res.ok) load(); else alert(data.error);
     setActing(null);
   }
 
   return (
-    <AdminLayout badges={{"/admin/staff/approvals":staff.length}}>
+    <AdminLayout badges={{ "/admin/staff/approvals": staff.length }}>
       <div style={C.page}>
         <h1 style={C.h1}>Staff Approvals</h1>
-        <p style={C.sub}>Review applications before approving or declining.</p>
+        <p style={C.sub}>Review CV and work sample before approving or declining.</p>
 
-        {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
-        : staff.length===0 ? (
+        {loading ? <div style={{ textAlign:"center", padding:"3rem", color:"#5B7EA6" }}>Loading...</div>
+        : staff.length === 0 ? (
           <div style={C.empty}>
             <div style={C.eicon}>✅</div>
             <div style={C.etitle}>No pending approvals.</div>
           </div>
-        ) : staff.map((s:any)=>(
+        ) : staff.map((s: any) => (
           <div key={s.id} style={C.card}>
             <div style={C.head}>
               <div>
                 <div style={C.name}>{s.name}</div>
                 <div style={C.meta}>Applying as <strong>{s.role}</strong> · {s.email}</div>
-                <div style={C.meta}>Phone: {s.phone} · Registered: {new Date(s.createdAt).toLocaleDateString("en-NG")}</div>
+                <div style={C.meta}>Phone: {s.phone} · Applied: {new Date(s.createdAt).toLocaleDateString("en-NG")}</div>
               </div>
               <span style={C.badge}>Pending Review</span>
             </div>
-            <div style={C.info}>CV and work sample files will appear here once upload is configured in the registration form.</div>
+
+            {/* CV and Work Sample */}
+            <div style={C.files}>
+              <div style={C.filest}>Application Documents</div>
+              <div style={C.fileRow}>
+                <span style={C.fileIcon}>📄</span>
+                {s.cvFileUrl
+                  ? <a href={s.cvFileUrl} target="_blank" rel="noreferrer" style={C.fileLink}>Download CV / Resume</a>
+                  : <span style={C.noFile}>No CV uploaded</span>}
+              </div>
+              <div style={C.fileRow}>
+                <span style={C.fileIcon}>📝</span>
+                {s.sampleFileUrl
+                  ? <a href={s.sampleFileUrl} target="_blank" rel="noreferrer" style={C.fileLink}>Download Work Sample</a>
+                  : <span style={C.noFile}>No work sample uploaded</span>}
+              </div>
+            </div>
+
             <div style={C.btns}>
-              <button style={C.btnG} disabled={acting===s.id+"approve"} onClick={()=>act(s.id,"approve")}>
-                {acting===s.id+"approve"?"Approving...":"✓ Approve"}
+              <button style={C.btnG} disabled={acting === s.id + "approve"} onClick={() => act(s.id, "approve")}>
+                {acting === s.id + "approve" ? "Approving..." : "✓ Approve"}
               </button>
-              <button style={C.btnR} disabled={acting===s.id+"decline"} onClick={()=>act(s.id,"decline")}>
-                {acting===s.id+"decline"?"Declining...":"✕ Decline"}
+              <button style={C.btnR} disabled={acting === s.id + "decline"} onClick={() => act(s.id, "decline")}>
+                {acting === s.id + "decline" ? "Declining..." : "✕ Decline"}
               </button>
             </div>
           </div>
