@@ -1,165 +1,149 @@
 "use client";
-// src/app/writer/dashboard/page.tsx
-
+export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
-import { StaffLayout } from "@/components/staff/StaffLayout";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Card, StatusBadge, Spinner } from "@/components/ui";
-import type { StaffJobView } from "@/types";
+import { StaffLayout } from "@/components/staff/StaffLayout";
 
 const WRITER_NAV = [
-  { label: "Dashboard",    icon: "📊", href: "/writer/dashboard" },
-  { label: "Pending Jobs", icon: "📋", href: "/writer/jobs/pending" },
-  { label: "Active Jobs",  icon: "✍️", href: "/writer/jobs/active"  },
-  { label: "Delivered",    icon: "✅", href: "/writer/jobs/delivered"},
-  { label: "Earnings",     icon: "💰", href: "/writer/earnings"     },
-  { label: "Withdraw",     icon: "🏦", href: "/writer/withdraw"     },
-  { label: "Notifications",icon: "🔔", href: "/writer/notifications"},
-  { label: "Profile",      icon: "👤", href: "/writer/profile"      },
+  { label:"Dashboard",    icon:"📊", href:"/writer/dashboard" },
+  { label:"Pending Jobs", icon:"📋", href:"/writer/jobs/pending" },
+  { label:"Active Jobs",  icon:"✍️", href:"/writer/jobs/active" },
+  { label:"Delivered",    icon:"✅", href:"/writer/jobs/delivered" },
+  { label:"Earnings",     icon:"💰", href:"/writer/earnings" },
+  { label:"Withdraw",     icon:"🏦", href:"/writer/withdraw" },
+  { label:"Notifications",icon:"🔔", href:"/writer/notifications" },
+  { label:"Profile",      icon:"👤", href:"/writer/profile" },
 ];
 
-interface EarningsSummary {
-  available:   number;
-  pending:     number;
-  totalEarned: number;
-  withdrawn:   number;
-}
+const C = {
+  page:   { maxWidth:"800px", margin:"0 auto" },
+  h1:     { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:    { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.5rem" },
+  grid4:  { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:".75rem", marginBottom:"1.25rem" },
+  scard:  { background:"#fff", borderRadius:"14px", border:"1.5px solid #E0F2FE", padding:"1rem", cursor:"pointer", transition:"all .2s" },
+  sicon:  { fontSize:"1.3rem", marginBottom:".5rem" },
+  sval:   { fontFamily:"'Syne',sans-serif", fontSize:"1.4rem", fontWeight:800, color:"#0C1A2E", lineHeight:1 },
+  slabel: { fontSize:".72rem", color:"#5B7EA6", marginTop:".2rem" },
+  grid2:  { display:"grid", gridTemplateColumns:"1fr 1fr", gap:"1rem" },
+  earBox: { background:"#0C1A2E", borderRadius:"16px", padding:"1.25rem", color:"#fff", cursor:"pointer", position:"relative" as const, overflow:"hidden" },
+  earLbl: { fontSize:".68rem", color:"#7DD3FC", textTransform:"uppercase" as const, letterSpacing:".08em", fontWeight:700, marginBottom:".3rem" },
+  earVal: { fontFamily:"'Syne',sans-serif", fontSize:"2rem", fontWeight:800, color:"#fff", marginBottom:"1rem" },
+  earGrid:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:".5rem" },
+  earItem:{ fontSize:".7rem", color:"#7DD3FC" },
+  earNum: { fontWeight:700, color:"#fff", fontSize:".82rem" },
+  card:   { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", padding:"1.25rem" },
+  chead:  { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"1rem" },
+  ctitle: { fontFamily:"'Syne',sans-serif", fontSize:".85rem", fontWeight:700, color:"#0C1A2E" },
+  clink:  { fontSize:".75rem", color:"#0369A1", fontWeight:600, background:"none", border:"none", cursor:"pointer", textDecoration:"underline" },
+  jrow:   { display:"flex", alignItems:"center", gap:".75rem", padding:".6rem .75rem", borderRadius:"10px", border:"1px solid #E0F2FE", marginBottom:".4rem", cursor:"pointer" },
+  jnum:   { width:"32px", height:"32px", borderRadius:"8px", background:"#E0F2FE", color:"#0369A1", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:".78rem", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
+  jlabel: { flex:1, fontSize:".8rem", fontWeight:600, color:"#0C1A2E", minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const },
+  jtopic: { fontSize:".72rem", color:"#5B7EA6", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const },
+  badge:  { display:"inline-flex", padding:"2px 8px", borderRadius:"999px", fontSize:".65rem", fontWeight:700, flexShrink:0 },
+  bYellow:{background:"#FEF9C3",color:"#854D0E"},
+  bSky:   {background:"#E0F2FE",color:"#0369A1"},
+  empty:  { textAlign:"center" as const, padding:"1.5rem", fontSize:".8rem", color:"#5B7EA6" },
+};
 
 export default function WriterDashboard() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [jobs,     setJobs]     = useState<StaffJobView[]>([]);
-  const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
+  const [jobs,     setJobs]     = useState<any[]>([]);
+  const [earnings, setEarnings] = useState<any>(null);
   const [loading,  setLoading]  = useState(true);
 
-  useEffect(() => {
+  useEffect(()=>{
     async function load() {
-      const [jobsRes, earningsRes] = await Promise.all([
+      const [jRes,eRes] = await Promise.all([
         fetch("/api/staff/jobs?status=all"),
         fetch("/api/staff/earnings"),
       ]);
-      const jobsData     = await jobsRes.json();
-      const earningsData = await earningsRes.json();
-      if (jobsData.success)     setJobs(jobsData.data);
-      if (earningsData.success) setEarnings(earningsData.data.summary);
+      const jData = await jRes.json();
+      const eData = await eRes.json();
+      if (jData.success) setJobs(jData.data);
+      if (eData.success) setEarnings(eData.data.summary);
       setLoading(false);
     }
     load();
-  }, []);
+  },[]);
 
-  const pending   = jobs.filter((j) => j.status === "NOT_STARTED");
-  const active    = jobs.filter((j) => ["IN_PROGRESS","PRELIM_SUBMITTED"].includes(j.status));
-  const delivered = jobs.filter((j) => j.status === "DELIVERED");
+  const pending   = jobs.filter(j=>j.status==="NOT_STARTED");
+  const active    = jobs.filter(j=>["IN_PROGRESS","PRELIM_SUBMITTED"].includes(j.status));
+  const delivered = jobs.filter(j=>j.status==="DELIVERED");
+  const name      = session?.user?.name?.split(" ")[0]||"Writer";
+  const initials  = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
 
-  // Inject badges into nav
-  const nav = WRITER_NAV.map((item) => {
-    if (item.href === "/writer/jobs/pending")  return { ...item, badge: pending.length   };
-    if (item.href === "/writer/jobs/active")   return { ...item, badge: active.length    };
+  const nav = WRITER_NAV.map(item=>{
+    if(item.href==="/writer/jobs/pending") return {...item,badge:pending.length};
+    if(item.href==="/writer/jobs/active")  return {...item,badge:active.length};
     return item;
   });
 
-  const initials = session?.user?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "WR";
-
   return (
     <StaffLayout navItems={nav} role="Writer" initials={initials}>
-      <div className="max-w-4xl mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">
-          Writer Dashboard
-        </h1>
-        <p className="text-sm text-navy-muted mb-5">
-          Welcome back, {session?.user?.name?.split(" ")[0]}. Here's your summary.
-        </p>
+      <div style={C.page}>
+        <h1 style={C.h1}>Writer Dashboard</h1>
+        <p style={C.sub}>Welcome back, {name}. Here's your summary.</p>
 
-        {loading ? (
-          <div className="flex justify-center py-12"><Spinner size="lg" /></div>
-        ) : (
+        {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div> : (
           <>
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div style={C.grid4}>
               {[
-                { icon: "📋", val: jobs.length,      label: "All Jobs",     href: "/writer/jobs/pending"  },
-                { icon: "⏳", val: pending.length,   label: "Pending Jobs", href: "/writer/jobs/pending"  },
-                { icon: "✍️", val: active.length,    label: "Active Jobs",  href: "/writer/jobs/active"   },
-                { icon: "✅", val: delivered.length, label: "Delivered",    href: "/writer/jobs/delivered" },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  onClick={() => router.push(stat.href)}
-                  className="bg-white rounded-2xl border border-sky-100 shadow-card p-4 cursor-pointer hover:border-sky-400 hover:shadow-card-hover transition-all"
-                >
-                  <div className="text-xl mb-2">{stat.icon}</div>
-                  <div className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight leading-none mb-1">
-                    {stat.val}
-                  </div>
-                  <div className="text-xs text-navy-muted">{stat.label}</div>
+                {icon:"📋",val:jobs.length,      label:"All Jobs",     href:"/writer/jobs/pending"},
+                {icon:"⏳",val:pending.length,   label:"Pending",      href:"/writer/jobs/pending"},
+                {icon:"✍️",val:active.length,    label:"Active",       href:"/writer/jobs/active"},
+                {icon:"✅",val:delivered.length, label:"Delivered",    href:"/writer/jobs/delivered"},
+              ].map(s=>(
+                <div key={s.label} style={C.scard} onClick={()=>router.push(s.href)}
+                  onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="#38BDF8";}}
+                  onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="#E0F2FE";}}>
+                  <div style={C.sicon}>{s.icon}</div>
+                  <div style={C.sval}>{s.val}</div>
+                  <div style={C.slabel}>{s.label}</div>
                 </div>
               ))}
             </div>
 
-            {/* Earnings + Recent jobs */}
-            <div className="grid md:grid-cols-2 gap-4">
-
-              {/* Earnings overview */}
-              <div
-                className="bg-navy-DEFAULT rounded-2xl p-5 text-white cursor-pointer hover:bg-navy-mid transition-all relative overflow-hidden"
-                onClick={() => router.push("/writer/earnings")}
-              >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-sky-400/10 rounded-full -translate-y-1/3 translate-x-1/3" />
-                <p className="text-xs text-sky-300 uppercase tracking-wider font-700 mb-1">Available Balance</p>
-                <p className="font-clash text-3xl font-800 text-white mb-4">
-                  ₦{(earnings?.available || 0).toLocaleString()}
-                </p>
-                <div className="grid grid-cols-3 gap-2 text-xs">
+            <div style={C.grid2}>
+              {/* Earnings */}
+              <div style={C.earBox} onClick={()=>router.push("/writer/earnings")}>
+                <div style={{position:"absolute",top:"-20px",right:"-20px",width:"80px",height:"80px",background:"rgba(56,189,248,.1)",borderRadius:"50%"}}/>
+                <div style={C.earLbl}>Available Balance</div>
+                <div style={C.earVal}>₦{(earnings?.available||0).toLocaleString()}</div>
+                <div style={C.earGrid}>
                   {[
-                    { label: "Pending",     val: earnings?.pending    || 0 },
-                    { label: "Total Earned",val: earnings?.totalEarned || 0 },
-                    { label: "Withdrawn",   val: earnings?.withdrawn   || 0 },
-                  ].map((e) => (
+                    {label:"Pending",    val:earnings?.pending||0},
+                    {label:"Total",      val:earnings?.totalEarned||0},
+                    {label:"Withdrawn",  val:earnings?.withdrawn||0},
+                  ].map(e=>(
                     <div key={e.label}>
-                      <p className="text-sky-300">{e.label}</p>
-                      <p className="font-700 text-white">₦{e.val.toLocaleString()}</p>
+                      <div style={C.earItem}>{e.label}</div>
+                      <div style={C.earNum}>₦{e.val.toLocaleString()}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Recent active jobs */}
-              <Card>
-                <h2 className="font-clash text-sm font-700 text-navy-DEFAULT mb-3">
-                  Recent Active Jobs
-                </h2>
-                {active.length === 0 ? (
-                  <p className="text-xs text-navy-muted py-4 text-center">No active jobs right now.</p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {active.slice(0, 3).map((job) => (
-                      <div
-                        key={job.id}
-                        onClick={() => router.push("/writer/jobs/active")}
-                        className="flex items-center gap-3 p-3 rounded-xl border border-sky-100 hover:border-sky-300 cursor-pointer transition-all"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 font-clash font-800 text-xs flex items-center justify-center flex-shrink-0">
-                          {job.chapterNumber}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-600 text-navy-DEFAULT truncate">{job.chapterLabel}</p>
-                          <p className="text-xs text-navy-muted truncate">{job.topic}</p>
-                        </div>
-                        <StatusBadge status={job.status} />
+              <div style={C.card}>
+                <div style={C.chead}>
+                  <span style={C.ctitle}>Recent Active Jobs</span>
+                  <button style={C.clink} onClick={()=>router.push("/writer/jobs/active")}>View all →</button>
+                </div>
+                {active.length===0
+                  ? <div style={C.empty}>No active jobs right now.</div>
+                  : active.slice(0,3).map((job:any)=>(
+                    <div key={job.id} style={C.jrow} onClick={()=>router.push("/writer/jobs/active")}>
+                      <div style={C.jnum}>{job.chapterNumber}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={C.jlabel}>{job.chapterLabel}</div>
+                        <div style={C.jtopic}>{job.topic}</div>
                       </div>
-                    ))}
-                    {active.length > 3 && (
-                      <button
-                        onClick={() => router.push("/writer/jobs/active")}
-                        className="text-xs text-sky-600 font-600 text-center py-1 hover:underline"
-                      >
-                        View all {active.length} active jobs →
-                      </button>
-                    )}
-                  </div>
-                )}
-              </Card>
+                      <span style={{...C.badge,...C.bYellow}}>Active</span>
+                    </div>
+                  ))}
+              </div>
             </div>
           </>
         )}
