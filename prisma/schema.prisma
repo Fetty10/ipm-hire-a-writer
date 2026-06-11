@@ -125,6 +125,10 @@ model User {
   institution     String?
   department      String?
 
+  // Staff application documents
+  cvFileUrl       String?   // uploaded CV
+  sampleFileUrl   String?   // uploaded work sample
+
   // Bank details for withdrawals (staff only)
   bankName        String?
   accountNumber   String?
