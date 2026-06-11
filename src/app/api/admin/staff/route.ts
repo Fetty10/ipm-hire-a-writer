@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // src/app/api/admin/staff/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -39,8 +38,7 @@ export async function GET(req: NextRequest) {
       id: true, name: true, email: true, phone: true, role: true,
       isApproved: true, isSuspended: true, suspendReason: true,
       createdAt: true, approvedAt: true,
-      // CV and sample URLs stored as account data (from registration)
-      accounts: { select: { provider: true } },
+      cvFileUrl: true, sampleFileUrl: true,
     },
   });
 
