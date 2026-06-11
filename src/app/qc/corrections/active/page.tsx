@@ -1,31 +1,66 @@
 "use client";
-// src/app/qc/corrections/active/page.tsx
-
+export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
-import { Card, Spinner, Button } from "@/components/ui";
-import { FileUpload } from "@/components/staff/FileUpload";
-import { QC_NAV } from "../../_nav";
-import toast from "react-hot-toast";
 
-interface CorrJob {
-  id: string; chapterLabel: string; topic: string;
-  department: string; degreeGroup: string;
-  correctionNotes: string | null; submittedFileUrl: string | null;
-  adminNotes: string | null;
-}
+const QC_NAV = [
+  { label:"Dashboard",           icon:"📊", href:"/qc/dashboard"              },
+  { label:"Pending Checks",      icon:"🔍", href:"/qc/checks/pending"          },
+  { label:"Active Checks",       icon:"⚙️", href:"/qc/checks/active"           },
+  { label:"Cleared & Sent",      icon:"✅", href:"/qc/checks/cleared"          },
+  { label:"Pending Corrections", icon:"🔧", href:"/qc/corrections/pending"     },
+  { label:"Working on Corrections",icon:"✏️",href:"/qc/corrections/active"     },
+  { label:"Corrections Sent",    icon:"📨", href:"/qc/corrections/done"        },
+  { label:"Earnings",            icon:"💰", href:"/qc/earnings"                },
+  { label:"Withdraw",            icon:"🏦", href:"/qc/withdraw"                },
+  { label:"Notifications",       icon:"🔔", href:"/qc/notifications"           },
+  { label:"Profile",             icon:"👤", href:"/qc/profile"                 },
+];
 
-const DEG: Record<string,string> = {OND_HND_NCE:"HND/OND/NCE",BSC_BED_BA:"BSc/BEd/BA",PGD_MSC_PHD:"PGD/MSc/PhD"};
+const C = {
+  page:  { maxWidth:"640px", margin:"0 auto" },
+  h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.5rem" },
+  card:  { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", boxShadow:"0 2px 12px rgba(14,165,233,.06)", padding:"1.25rem", marginBottom:"1rem" },
+  head:  { display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"1rem", marginBottom:"1rem" },
+  title: { fontFamily:"'Syne',sans-serif", fontSize:".9rem", fontWeight:700, color:"#0C1A2E" },
+  meta:  { fontSize:".75rem", color:"#5B7EA6", marginTop:".25rem" },
+  badge: { display:"inline-flex", padding:"3px 10px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, background:"#FEF9C3", color:"#854D0E", flexShrink:0 as const },
+  warn:  { background:"#FEF9C3", border:"1px solid #FDE68A", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem" },
+  warnt: { fontSize:".65rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#854D0E", marginBottom:".5rem" },
+  files: { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem" },
+  filest:{ fontSize:".65rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0369A1", marginBottom:".5rem" },
+  flink: { display:"block", fontSize:".78rem", fontWeight:600, color:"#0369A1", textDecoration:"none", marginBottom:".3rem" },
+  fg:    { marginBottom:"1rem" },
+  lbl:   { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0C1A2E", display:"block", marginBottom:".4rem" },
+  ta:    { width:"100%", padding:".65rem 1rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"vertical" as const, minHeight:"70px", boxSizing:"border-box" as const },
+  upzone:{ border:"2px dashed #BAE6FD", borderRadius:"12px", padding:"1.25rem", textAlign:"center" as const, cursor:"pointer", background:"#F0F9FF", marginBottom:"1rem" },
+  upzoneOk:{ border:"2px dashed #4ADE80", borderRadius:"12px", padding:"1.25rem", textAlign:"center" as const, cursor:"pointer", background:"rgba(74,222,128,.04)", marginBottom:"1rem" },
+  upi:   { fontSize:"1.3rem", marginBottom:".3rem" },
+  uplbl: { fontSize:".8rem", fontWeight:600, color:"#0C1A2E" },
+  upok:  { fontSize:".8rem", fontWeight:600, color:"#16A34A" },
+  upsub: { fontSize:".7rem", color:"#5B7EA6", marginTop:".15rem" },
+  btnP:  { padding:".65rem 1.25rem", borderRadius:"10px", background:"#38BDF8", color:"#0C1A2E", fontSize:".85rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", width:"100%", marginBottom:"1rem" },
+  btnPd: { opacity:.4, cursor:"not-allowed" as const },
+  escBox:{ background:"#FFF7ED", border:"1px solid #FED7AA", borderRadius:"12px", padding:"1rem" },
+  esct:  { fontSize:".82rem", fontWeight:700, color:"#9A3412", display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" },
+  escsub:{ fontSize:".72rem", color:"#CA8A04", marginTop:".3rem", marginBottom:".75rem" },
+  escSel:{ width:"100%", padding:".65rem 1rem", borderRadius:"10px", border:"1px solid #FED7AA", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", background:"#fff", marginBottom:".75rem", boxSizing:"border-box" as const },
+  escTa: { width:"100%", padding:".65rem 1rem", borderRadius:"10px", border:"1px solid #FED7AA", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"vertical" as const, minHeight:"70px", boxSizing:"border-box" as const, background:"#fff", marginBottom:".75rem" },
+  escBtn:{ padding:".6rem 1.25rem", borderRadius:"10px", background:"#FEF9C3", color:"#854D0E", fontSize:".82rem", fontWeight:700, border:"1px solid #FDE68A", cursor:"pointer" },
+  empty: { textAlign:"center" as const, padding:"4rem 1rem" },
+  eicon: { fontSize:"2.5rem", marginBottom:".75rem" },
+  etitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
+};
+
+const DEG:Record<string,string> = {OND_HND_NCE:"HND/OND",BSC_BED_BA:"BSc/BEd",PGD_MSC_PHD:"PGD/MSc"};
 
 export default function QCCorrectionsActive() {
   const { data: session } = useSession();
-  const [jobs,    setJobs]    = useState<CorrJob[]>([]);
+  const [jobs,    setJobs]    = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [jobState, setJobState] = useState<Record<string, {
-    fileUrl: string; notes: string; submitting: boolean;
-    escalateOpen: boolean; escalateInstructions: string; escalateType: string; escalating: boolean;
-  }>>({});
+  const [state,   setState]   = useState<Record<string,any>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -33,209 +68,144 @@ export default function QCCorrectionsActive() {
     const data = await res.json();
     if (data.success) {
       setJobs(data.data);
-      const init: typeof jobState = {};
-      data.data.forEach((j: CorrJob) => {
-        init[j.id] = { fileUrl:"", notes:"", submitting:false, escalateOpen:false, escalateInstructions:"", escalateType:"corrections", escalating:false };
-      });
-      setJobState(init);
+      const init:any = {};
+      data.data.forEach((j:any) => { init[j.id] = { fileUrl:"", notes:"", uploading:false, submitting:false, escalateOpen:false, escType:"corrections", escNotes:"", escalating:false }; });
+      setState(init);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  function upd(id: string, field: string, value: string | boolean) {
-    setJobState(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+  function upd(id:string, field:string, val:any) {
+    setState((prev:any) => ({...prev,[id]:{...prev[id],[field]:val}}));
   }
 
-  async function handleSendToStudent(jobId: string) {
-    const state = jobState[jobId];
-    if (!state?.fileUrl) { toast.error("Please upload the corrected file first."); return; }
-    upd(jobId, "submitting", true);
-    try {
-      const res = await fetch("/api/chapters/qc-clear", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chapterId: jobId, clearedFileUrl: state.fileUrl,
-          qcNotes: state.notes || undefined, isCorrection: true,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error); return; }
-      toast.success("Correction sent to student!");
-      setJobs(prev => prev.filter(j => j.id !== jobId));
-    } catch { toast.error("Something went wrong."); }
-    finally { upd(jobId, "submitting", false); }
+  async function handleUpload(jobId:string, file:File) {
+    if (file.size>20*1024*1024) { alert("Max 20MB"); return; }
+    upd(jobId,"uploading",true);
+    const fd=new FormData(); fd.append("file",file); fd.append("folder","chapters/corrections");
+    const res  = await fetch("/api/upload",{method:"POST",body:fd});
+    const data = await res.json();
+    if (res.ok) { upd(jobId,"fileUrl",data.url); upd(jobId,"fileName",data.fileName); }
+    else alert(data.error||"Upload failed");
+    upd(jobId,"uploading",false);
   }
 
-  async function handleEscalate(jobId: string) {
-    const state = jobState[jobId];
-    if (!state.escalateInstructions.trim()) { toast.error("Please provide instructions for the writer."); return; }
-    upd(jobId, "escalating", true);
-    try {
-      const res = await fetch("/api/chapters/qc-escalate", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chapterId: jobId, escalationType: state.escalateType,
-          instructionsForWriter: state.escalateInstructions,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error); return; }
-      toast.success(data.message);
-      setJobs(prev => prev.filter(j => j.id !== jobId));
-    } catch { toast.error("Something went wrong."); }
-    finally { upd(jobId, "escalating", false); }
+  async function handleSend(jobId:string) {
+    const s = state[jobId];
+    if (!s?.fileUrl) { alert("Please upload the corrected file first."); return; }
+    upd(jobId,"submitting",true);
+    const res  = await fetch("/api/chapters/qc-clear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId:jobId,clearedFileUrl:s.fileUrl,qcNotes:s.notes||undefined,isCorrection:true})});
+    const data = await res.json();
+    if (res.ok) { alert("Correction sent to student!"); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
+    else alert(data.error);
+    upd(jobId,"submitting",false);
   }
 
-  function getSupervisorUrl(adminNotes: string | null) {
+  async function handleEscalate(jobId:string) {
+    const s = state[jobId];
+    if (!s.escNotes.trim()) { alert("Please provide instructions for the writer."); return; }
+    upd(jobId,"escalating",true);
+    const res  = await fetch("/api/chapters/qc-escalate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId:jobId,escalationType:s.escType,instructionsForWriter:s.escNotes})});
+    const data = await res.json();
+    if (res.ok) { alert(data.message); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
+    else alert(data.error);
+    upd(jobId,"escalating",false);
+  }
+
+  function getSupervisorUrl(adminNotes:string|null) {
     if (!adminNotes) return null;
     const m = adminNotes.match(/supervisor_notes:(.+)/);
     return m ? m[1] : null;
   }
 
-  const initials = session?.user?.name?.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
-  const nav = QC_NAV.map(item => item.href==="/qc/corrections/active" ? {...item,badge:jobs.length} : item);
+  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
+  const nav = QC_NAV.map(item=>item.href==="/qc/corrections/active"?{...item,badge:jobs.length}:item);
 
   return (
     <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
-      <div className="max-w-2xl mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">Working on Corrections</h1>
-        <p className="text-sm text-navy-muted mb-5">Make corrections and send back to student, or escalate to writer if needed.</p>
+      <div style={C.page}>
+        <h1 style={C.h1}>Working on Corrections</h1>
+        <p style={C.sub}>Make corrections and send back to student, or escalate to writer if needed.</p>
 
-        {loading ? (
-          <div className="flex justify-center py-12"><Spinner size="lg" /></div>
-        ) : jobs.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-4xl mb-3">✏️</div>
-            <p className="text-navy-muted font-600">No corrections in progress.</p>
+        {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
+        : jobs.length===0 ? (
+          <div style={C.empty}>
+            <div style={C.eicon}>✏️</div>
+            <div style={C.etitle}>No corrections in progress.</div>
           </div>
-        ) : (
-          <div className="flex flex-col gap-5">
-            {jobs.map((job) => {
-              const state = jobState[job.id] || { fileUrl:"", notes:"", submitting:false, escalateOpen:false, escalateInstructions:"", escalateType:"corrections", escalating:false };
-              const supervisorUrl = getSupervisorUrl(job.adminNotes);
+        ) : jobs.map((job:any) => {
+          const s = state[job.id]||{};
+          const supUrl = getSupervisorUrl(job.adminNotes);
+          return (
+            <div key={job.id} style={C.card}>
+              <div style={C.head}>
+                <div>
+                  <div style={C.title}>{job.chapterLabel}</div>
+                  <div style={C.meta}>{job.topic}</div>
+                  <div style={C.meta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup}</div>
+                </div>
+                <span style={C.badge}>In Progress</span>
+              </div>
 
-              return (
-                <Card key={job.id}>
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div>
-                      <h3 className="text-sm font-700 text-navy-DEFAULT">{job.chapterLabel}</h3>
-                      <p className="text-xs text-navy-muted mt-1">{job.topic}</p>
-                      <p className="text-xs text-navy-muted">{job.department} · {DEG[job.degreeGroup]}</p>
-                    </div>
-                    <span className="flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-700 bg-yellow-50 text-yellow-700">In Progress</span>
-                  </div>
+              {job.correctionNotes && (
+                <div style={C.warn}>
+                  <div style={C.warnt}>Student's Request (for reference)</div>
+                  <p style={{fontSize:".82rem",color:"#854D0E",lineHeight:1.5}}>{job.correctionNotes}</p>
+                </div>
+              )}
 
-                  {/* Student request reminder */}
-                  {job.correctionNotes && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4">
-                      <p className="text-xs font-700 text-yellow-800 uppercase tracking-wider mb-1.5">Student's Request (for reference)</p>
-                      <p className="text-sm text-yellow-900 leading-relaxed">{job.correctionNotes}</p>
-                    </div>
-                  )}
+              <div style={C.files}>
+                <div style={C.filest}>Files to Work From</div>
+                {job.submittedFileUrl && <a href={job.submittedFileUrl} target="_blank" rel="noreferrer" style={C.flink}>⬇ {job.chapterLabel} — Original Delivered Version</a>}
+                {supUrl && <a href={supUrl} target="_blank" rel="noreferrer" style={C.flink}>⬇ Supervisor's Notes (uploaded by student)</a>}
+              </div>
 
-                  {/* Download files */}
-                  <div className="bg-sky-50 border border-sky-100 rounded-xl p-3 mb-4">
-                    <p className="text-xs font-700 text-sky-700 uppercase tracking-wider mb-2">Files to Work From</p>
-                    <div className="flex flex-col gap-1.5">
-                      {job.submittedFileUrl && (
-                        <a href={job.submittedFileUrl} target="_blank" rel="noreferrer"
-                          className="text-xs font-600 text-sky-600 hover:underline">
-                          ⬇ {job.chapterLabel} — Original Delivered Version
-                        </a>
-                      )}
-                      {supervisorUrl && (
-                        <a href={supervisorUrl} target="_blank" rel="noreferrer"
-                          className="text-xs font-600 text-sky-600 hover:underline">
-                          ⬇ Supervisor's Notes (uploaded by student)
-                        </a>
-                      )}
-                    </div>
-                  </div>
+              {/* Notes */}
+              <div style={C.fg}>
+                <label style={C.lbl}>Your Correction Notes <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0,color:"#5B7EA6"}}>(visible to admin & student)</span></label>
+                <textarea style={C.ta} rows={3} placeholder="Describe what you corrected..." value={s.notes||""} onChange={e=>upd(job.id,"notes",e.target.value)} />
+              </div>
 
-                  {/* QC correction notes */}
-                  <div className="mb-4">
-                    <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
-                      Your Correction Notes <span className="font-400 normal-case text-navy-muted">(visible to admin & student)</span>
-                    </label>
-                    <textarea rows={3}
-                      placeholder="Describe what you corrected. e.g. Expanded section 2.2 with 2021–2024 Nigerian social media data. Updated all citations to APA 7th edition."
-                      value={state.notes}
-                      onChange={e => upd(job.id, "notes", e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
-                    />
-                  </div>
+              {/* Upload corrected file */}
+              <div
+                style={s.fileUrl ? C.upzoneOk : C.upzone}
+                onClick={()=>{ const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};inp.click(); }}>
+                {s.uploading ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
+                : s.fileUrl  ? <div><div style={C.upi}>✅</div><div style={C.upok}>{s.fileName||"File uploaded"}</div><div style={C.upsub}>Tap to replace</div></div>
+                : <div><div style={C.upi}>📄</div><div style={C.uplbl}>Upload Corrected {job.chapterLabel}</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
+              </div>
 
-                  {/* Upload corrected file */}
-                  <FileUpload
-                    folder="chapters/corrections"
-                    label={`Upload Corrected ${job.chapterLabel}`}
-                    onUpload={(url) => upd(job.id, "fileUrl", url)}
-                    className="mb-4"
-                  />
+              {/* Send to student */}
+              <button style={{...C.btnP,...(!s.fileUrl?C.btnPd:{})}} disabled={!s.fileUrl||s.submitting} onClick={()=>handleSend(job.id)}>
+                {s.submitting?"Sending...":"✅ Send Correction to Student →"}
+              </button>
 
-                  {/* Send to student */}
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-3">
-                    <p className="text-sm font-700 text-green-800 mb-1">✅ Send Corrected Work to Student</p>
-                    <p className="text-xs text-green-700 mb-3">Upload the corrected file above then click to send it directly to the student.</p>
-                    <Button
-                      variant="primary"
-                      loading={state.submitting}
-                      onClick={() => handleSendToStudent(job.id)}
-                      disabled={!state.fileUrl}
-                      className={!state.fileUrl ? "opacity-40 cursor-not-allowed" : ""}
-                    >
-                      ✅ Send Correction to Student →
-                    </Button>
-                  </div>
-
-                  {/* Escalate */}
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                    <button
-                      onClick={() => upd(job.id, "escalateOpen", !state.escalateOpen)}
-                      className="text-sm font-700 text-yellow-800 w-full text-left flex items-center justify-between"
-                    >
-                      🔧 Escalate to Writer
-                      <span className="text-xs">{state.escalateOpen ? "▲" : "▼"}</span>
+              {/* Escalate */}
+              <div style={C.escBox}>
+                <div style={C.esct} onClick={()=>upd(job.id,"escalateOpen",!s.escalateOpen)}>
+                  <span>🔧 Escalate to Writer</span>
+                  <span>{s.escalateOpen?"▲":"▼"}</span>
+                </div>
+                <div style={C.escsub}>Use only if the correction requires the writer to rewrite content.</div>
+                {s.escalateOpen && (
+                  <>
+                    <select style={C.escSel} value={s.escType} onChange={e=>upd(job.id,"escType",e.target.value)}>
+                      <option value="corrections">Send back for specific corrections</option>
+                      <option value="section_rewrite">Request section rewrite</option>
+                      <option value="full_rewrite">Request full chapter rewrite</option>
+                    </select>
+                    <textarea style={C.escTa} rows={3} placeholder="Be specific about what the writer needs to fix..." value={s.escNotes} onChange={e=>upd(job.id,"escNotes",e.target.value)} />
+                    <button style={C.escBtn} disabled={s.escalating} onClick={()=>handleEscalate(job.id)}>
+                      {s.escalating?"Sending...":"🔧 Send Back to Writer →"}
                     </button>
-                    <p className="text-xs text-yellow-700 mt-1">
-                      Use this if the correction requires the original writer to rewrite content. Both your instructions and the student's request will be visible to the writer.
-                    </p>
-                    {state.escalateOpen && (
-                      <div className="mt-3 flex flex-col gap-3">
-                        <div>
-                          <label className="text-xs font-700 text-yellow-800 uppercase tracking-wider block mb-1.5">Type of Escalation</label>
-                          <select
-                            value={state.escalateType}
-                            onChange={e => upd(job.id, "escalateType", e.target.value)}
-                            className="w-full px-3 py-2 rounded-xl border border-yellow-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                          >
-                            <option value="corrections">Send back for specific corrections</option>
-                            <option value="section_rewrite">Request full rewrite of section</option>
-                            <option value="full_rewrite">Request complete chapter rewrite</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs font-700 text-yellow-800 uppercase tracking-wider block mb-1.5">Instructions for Writer</label>
-                          <textarea rows={3}
-                            placeholder="Be specific. e.g. Please rewrite section 2.2 to include Nigerian social media statistics (2021–2024). Fix all in-text citations to APA 7th edition."
-                            value={state.escalateInstructions}
-                            onChange={e => upd(job.id, "escalateInstructions", e.target.value)}
-                            className="w-full px-3 py-2 rounded-xl border border-yellow-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-yellow-300 resize-none"
-                          />
-                        </div>
-                        <Button variant="warning" loading={state.escalating} onClick={() => handleEscalate(job.id)}>
-                          🔧 Send Back to Writer →
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </StaffLayout>
   );
