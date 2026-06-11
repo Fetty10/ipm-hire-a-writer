@@ -1,294 +1,242 @@
 "use client";
-// src/app/student/hire/page.tsx
-
+export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StudentLayout } from "@/components/student/StudentLayout";
-import { FileUpload } from "@/components/staff/FileUpload";
-import { Spinner } from "@/components/ui";
-import toast from "react-hot-toast";
-
-interface Plan { id:string; planName:string; degreeGroup:string; pricingType:string; priceKobo:number; includesPlagiarismCheck:boolean; includesCorrections:boolean; }
 
 const DEG_GROUPS = [
-  { value:"OND_HND_NCE", label:"HND | OND | NCE" },
-  { value:"BSC_BED_BA",  label:"BSc | BEd | BA | BTech | BEng | Nursing" },
-  { value:"PGD_MSC_PHD", label:"PGD | MSc | MBA | MBBS | LL.B | PhD" },
+  {value:"OND_HND_NCE",label:"HND | OND | NCE"},
+  {value:"BSC_BED_BA", label:"BSc | BEd | BA | BTech | BEng | Nursing"},
+  {value:"PGD_MSC_PHD",label:"PGD | MSc | MBA | MBBS | LL.B | PhD"},
 ];
-
 const SERVICES = [
-  { value:"project",    label:"Project / Thesis / Dissertation / Term Paper", hasPlan:true  },
-  { value:"seminar",    label:"Seminar Paper",                                hasPlan:false },
-  { value:"proposal",   label:"Research Proposal",                            hasPlan:false },
-  { value:"journal",    label:"Journal / Article",                            hasPlan:false },
-  { value:"topic",      label:"Topic Coining",                                hasPlan:false },
-  { value:"assignment", label:"Assignment",                                   hasPlan:false },
+  {value:"project",  label:"Project / Thesis / Dissertation", hasPlan:true},
+  {value:"seminar",  label:"Seminar Paper",                   hasPlan:false},
+  {value:"proposal", label:"Research Proposal",               hasPlan:false},
+  {value:"journal",  label:"Journal / Article",               hasPlan:false},
+  {value:"topic",    label:"Topic Coining",                   hasPlan:false},
+  {value:"assignment",label:"Assignment",                     hasPlan:false},
 ];
-
-const FLAT_PRICES: Record<string, Record<string,number>> = {
+const FLAT:Record<string,Record<string,number>> = {
   seminar:    {OND_HND_NCE:10000,BSC_BED_BA:10000,PGD_MSC_PHD:20000},
   proposal:   {OND_HND_NCE:10000,BSC_BED_BA:10000,PGD_MSC_PHD:20000},
   journal:    {OND_HND_NCE:10000,BSC_BED_BA:10000,PGD_MSC_PHD:20000},
   topic:      {OND_HND_NCE:2000, BSC_BED_BA:2000, PGD_MSC_PHD:2000 },
   assignment: {OND_HND_NCE:3000, BSC_BED_BA:3000, PGD_MSC_PHD:5000 },
 };
+const PLAN_LBL:Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Professional"};
+const CH_LBL = ["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5"];
 
-const CHAPTER_LABELS = ["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5"];
-const PLAN_DISPLAY: Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Professional"};
+const C = {
+  page:  { maxWidth:"520px", margin:"0 auto" },
+  h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.5rem" },
+  card:  { background:"#fff", borderRadius:"20px", border:"1.5px solid #E0F2FE", boxShadow:"0 4px 24px rgba(14,165,233,.08)", padding:"1.5rem" },
+  fg:    { marginBottom:"1rem" },
+  lbl:   { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0C1A2E", display:"block", marginBottom:".4rem" },
+  inp:   { width:"100%", padding:".75rem 1rem", borderRadius:"12px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" as const },
+  sel:   { width:"100%", padding:".75rem 1rem", borderRadius:"12px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" as const, background:"#fff" },
+  ta:    { width:"100%", padding:".75rem 1rem", borderRadius:"12px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"vertical" as const, minHeight:"80px", boxSizing:"border-box" as const },
+  planRow:{ display:"flex", flexDirection:"column" as const, gap:".6rem", marginBottom:".5rem" },
+  plan:  { border:"1.5px solid #BAE6FD", borderRadius:"12px", padding:".9rem 1rem", cursor:"pointer", transition:"all .2s", display:"flex", alignItems:"center", justifyContent:"space-between" },
+  planA: { borderColor:"#38BDF8", background:"#F0F9FF" },
+  pname: { fontFamily:"'Syne',sans-serif", fontSize:".85rem", fontWeight:700, color:"#0C1A2E" },
+  pprice:{ fontSize:".82rem", color:"#5B7EA6", marginTop:".15rem" },
+  radio: { width:"18px", height:"18px", borderRadius:"50%", border:"2px solid #BAE6FD", flexShrink:0, transition:"all .2s" },
+  radioA:{ borderColor:"#38BDF8", background:"#38BDF8" },
+  chips: { display:"flex", gap:".4rem", flexWrap:"wrap" as const, marginBottom:".5rem" },
+  chip:  { padding:".45rem .9rem", borderRadius:"8px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontWeight:600, cursor:"pointer", transition:"all .2s", color:"#5B7EA6" },
+  chipA: { borderColor:"#38BDF8", background:"#E0F2FE", color:"#0C1A2E" },
+  sum:   { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"12px", padding:"1rem 1.25rem", marginBottom:"1rem" },
+  sumT:  { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0369A1", marginBottom:".75rem" },
+  sumR:  { display:"flex", justifyContent:"space-between", fontSize:".82rem", marginBottom:".4rem" },
+  sumRL: { color:"#5B7EA6" },
+  sumRV: { fontWeight:600, color:"#0C1A2E" },
+  sumTotal:{ display:"flex", justifyContent:"space-between", fontSize:".88rem", fontWeight:700, borderTop:"1px solid #BAE6FD", paddingTop:".75rem", marginTop:".5rem" },
+  sumPrice:{ fontFamily:"'Syne',sans-serif", fontSize:"1.2rem", fontWeight:800, color:"#0284C7" },
+  btnP:  { width:"100%", padding:".85rem", borderRadius:"12px", background:"#38BDF8", color:"#0C1A2E", fontSize:".88rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", transition:"all .2s" },
+  btnD:  { background:"#E0F2FE", color:"#5B7EA6", cursor:"not-allowed" as const },
+  foot:  { textAlign:"center" as const, fontSize:".72rem", color:"#5B7EA6", marginTop:".75rem" },
+  upzone:{ border:"2px dashed #BAE6FD", borderRadius:"12px", padding:"1.25rem", textAlign:"center" as const, cursor:"pointer", background:"#F0F9FF" },
+  upi:   { fontSize:"1.3rem", marginBottom:".3rem" },
+  uplbl: { fontSize:".8rem", fontWeight:600, color:"#0C1A2E" },
+  upsub: { fontSize:".7rem", color:"#5B7EA6", marginTop:".15rem" },
+  upok:  { fontSize:".8rem", fontWeight:600, color:"#16A34A" },
+  planTags:{ display:"flex", gap:".4rem", marginTop:".5rem", flexWrap:"wrap" as const },
+  tag:   { padding:"2px 8px", borderRadius:"999px", fontSize:".65rem", fontWeight:700, background:"#E0F2FE", color:"#0369A1" },
+};
 
 export default function HireAWriter() {
   const router = useRouter();
-  const [plans,    setPlans]    = useState<Plan[]>([]);
+  const [plans,    setPlans]    = useState<any[]>([]);
+  const [deg,      setDeg]      = useState("");
+  const [svc,      setSvc]      = useState("");
+  const [planId,   setPlanId]   = useState("");
+  const [chapters, setChapters] = useState<number[]>([]);
+  const [topic,    setTopic]    = useState("");
+  const [dept,     setDept]     = useState("");
+  const [notes,    setNotes]    = useState("");
+  const [guideUrl, setGuideUrl] = useState("");
+  const [uploading,setUploading]= useState(false);
   const [loading,  setLoading]  = useState(false);
 
-  // Form state
-  const [degreeGroup,  setDegreeGroup]  = useState("");
-  const [service,      setService]      = useState("");
-  const [planId,       setPlanId]       = useState("");
-  const [selChapters,  setSelChapters]  = useState<number[]>([]);
-  const [topic,        setTopic]        = useState("");
-  const [department,   setDepartment]   = useState("");
-  const [instructions, setInstructions] = useState("");
-  const [guidelineUrl, setGuidelineUrl] = useState("");
-  const [errors,       setErrors]       = useState<Record<string,string>>({});
+  useEffect(()=>{
+    if(!deg) { setPlans([]); return; }
+    fetch(`/api/plans?degreeGroup=${deg}`).then(r=>r.json()).then(d=>{ if(d.success) setPlans(d.data); });
+  },[deg]);
 
-  // Fetch plans when degree group changes
-  useEffect(() => {
-    if (!degreeGroup) { setPlans([]); return; }
-    fetch(`/api/plans?degreeGroup=${degreeGroup}`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setPlans(d.data); });
-  }, [degreeGroup]);
+  const selSvc   = SERVICES.find(s=>s.value===svc);
+  const selPlan  = plans.find(p=>p.id===planId);
+  const isProj   = svc==="project";
+  const perCh    = selPlan?.pricingType==="PER_CHAPTER";
+  const showSum  = deg && svc && (isProj ? planId && (!perCh || chapters.length>0) : true);
 
-  const selectedService = SERVICES.find(s => s.value === service);
-  const selectedPlan    = plans.find(p => p.id === planId);
-  const isPerChapter    = selectedPlan?.pricingType === "PER_CHAPTER";
-  const isProject       = service === "project";
-
-  // Calculate total
-  function calcTotal(): number {
-    if (!degreeGroup) return 0;
-    if (!isProject) {
-      return FLAT_PRICES[service]?.[degreeGroup] || 0;
-    }
-    if (!selectedPlan) return 0;
-    if (!isPerChapter) return selectedPlan.priceKobo / 100;
-    return (selectedPlan.priceKobo / 100) * selChapters.length;
+  function calcTotal() {
+    if(!deg) return 0;
+    if(!isProj) return FLAT[svc]?.[deg]||0;
+    if(!selPlan) return 0;
+    if(!perCh) return selPlan.priceKobo/100;
+    return (selPlan.priceKobo/100)*chapters.length;
   }
 
-  function toggleChapter(n: number) {
-    setSelChapters(prev =>
-      prev.includes(n) ? prev.filter(c => c !== n) : [...prev, n]
-    );
+  function toggleCh(n:number) {
+    setChapters(prev=>prev.includes(n)?prev.filter(c=>c!==n):[...prev,n]);
   }
 
-  function validate() {
-    const e: Record<string,string> = {};
-    if (!degreeGroup)          e.degreeGroup = "Please select your academic level.";
-    if (!service)              e.service     = "Please select a service type.";
-    if (isProject && !planId)  e.planId      = "Please choose a plan.";
-    if (isProject && isPerChapter && selChapters.length === 0)
-                               e.chapters    = "Please select at least one chapter.";
-    if (!topic.trim())         e.topic       = "Please enter your project topic.";
-    if (!department.trim() && service !== "topic") e.department = "Please enter your department.";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+  async function handleGuideUpload(file:File) {
+    if(file.size>20*1024*1024){ alert("Max 20MB"); return; }
+    setUploading(true);
+    const fd = new FormData(); fd.append("file",file); fd.append("folder","orders/guidelines");
+    const res  = await fetch("/api/upload",{method:"POST",body:fd});
+    const data = await res.json();
+    if(res.ok) setGuideUrl(data.url); else alert(data.error||"Upload failed");
+    setUploading(false);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function submit(e:React.FormEvent) {
     e.preventDefault();
-    if (!validate()) return;
+    if(!deg)   { alert("Select academic level."); return; }
+    if(!svc)   { alert("Select service type."); return; }
+    if(isProj&&!planId) { alert("Choose a plan."); return; }
+    if(isProj&&perCh&&chapters.length===0) { alert("Select at least one chapter."); return; }
+    if(!topic.trim()) { alert("Enter your topic."); return; }
     setLoading(true);
-    try {
-      // If non-project service, use a fixed plan ID or handle differently
-      const payload = {
-        planId:            isProject ? planId : "flat",
-        topic:             topic.trim(),
-        department:        department.trim(),
-        degreeGroup,
-        specialInstructions: instructions.trim() || undefined,
-        guidelineFileUrl:  guidelineUrl || undefined,
-        chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
-        serviceType:       service.toUpperCase(),
-      };
-
-      const res  = await fetch("/api/orders", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error); return; }
-
-      // Redirect to Paystack
-      window.location.href = data.paymentUrl;
-    } catch { toast.error("Something went wrong. Please try again."); }
-    finally { setLoading(false); }
+    const res  = await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      planId:isProj?planId:"flat", topic:topic.trim(), department:dept.trim(), degreeGroup:deg,
+      specialInstructions:notes.trim()||undefined, guidelineFileUrl:guideUrl||undefined,
+      chaptersRequested:isProj&&perCh?chapters:undefined, serviceType:svc.toUpperCase(),
+    })});
+    const data = await res.json();
+    if(res.ok) window.location.href=data.paymentUrl;
+    else { alert(data.error); setLoading(false); }
   }
-
-  const total  = calcTotal();
-  const showSummary = degreeGroup && service && (isProject ? planId && (!isPerChapter || selChapters.length > 0) : true);
 
   return (
     <StudentLayout>
-      <div className="max-w-lg mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">Hire a Writer</h1>
-        <p className="text-sm text-navy-muted mb-5">Fill in the form and we'll assign the right expert to your work.</p>
+      <div style={C.page}>
+        <h1 style={C.h1}>Hire a Writer</h1>
+        <p style={C.sub}>Fill in the form and we'll assign the right expert to your work.</p>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-sky-100 shadow-card p-5 flex flex-col gap-4">
-
+        <form onSubmit={submit} style={C.card}>
           {/* Academic Level */}
-          <div>
-            <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Academic Level</label>
-            <select value={degreeGroup} onChange={e => { setDegreeGroup(e.target.value); setPlanId(""); setSelChapters([]); }}
-              className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
+          <div style={C.fg}>
+            <label style={C.lbl}>Academic Level</label>
+            <select style={C.sel} value={deg} onChange={e=>{setDeg(e.target.value);setPlanId("");setChapters([]);}}>
               <option value="">-- Select your level --</option>
-              {DEG_GROUPS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+              {DEG_GROUPS.map(d=><option key={d.value} value={d.value}>{d.label}</option>)}
             </select>
-            {errors.degreeGroup && <p className="text-xs text-red-500 mt-1">{errors.degreeGroup}</p>}
           </div>
 
-          {/* Service Type */}
-          <div>
-            <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">What Do You Need?</label>
-            <select value={service} onChange={e => { setService(e.target.value); setPlanId(""); setSelChapters([]); }}
-              className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
+          {/* Service */}
+          <div style={C.fg}>
+            <label style={C.lbl}>What Do You Need?</label>
+            <select style={C.sel} value={svc} onChange={e=>{setSvc(e.target.value);setPlanId("");setChapters([]);}}>
               <option value="">-- Select service type --</option>
-              {SERVICES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {SERVICES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
-            {errors.service && <p className="text-xs text-red-500 mt-1">{errors.service}</p>}
           </div>
 
-          {/* Plan — only for Project */}
-          {isProject && degreeGroup && (
-            <div>
-              <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Choose a Plan</label>
-              <div className="flex flex-col gap-2">
-                {plans.map(p => (
-                  <div key={p.id} onClick={() => { setPlanId(p.id); setSelChapters([]); }}
-                    className={`border-2 rounded-xl p-3 cursor-pointer transition-all ${
-                      planId === p.id ? "border-sky-400 bg-sky-50" : "border-sky-100 hover:border-sky-300"
-                    }`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-sm font-700 text-navy-DEFAULT">{PLAN_DISPLAY[p.planName]}</span>
-                        <span className="text-sm text-navy-muted ml-2">
-                          — ₦{(p.priceKobo/100).toLocaleString()} {p.pricingType==="PER_CHAPTER" ? "per chapter" : "(complete project)"}
-                        </span>
+          {/* Plans */}
+          {isProj && deg && (
+            <div style={C.fg}>
+              <label style={C.lbl}>Choose a Plan</label>
+              <div style={C.planRow}>
+                {plans.map(p=>(
+                  <div key={p.id} style={{...C.plan,...(planId===p.id?C.planA:{})}} onClick={()=>{setPlanId(p.id);setChapters([]);}}>
+                    <div>
+                      <div style={C.pname}>{PLAN_LBL[p.planName]||p.planName}</div>
+                      <div style={C.pprice}>₦{(p.priceKobo/100).toLocaleString()} {p.pricingType==="PER_CHAPTER"?"per chapter":"(complete project)"}</div>
+                      <div style={C.planTags}>
+                        {p.includesCorrections&&<span style={C.tag}>Corrections ✓</span>}
+                        {p.includesPlagiarismCheck&&<span style={{...C.tag,background:"#EDE9FE",color:"#5B21B6"}}>Plagiarism Check ✓</span>}
                       </div>
-                      <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-all ${
-                        planId === p.id ? "border-sky-400 bg-sky-400" : "border-sky-200"
-                      }`} />
                     </div>
-                    <div className="flex gap-2 mt-1.5 flex-wrap">
-                      {p.includesCorrections && <span className="text-[.65rem] font-600 text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">Corrections ✓</span>}
-                      {p.includesPlagiarismCheck && <span className="text-[.65rem] font-600 text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">Plagiarism Check ✓</span>}
-                    </div>
+                    <div style={{...C.radio,...(planId===p.id?C.radioA:{})}}/>
                   </div>
                 ))}
               </div>
-              {errors.planId && <p className="text-xs text-red-500 mt-1">{errors.planId}</p>}
             </div>
           )}
 
-          {/* Chapter selector — per-chapter plans only */}
-          {isProject && isPerChapter && planId && (
-            <div>
-              <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
-                Which Chapters? <span className="font-400 normal-case text-navy-muted">(select all you need)</span>
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {CHAPTER_LABELS.map((label, i) => {
-                  const n = i + 1;
-                  const sel = selChapters.includes(n);
-                  return (
-                    <button type="button" key={n} onClick={() => toggleChapter(n)}
-                      className={`px-4 py-2 rounded-lg border-2 text-sm font-600 transition-all ${
-                        sel ? "border-sky-400 bg-sky-100 text-navy-DEFAULT" : "border-sky-100 text-navy-muted hover:border-sky-300"
-                      }`}>
-                      {label}
-                    </button>
-                  );
+          {/* Chapter selector */}
+          {isProj && perCh && planId && (
+            <div style={C.fg}>
+              <label style={C.lbl}>Which Chapters? <span style={{fontWeight:400,textTransform:"none",letterSpacing:0}}>(select all you need)</span></label>
+              <div style={C.chips}>
+                {CH_LBL.map((label,i)=>{
+                  const n=i+1;
+                  return <button type="button" key={n} style={{...C.chip,...(chapters.includes(n)?C.chipA:{})}} onClick={()=>toggleCh(n)}>{label}</button>;
                 })}
               </div>
-              {selChapters.length > 0 && (
-                <p className="text-xs text-sky-600 font-600 mt-1.5">{selChapters.length} chapter{selChapters.length>1?"s":""} selected</p>
-              )}
-              {errors.chapters && <p className="text-xs text-red-500 mt-1">{errors.chapters}</p>}
+              {chapters.length>0&&<p style={{fontSize:".75rem",color:"#0369A1",fontWeight:600}}>{chapters.length} chapter{chapters.length>1?"s":""} selected</p>}
             </div>
           )}
 
           {/* Topic */}
-          <div>
-            <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Your Topic</label>
-            <input value={topic} onChange={e => setTopic(e.target.value)}
-              placeholder="e.g. Impact of Digital Marketing on Consumer Behaviour in Nigeria"
-              className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-            {errors.topic && <p className="text-xs text-red-500 mt-1">{errors.topic}</p>}
+          <div style={C.fg}>
+            <label style={C.lbl}>Your Topic</label>
+            <input style={C.inp} value={topic} onChange={e=>setTopic(e.target.value)} placeholder="e.g. Impact of Digital Marketing on Consumer Behaviour in Nigeria" />
           </div>
 
           {/* Department */}
-          {service !== "topic" && (
-            <div>
-              <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Department / Course</label>
-              <input value={department} onChange={e => setDepartment(e.target.value)}
-                placeholder="e.g. Business Administration"
-                className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-              {errors.department && <p className="text-xs text-red-500 mt-1">{errors.department}</p>}
+          {svc!=="topic" && (
+            <div style={C.fg}>
+              <label style={C.lbl}>Department / Course</label>
+              <input style={C.inp} value={dept} onChange={e=>setDept(e.target.value)} placeholder="e.g. Business Administration" />
             </div>
           )}
 
-          {/* Special Instructions */}
-          <div>
-            <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
-              Special Instructions <span className="font-400 normal-case text-navy-muted">(optional)</span>
-            </label>
-            <textarea value={instructions} onChange={e => setInstructions(e.target.value)} rows={3}
-              placeholder="e.g. Use APA 7th edition. Minimum 15 pages for each chapter. Focus on Nigerian context."
-              className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none" />
+          {/* Notes */}
+          <div style={C.fg}>
+            <label style={C.lbl}>Special Instructions <span style={{fontWeight:400,textTransform:"none",letterSpacing:0}}>(optional)</span></label>
+            <textarea style={C.ta} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="e.g. Use APA 7th edition. Focus on Nigerian context." rows={3} />
           </div>
 
-          {/* Guideline upload */}
-          <div>
-            <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
-              Upload School Format/Guideline <span className="font-400 normal-case text-navy-muted">(optional)</span>
-            </label>
-            <FileUpload
-              folder="orders/guidelines"
-              label="Tap to upload your format guide"
-              onUpload={(url) => setGuidelineUrl(url)}
-            />
+          {/* Upload */}
+          <div style={C.fg}>
+            <label style={C.lbl}>Upload School Format/Guideline <span style={{fontWeight:400,textTransform:"none",letterSpacing:0}}>(optional)</span></label>
+            <div style={C.upzone} onClick={()=>{ const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleGuideUpload(f);};inp.click(); }}>
+              {uploading ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
+              : guideUrl  ? <div><div style={C.upi}>✅</div><div style={C.upok}>File uploaded</div><div style={C.upsub}>Tap to replace</div></div>
+              : <div><div style={C.upi}>📎</div><div style={C.uplbl}>Upload your format guide</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
+            </div>
           </div>
 
-          {/* Payment Summary */}
-          {showSummary && (
-            <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
-              <p className="text-xs font-700 text-sky-700 uppercase tracking-wider mb-3">Order Summary</p>
-              <div className="flex flex-col gap-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-navy-muted">Service</span><span className="font-600">{selectedService?.label || service}</span></div>
-                {isProject && selectedPlan && (
-                  <div className="flex justify-between"><span className="text-navy-muted">Plan</span><span className="font-600">{PLAN_DISPLAY[selectedPlan.planName]}</span></div>
-                )}
-                {isProject && isPerChapter && selChapters.length > 0 && (
-                  <div className="flex justify-between"><span className="text-navy-muted">Chapters</span><span className="font-600">{selChapters.sort().map(n=>`Ch ${n}`).join(", ")} ({selChapters.length})</span></div>
-                )}
-                <div className="flex justify-between pt-2 border-t border-sky-200 mt-1">
-                  <span className="font-700">Total</span>
-                  <span className="font-clash text-lg font-800 text-sky-600">₦{total.toLocaleString()}</span>
-                </div>
-              </div>
+          {/* Summary */}
+          {showSum && (
+            <div style={C.sum}>
+              <div style={C.sumT}>Order Summary</div>
+              <div style={C.sumR}><span style={C.sumRL}>Service</span><span style={C.sumRV}>{selSvc?.label||svc}</span></div>
+              {isProj&&selPlan&&<div style={C.sumR}><span style={C.sumRL}>Plan</span><span style={C.sumRV}>{PLAN_LBL[selPlan.planName]||selPlan.planName}</span></div>}
+              {isProj&&perCh&&chapters.length>0&&<div style={C.sumR}><span style={C.sumRL}>Chapters</span><span style={C.sumRV}>{chapters.sort().map(n=>`Ch ${n}`).join(", ")}</span></div>}
+              <div style={C.sumTotal}><span>Total</span><span style={C.sumPrice}>₦{calcTotal().toLocaleString()}</span></div>
             </div>
           )}
 
-          <button type="submit" disabled={loading || !showSummary}
-            className={`w-full py-4 rounded-xl font-700 text-sm transition-all flex items-center justify-center gap-2 ${
-              showSummary && !loading
-                ? "bg-sky-400 text-navy-DEFAULT hover:bg-sky-500"
-                : "bg-sky-100 text-navy-muted cursor-not-allowed"
-            }`}>
-            {loading ? <><Spinner size="sm" /> Processing...</> : `💳 Pay ₦${total.toLocaleString()} with Paystack →`}
+          <button type="submit" disabled={loading||!showSum} style={{...C.btnP,...(!showSum||loading?C.btnD:{})}}>
+            {loading?"Processing...":showSum?`💳 Pay ₦${calcTotal().toLocaleString()} with Paystack →`:"Complete the form above"}
           </button>
-
-          <p className="text-xs text-navy-muted text-center">🔒 Secure payment powered by Paystack</p>
+          <div style={C.foot}>🔒 Secure payment powered by Paystack</div>
         </form>
       </div>
     </StudentLayout>
