@@ -1,11 +1,31 @@
 "use client";
-// src/app/admin/staff/list/page.tsx
+export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Spinner, Button } from "@/components/ui";
-import toast from "react-hot-toast";
 
-const ROLES = ["all","WRITER","ANALYST","QC"];
+const C = {
+  page:  { maxWidth:"1000px", margin:"0 auto" },
+  h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.25rem" },
+  sbar:  { display:"flex", gap:".75rem", marginBottom:"1rem", flexWrap:"wrap" as const },
+  sinput:{ flex:1, minWidth:"180px", padding:".65rem 1rem .65rem 2.2rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none" },
+  sel:   { padding:".65rem 1rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none" },
+  card:  { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", overflow:"hidden" },
+  table: { width:"100%", borderCollapse:"collapse" as const, fontSize:".78rem" },
+  th:    { textAlign:"left" as const, padding:".6rem 1rem", fontSize:".6rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#5B7EA6", borderBottom:"1px solid #E0F2FE", whiteSpace:"nowrap" as const, background:"#F8FBFF" },
+  td:    { padding:".65rem 1rem", borderBottom:"1px solid #F0F9FF", color:"#0C1A2E", verticalAlign:"middle" as const },
+  badge: { display:"inline-flex", padding:"2px 8px", borderRadius:"999px", fontSize:".65rem", fontWeight:700 },
+  btnY:  { padding:".35rem .75rem", borderRadius:"8px", background:"#FEF9C3", color:"#854D0E", fontSize:".72rem", fontWeight:700, border:"none", cursor:"pointer" },
+  btnG:  { padding:".35rem .75rem", borderRadius:"8px", background:"#D1FAE5", color:"#065F46", fontSize:".72rem", fontWeight:700, border:"none", cursor:"pointer" },
+  modal: { position:"fixed" as const, inset:0, background:"rgba(12,26,46,.6)", zIndex:50, display:"flex", alignItems:"center", justifyContent:"center", padding:"1rem" },
+  mCard: { background:"#fff", borderRadius:"20px", padding:"1.5rem", maxWidth:"420px", width:"100%" },
+  mTitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1.1rem", fontWeight:700, color:"#0C1A2E", marginBottom:".5rem" },
+  mSub:  { fontSize:".82rem", color:"#5B7EA6", marginBottom:"1rem" },
+  ta:    { width:"100%", padding:".65rem 1rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", marginBottom:"1rem", resize:"vertical" as const, minHeight:"60px" },
+  mbtns: { display:"flex", gap:".5rem" },
+  btnR:  { padding:".55rem 1.1rem", borderRadius:"10px", background:"#FEE2E2", color:"#991B1B", fontSize:".82rem", fontWeight:700, border:"none", cursor:"pointer" },
+  btnN:  { padding:".55rem 1.1rem", borderRadius:"10px", background:"#F1F5F9", color:"#64748B", fontSize:".82rem", fontWeight:700, border:"none", cursor:"pointer" },
+};
 
 export default function StaffList() {
   const [staff,   setStaff]   = useState<any[]>([]);
@@ -13,82 +33,63 @@ export default function StaffList() {
   const [role,    setRole]    = useState("all");
   const [search,  setSearch]  = useState("");
   const [acting,  setActing]  = useState<string|null>(null);
-  const [modal,   setModal]   = useState<{id:string;action:string;name:string}|null>(null);
+  const [modal,   setModal]   = useState<any>(null);
   const [reason,  setReason]  = useState("");
 
   async function load() {
     setLoading(true);
     const res  = await fetch(`/api/admin/staff?role=${role}&search=${encodeURIComponent(search)}&filter=active`);
     const data = await res.json();
-    if (data.success) setStaff(data.data);
+    if(data.success) setStaff(data.data);
     setLoading(false);
   }
-  useEffect(() => { load(); }, [role, search]);
+  useEffect(()=>{ load(); },[role,search]);
 
-  async function act(staffId: string, action: string) {
+  async function act(staffId:string, action:string) {
     setActing(staffId);
-    const res  = await fetch("/api/admin/staff", {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ staffId, action, reason }),
-    });
+    const res  = await fetch("/api/admin/staff",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({staffId,action,reason})});
     const data = await res.json();
-    if (res.ok) { toast.success(data.message); setModal(null); setReason(""); load(); }
-    else toast.error(data.error);
+    if(res.ok){ setModal(null); setReason(""); load(); }
+    else alert(data.error);
     setActing(null);
   }
 
   return (
     <AdminLayout>
-      <div className="max-w-5xl mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">All Staff</h1>
-        <p className="text-sm text-navy-muted mb-5">Manage writers, analysts and QC staff.</p>
-
-        <div className="flex gap-2 mb-4 flex-wrap">
-          <div className="relative flex-1 min-w-[180px]">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-muted text-sm">🔍</span>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name or phone..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+      <div style={C.page}>
+        <h1 style={C.h1}>All Staff</h1>
+        <p style={C.sub}>Manage writers, analysts and QC staff.</p>
+        <div style={C.sbar}>
+          <div style={{position:"relative",flex:1,minWidth:"180px"}}>
+            <span style={{position:"absolute",left:".75rem",top:"50%",transform:"translateY(-50%)",fontSize:".85rem"}}>🔍</span>
+            <input style={C.sinput} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name or phone..." />
           </div>
-          <select value={role} onChange={e=>setRole(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
-            {ROLES.map(r=><option key={r} value={r}>{r==="all"?"All Roles":r}</option>)}
+          <select style={C.sel} value={role} onChange={e=>setRole(e.target.value)}>
+            {["all","WRITER","ANALYST","QC"].map(r=><option key={r} value={r}>{r==="all"?"All Roles":r}</option>)}
           </select>
         </div>
 
-        {loading ? <div className="flex justify-center py-12"><Spinner size="lg"/></div> : (
-          <div className="bg-white rounded-2xl border border-sky-100 shadow-card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead><tr className="border-b border-sky-100 bg-sky-50/50">
-                  {["Name","Phone","Email","Role","Active Jobs","Total Earned","Status","Actions"].map(h=>
-                    <th key={h} className="text-left py-3 px-4 text-[.6rem] font-700 uppercase tracking-wider text-navy-muted whitespace-nowrap">{h}</th>
-                  )}
-                </tr></thead>
+        {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div> : (
+          <div style={C.card}>
+            <div style={{overflowX:"auto"}}>
+              <table style={C.table}>
+                <thead>
+                  <tr>{["Name","Phone","Email","Role","Active Jobs","Total Earned","Status","Actions"].map(h=><th key={h} style={C.th}>{h}</th>)}</tr>
+                </thead>
                 <tbody>
                   {staff.map((s:any)=>(
-                    <tr key={s.id} className="border-b border-sky-50 hover:bg-sky-50/30">
-                      <td className="py-3 px-4 font-700 whitespace-nowrap">{s.name}</td>
-                      <td className="py-3 px-4 text-navy-muted">{s.phone}</td>
-                      <td className="py-3 px-4 text-navy-muted max-w-[140px] truncate">{s.email}</td>
-                      <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-full text-[.65rem] font-700 bg-sky-100 text-sky-700">{s.role}</span></td>
-                      <td className="py-3 px-4 text-center">{s.activeJobs}</td>
-                      <td className="py-3 px-4 font-700 text-sky-600">₦{(s.totalEarnedNaira||0).toLocaleString()}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[.65rem] font-700 ${s.isSuspended?"bg-red-50 text-red-700":"bg-green-50 text-green-700"}`}>
-                          {s.isSuspended?"Suspended":"Active"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
+                    <tr key={s.id}>
+                      <td style={{...C.td,fontWeight:700,whiteSpace:"nowrap" as const}}>{s.name}</td>
+                      <td style={{...C.td,color:"#5B7EA6"}}>{s.phone}</td>
+                      <td style={{...C.td,color:"#5B7EA6",maxWidth:"160px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{s.email}</td>
+                      <td style={C.td}><span style={{...C.badge,background:"#E0F2FE",color:"#0369A1"}}>{s.role}</span></td>
+                      <td style={{...C.td,textAlign:"center" as const}}>{s.activeJobs}</td>
+                      <td style={{...C.td,fontWeight:700,color:"#0284C7",whiteSpace:"nowrap" as const}}>₦{(s.totalEarnedNaira||0).toLocaleString()}</td>
+                      <td style={C.td}><span style={{...C.badge,...(s.isSuspended?{background:"#FEE2E2",color:"#991B1B"}:{background:"#D1FAE5",color:"#065F46"})}}>{s.isSuspended?"Suspended":"Active"}</span></td>
+                      <td style={C.td}>
                         {s.isSuspended
-                          ? <button onClick={()=>act(s.id,"unsuspend")} disabled={acting===s.id}
-                              className="px-2.5 py-1 rounded-lg bg-green-50 text-green-700 text-xs font-700 hover:bg-green-100 disabled:opacity-50">
-                              Unsuspend
-                            </button>
-                          : <button onClick={()=>setModal({id:s.id,action:"suspend",name:s.name})}
-                              className="px-2.5 py-1 rounded-lg bg-yellow-50 text-yellow-700 text-xs font-700 hover:bg-yellow-100">
-                              Suspend
-                            </button>
-                        }
+                          ? <button style={C.btnG} disabled={acting===s.id} onClick={()=>act(s.id,"unsuspend")}>Unsuspend</button>
+                          : <button style={C.btnY} onClick={()=>setModal({id:s.id,name:s.name})}>Suspend</button>}
                       </td>
                     </tr>
                   ))}
@@ -98,17 +99,17 @@ export default function StaffList() {
           </div>
         )}
 
-        {/* Suspend modal */}
         {modal && (
-          <div className="fixed inset-0 bg-navy/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-card-hover">
-              <h3 className="font-clash text-base font-700 text-navy-DEFAULT mb-2">Suspend {modal.name}?</h3>
-              <p className="text-xs text-navy-muted mb-4">They will be locked out immediately. Provide a reason (optional).</p>
-              <textarea value={reason} onChange={e=>setReason(e.target.value)} rows={2} placeholder="Reason for suspension (optional)"
-                className="w-full px-3 py-2 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none mb-4" />
-              <div className="flex gap-2">
-                <Button variant="danger" loading={acting===modal.id} onClick={()=>act(modal.id,modal.action)}>Confirm Suspend</Button>
-                <Button variant="ghost" onClick={()=>setModal(null)}>Cancel</Button>
+          <div style={C.modal} onClick={e=>{if(e.target===e.currentTarget)setModal(null);}}>
+            <div style={C.mCard}>
+              <div style={C.mTitle}>Suspend {modal.name}?</div>
+              <div style={C.mSub}>They will be locked out immediately. Provide a reason (optional).</div>
+              <textarea style={C.ta} value={reason} onChange={e=>setReason(e.target.value)} placeholder="Reason for suspension (optional)" rows={2} />
+              <div style={C.mbtns}>
+                <button style={C.btnR} disabled={acting===modal.id} onClick={()=>act(modal.id,"suspend")}>
+                  {acting===modal.id?"Suspending...":"Confirm Suspend"}
+                </button>
+                <button style={C.btnN} onClick={()=>setModal(null)}>Cancel</button>
               </div>
             </div>
           </div>
