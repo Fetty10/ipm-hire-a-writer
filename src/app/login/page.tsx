@@ -87,13 +87,7 @@ function LoginForm() {
           </div>
         </div>
 
-        {/* Staff login link */}
-        <div style={C.staffBox}>
-          <p style={C.staffTxt}>Are you a writer, analyst, QC or admin?</p>
-          <button style={C.staffBtn} onClick={()=>router.push("/staff/login")}>
-            👤 Staff Login
-          </button>
-        </div>
+        
       </div>
     </div>
   );
