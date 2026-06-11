@@ -5,15 +5,18 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { StaffLayout } from "@/components/staff/StaffLayout";
 
-const WRITER_NAV = [
-  { label:"Dashboard",    icon:"📊", href:"/qc/dashboard" },
-  { label:"Pending Checks", icon:"📋", href:"/qc/jobs/pending" },
-  { label:"Active Checks",  icon:"✍️", href:"/qc/jobs/active" },
-  { label:"Delivered",    icon:"✅", href:"/qc/jobs/delivered" },
-  { label:"Earnings",     icon:"💰", href:"/qc/earnings" },
-  { label:"Withdraw",     icon:"🏦", href:"/qc/withdraw" },
-  { label:"Notifications",icon:"🔔", href:"/qc/notifications" },
-  { label:"Profile",      icon:"👤", href:"/qc/profile" },
+const QC_NAV = [
+  { label:"Dashboard",           icon:"📊", href:"/qc/dashboard"              },
+  { label:"Pending Checks",      icon:"🔍", href:"/qc/checks/pending"          },
+  { label:"Active Checks",       icon:"⚙️", href:"/qc/checks/active"           },
+  { label:"Cleared & Sent",      icon:"✅", href:"/qc/checks/cleared"          },
+  { label:"Pending Corrections", icon:"🔧", href:"/qc/corrections/pending"     },
+  { label:"Working on Corrections",icon:"✏️",href:"/qc/corrections/active"     },
+  { label:"Corrections Sent",    icon:"📨", href:"/qc/corrections/done"        },
+  { label:"Earnings",            icon:"💰", href:"/qc/earnings"                },
+  { label:"Withdraw",            icon:"🏦", href:"/qc/withdraw"                },
+  { label:"Notifications",       icon:"🔔", href:"/qc/notifications"           },
+  { label:"Profile",             icon:"👤", href:"/qc/profile"                 },
 ];
 
 const C = {
@@ -56,7 +59,7 @@ export default function WriterEarnings() {
   },[]);
 
   return (
-    <StaffLayout navItems={WRITER_NAV} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>Earnings</h1>
         <p style={C.sub}>Your per-job earnings breakdown.</p>
