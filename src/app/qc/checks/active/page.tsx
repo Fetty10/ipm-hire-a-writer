@@ -107,7 +107,7 @@ export default function WriterActiveJobs() {
   const nav = NAV.map(item=>item.href==="/qc/jobs/active"?{...item,badge:jobs.length}:item);
 
   return (
-    <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>Active Checks</h1>
         <p style={C.sub}>Upload your completed work and submit.</p>
