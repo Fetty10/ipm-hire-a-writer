@@ -90,7 +90,7 @@ export function AdminLayout({ children, badges = {} }: { children: React.ReactNo
             <div style={S.urole}>{session?.user?.role?.replace("_"," ")}</div>
           </div>
         </div>
-        <button style={S.logout} onClick={()=>signOut({callbackUrl:"/login"})}>🚪 Logout</button>
+        <button style={S.logout} onClick={()=>signOut({callbackUrl:"/staff/login"})}>🚪 Logout</button>
       </div>
 
       {/* Main content */}
