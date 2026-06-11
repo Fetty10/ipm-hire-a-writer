@@ -17,16 +17,26 @@ const NAV = [
 
 const DEG:Record<string,string> = {OND_HND_NCE:"HND/OND/NCE",BSC_BED_BA:"BSc/BEd/BA",PGD_MSC_PHD:"PGD/MSc/PhD"};
 
+function getStatusLabel(status: string) {
+  switch (status) {
+    case "SUBMITTED":       return { label:"Sent to QC",   bg:"#E0F2FE", color:"#0369A1" };
+    case "QC_IN_PROGRESS":  return { label:"QC In Progress",bg:"#EDE9FE", color:"#5B21B6" };
+    case "QC_DONE":         return { label:"QC Cleared",   bg:"#D1FAE5", color:"#065F46" };
+    case "DELIVERED":       return { label:"Delivered ✓",  bg:"#D1FAE5", color:"#065F46" };
+    default:                return { label:status,          bg:"#F1F5F9", color:"#64748B" };
+  }
+}
+
 const C = {
   page:  { maxWidth:"640px", margin:"0 auto" },
   h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
   sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.25rem" },
   card:  { background:"#fff", borderRadius:"14px", border:"1.5px solid #E0F2FE", padding:".9rem 1.25rem", marginBottom:".6rem", display:"flex", alignItems:"center", gap:"1rem" },
-  num:   { width:"36px", height:"36px", borderRadius:"10px", background:"#D1FAE5", color:"#065F46", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:".78rem", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:"1px solid #A7F3D0" },
+  num:   { width:"36px", height:"36px", borderRadius:"10px", background:"#E0F2FE", color:"#0369A1", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:".78rem", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
   info:  { flex:1, minWidth:0 },
   title: { fontSize:".85rem", fontWeight:700, color:"#0C1A2E" },
   meta:  { fontSize:".72rem", color:"#5B7EA6", marginTop:"2px" },
-  badge: { display:"inline-flex", padding:"3px 10px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, background:"#D1FAE5", color:"#065F46", flexShrink:0 as const },
+  badge: { display:"inline-flex", padding:"3px 10px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, flexShrink:0 as const },
   empty: { textAlign:"center" as const, padding:"4rem 1rem" },
   eicon: { fontSize:"2.5rem", marginBottom:".75rem" },
   etitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
@@ -40,14 +50,17 @@ export default function WriterDelivered() {
   const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
 
   useEffect(()=>{
-    fetch(`/api/staff/jobs?status=delivered&search=${encodeURIComponent(search)}`).then(r=>r.json()).then(d=>{ if(d.success) setJobs(d.data); setLoading(false); });
+    fetch(`/api/staff/jobs?status=delivered&search=${encodeURIComponent(search)}`)
+      .then(r=>r.json())
+      .then(d=>{ if(d.success) setJobs(d.data); })
+      .finally(()=>setLoading(false));
   },[search]);
 
   return (
     <StaffLayout navItems={NAV} role="Writer" initials={initials}>
       <div style={C.page}>
-        <h1 style={C.h1}>Delivered Jobs</h1>
-        <p style={C.sub}>All chapters you've completed and delivered.</p>
+        <h1 style={C.h1}>Submitted Jobs</h1>
+        <p style={C.sub}>All chapters you've submitted — including those awaiting QC or already delivered.</p>
 
         <div style={{position:"relative",marginBottom:"1.25rem"}}>
           <span style={{position:"absolute",left:".75rem",top:"50%",transform:"translateY(-50%)",fontSize:".85rem"}}>🔍</span>
@@ -59,19 +72,24 @@ export default function WriterDelivered() {
         : jobs.length===0 ? (
           <div style={C.empty}>
             <div style={C.eicon}>📦</div>
-            <div style={C.etitle}>No delivered jobs yet.</div>
+            <div style={C.etitle}>No submitted jobs yet.</div>
           </div>
-        ) : jobs.map((job:any)=>(
-          <div key={job.id} style={C.card}>
-            <div style={C.num}>{job.chapterNumber}</div>
-            <div style={C.info}>
-              <div style={C.title}>{job.chapterLabel}</div>
-              <div style={C.meta}>{job.topic}</div>
-              <div style={C.meta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup}{job.deliveredAt?` · ${new Date(job.deliveredAt).toLocaleDateString("en-NG")}`:""}</div>
+        ) : jobs.map((job:any)=>{
+          const s = getStatusLabel(job.status);
+          return (
+            <div key={job.id} style={C.card}>
+              <div style={{...C.num,background:job.status==="DELIVERED"?"#38BDF8":job.status==="QC_IN_PROGRESS"?"#EDE9FE":"#E0F2FE",color:job.status==="DELIVERED"?"#0C1A2E":job.status==="QC_IN_PROGRESS"?"#5B21B6":"#0369A1"}}>
+                {job.chapterNumber}
+              </div>
+              <div style={C.info}>
+                <div style={C.title}>{job.chapterLabel}</div>
+                <div style={C.meta}>{job.topic}</div>
+                <div style={C.meta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup}{job.submittedAt?` · Submitted ${new Date(job.submittedAt).toLocaleDateString("en-NG")}`:""}</div>
+              </div>
+              <span style={{...C.badge,background:s.bg,color:s.color}}>{s.label}</span>
             </div>
-            <span style={C.badge}>Delivered ✓</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </StaffLayout>
   );
