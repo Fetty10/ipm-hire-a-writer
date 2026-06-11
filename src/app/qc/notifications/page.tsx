@@ -75,7 +75,7 @@ export default function WriterNotifications() {
   const unread = notifs.filter(n=>!n.isRead).length;
 
   return (
-    <StaffLayout navItems={NAV} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <div style={C.top}>
           <div>
