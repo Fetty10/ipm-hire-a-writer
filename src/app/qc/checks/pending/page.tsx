@@ -6,153 +6,156 @@ import { useRouter } from "next/navigation";
 import { StaffLayout } from "@/components/staff/StaffLayout";
 
 const QC_NAV = [
-  { label:"Dashboard",           icon:"📊", href:"/qc/dashboard"              },
-  { label:"Pending Checks",      icon:"🔍", href:"/qc/checks/pending"          },
-  { label:"Active Checks",       icon:"⚙️", href:"/qc/checks/active"           },
-  { label:"Cleared & Sent",      icon:"✅", href:"/qc/checks/cleared"          },
-  { label:"Pending Corrections", icon:"🔧", href:"/qc/corrections/pending"     },
-  { label:"Working on Corrections",icon:"✏️",href:"/qc/corrections/active"     },
-  { label:"Corrections Sent",    icon:"📨", href:"/qc/corrections/done"        },
-  { label:"Earnings",            icon:"💰", href:"/qc/earnings"                },
-  { label:"Withdraw",            icon:"🏦", href:"/qc/withdraw"                },
-  { label:"Notifications",       icon:"🔔", href:"/qc/notifications"           },
-  { label:"Profile",             icon:"👤", href:"/qc/profile"                 },
+  { label:"Dashboard",             icon:"📊", href:"/qc/dashboard"           },
+  { label:"Pending Checks",        icon:"🔍", href:"/qc/checks/pending"       },
+  { label:"Active Checks",         icon:"⚙️", href:"/qc/checks/active"        },
+  { label:"Cleared & Sent",        icon:"✅", href:"/qc/checks/cleared"       },
+  { label:"Pending Corrections",   icon:"🔧", href:"/qc/corrections/pending"  },
+  { label:"Working on Corrections",icon:"✏️", href:"/qc/corrections/active"   },
+  { label:"Corrections Sent",      icon:"📨", href:"/qc/corrections/done"     },
+  { label:"Earnings",              icon:"💰", href:"/qc/earnings"             },
+  { label:"Withdraw",              icon:"🏦", href:"/qc/withdraw"             },
+  { label:"Notifications",         icon:"🔔", href:"/qc/notifications"        },
+  { label:"Profile",               icon:"👤", href:"/qc/profile"              },
 ];
 
 const C = {
   page:  { maxWidth:"640px", margin:"0 auto" },
   h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
-  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.25rem" },
-  sbar:  { position:"relative" as const, marginBottom:"1.25rem" },
-  sinput:{ width:"100%", padding:".65rem 1rem .65rem 2.2rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" as const },
+  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:".75rem" },
+  notice:{ background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1.25rem", fontSize:".78rem", color:"#0369A1" },
   card:  { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", boxShadow:"0 2px 12px rgba(14,165,233,.06)", padding:"1.25rem", marginBottom:"1rem" },
-  chead: { display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"1rem", marginBottom:"1rem" },
-  ctitle:{ fontFamily:"'Syne',sans-serif", fontSize:".9rem", fontWeight:700, color:"#0C1A2E" },
-  cmeta: { fontSize:".75rem", color:"#5B7EA6", marginTop:".25rem" },
-  badge: { display:"inline-flex", padding:"3px 10px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, flexShrink:0 as const },
-  bGray: { background:"#F1F5F9", color:"#64748B" },
-  info:  { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem", fontSize:".78rem", color:"#0369A1" },
-  infot: { fontSize:".65rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0369A1", marginBottom:".3rem" },
-  link:  { display:"inline-flex", alignItems:"center", gap:".3rem", fontSize:".78rem", fontWeight:600, color:"#0369A1", textDecoration:"none", marginBottom:"1rem" },
-  warn:  { background:"#FFF7ED", border:"1px solid #FED7AA", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem", fontSize:".78rem", color:"#9A3412" },
-  warnt: { fontSize:".65rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#9A3412", marginBottom:".3rem" },
-  btns:  { display:"flex", gap:".5rem", flexWrap:"wrap" as const },
-  btnP:  { padding:".55rem 1.1rem", borderRadius:"10px", background:"#38BDF8", color:"#0C1A2E", fontSize:".8rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
-  btnR:  { padding:".55rem 1.1rem", borderRadius:"10px", background:"#FEE2E2", color:"#991B1B", fontSize:".8rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
-  btnG:  { padding:".55rem 1.1rem", borderRadius:"10px", background:"#F1F5F9", color:"#64748B", fontSize:".8rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  head:  { display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"1rem", marginBottom:"1rem" },
+  title: { fontFamily:"'Syne',sans-serif", fontSize:".9rem", fontWeight:700, color:"#0C1A2E" },
+  meta:  { fontSize:".75rem", color:"#5B7EA6", marginTop:".25rem" },
+  badge: { display:"inline-flex", padding:"3px 10px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, background:"#EDE9FE", color:"#5B21B6", flexShrink:0 as const },
+  tags:  { display:"flex", gap:".4rem", flexWrap:"wrap" as const, marginBottom:"1rem" },
+  tag:   { padding:"2px 8px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, background:"#FEF9C3", color:"#854D0E" },
+  files: { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem" },
+  filest:{ fontSize:".65rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0369A1", marginBottom:".5rem" },
+  flink: { display:"block", fontSize:".78rem", fontWeight:600, color:"#0369A1", textDecoration:"none", marginBottom:".3rem" },
+  btnP:  { padding:".65rem 1.25rem", borderRadius:"10px", background:"#38BDF8", color:"#0C1A2E", fontSize:".85rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  btnR:  { padding:".65rem 1.25rem", borderRadius:"10px", background:"#FEE2E2", color:"#991B1B", fontSize:".85rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  btns:  { display:"flex", gap:".5rem" },
   empty: { textAlign:"center" as const, padding:"4rem 1rem" },
   eicon: { fontSize:"2.5rem", marginBottom:".75rem" },
-  etitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E", marginBottom:".3rem" },
-  esub:  { fontSize:".83rem", color:"#5B7EA6" },
+  etitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
+  esub:  { fontSize:".83rem", color:"#5B7EA6", marginTop:".3rem" },
 };
 
-export default function WriterPendingJobs() {
+const DEG:Record<string,string> = {OND_HND_NCE:"HND/OND",BSC_BED_BA:"BSc/BEd",PGD_MSC_PHD:"PGD/MSc"};
+
+export default function QCChecksPending() {
   const { data: session } = useSession();
-  const router  = useRouter();
-  const [jobs, setJobs]     = useState<any[]>([]);
+  const router = useRouter();
+  const [jobs,    setJobs]    = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState("");
-  const [starting, setStarting]   = useState<string|null>(null);
-  const [rejecting, setRejecting] = useState<string|null>(null);
-  const [confirm,  setConfirm]    = useState<string|null>(null);
+  const [starting,setStarting]= useState<string|null>(null);
+  const [search,  setSearch]  = useState("");
 
-  const load = useCallback(async()=>{
+  const load = useCallback(async () => {
     setLoading(true);
-    const res  = await fetch(`/api/staff/jobs?status=pending&search=${encodeURIComponent(search)}`);
+    const res  = await fetch(`/api/qc/jobs?flow=checks&status=pending&search=${encodeURIComponent(search)}`);
     const data = await res.json();
-    if(data.success) setJobs(data.data);
+    if (data.success) setJobs(data.data);
     setLoading(false);
-  },[search]);
+  }, [search]);
 
-  useEffect(()=>{ load(); },[load]);
+  useEffect(() => { load(); }, [load]);
 
-  async function handleStart(id:string) {
+  async function handleStart(id: string) {
     setStarting(id);
-    const res  = await fetch("/api/chapters/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId:id})});
+    const res  = await fetch("/api/qc/start", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chapterId: id }),
+    });
     const data = await res.json();
-    if(res.ok){ setJobs(prev=>prev.filter(j=>j.id!==id)); router.push("/qc/jobs/active"); }
-    else alert(data.error);
+    if (res.ok) {
+      setJobs(prev => prev.filter(j => j.id !== id));
+      router.push("/qc/checks/active");
+    } else {
+      alert(data.error);
+    }
     setStarting(null);
   }
 
-  async function handleReject(id:string) {
-    setRejecting(id);
-    const res  = await fetch("/api/chapters/reject",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId:id})});
-    const data = await res.json();
-    if(res.ok){ setJobs(prev=>prev.filter(j=>j.id!==id)); setConfirm(null); }
-    else alert(data.error);
-    setRejecting(null);
+  function getGuideUrls(url: string|null) {
+    if (!url) return [];
+    return url.split(",").map(u => u.trim()).filter(Boolean);
   }
 
-  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
-  const nav = QC_NAV.map(item=>item.href==="/qc/jobs/pending"?{...item,badge:jobs.length}:item);
-
-  const DEG:Record<string,string> = {OND_HND_NCE:"HND/OND",BSC_BED_BA:"BSc/BEd",PGD_MSC_PHD:"PGD/MSc"};
-  const PLAN:Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Pro"};
+  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
+  const nav = QC_NAV.map(item => item.href==="/qc/checks/pending" ? {...item, badge:jobs.length} : item);
 
   return (
-    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>Pending Checks</h1>
-        <p style={C.sub}>Jobs assigned to you that haven't been started yet.</p>
+        <p style={C.sub}>Professional plan chapters awaiting AI & plagiarism checks.</p>
+        <div style={C.notice}>ℹ Download the submitted file, run your checks, then upload the cleared version in Active Checks.</div>
 
-        <div style={C.sbar}>
+        <div style={{position:"relative", marginBottom:"1.25rem"}}>
           <span style={{position:"absolute",left:".75rem",top:"50%",transform:"translateY(-50%)",fontSize:".85rem"}}>🔍</span>
-          <input style={C.sinput} placeholder="Search by topic..." value={search} onChange={e=>setSearch(e.target.value)} />
+          <input
+            style={{width:"100%",padding:".65rem 1rem .65rem 2.2rem",borderRadius:"10px",border:"1.5px solid #BAE6FD",fontSize:".85rem",fontFamily:"'DM Sans',sans-serif",outline:"none",boxSizing:"border-box" as const}}
+            placeholder="Search by topic..." value={search} onChange={e=>setSearch(e.target.value)} />
         </div>
 
         {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
         : jobs.length===0 ? (
           <div style={C.empty}>
-            <div style={C.eicon}>📭</div>
-            <div style={C.etitle}>No pending jobs right now.</div>
-            <div style={C.esub}>New jobs will appear here when assigned to you.</div>
+            <div style={C.eicon}>✅</div>
+            <div style={C.etitle}>No pending checks.</div>
+            <div style={C.esub}>New Professional plan submissions will appear here.</div>
           </div>
-        ) : jobs.map((job:any)=>(
-          <div key={job.id} style={C.card}>
-            <div style={C.chead}>
-              <div>
-                <div style={C.ctitle}>{job.chapterLabel}</div>
-                <div style={C.cmeta}>{job.topic}</div>
-                <div style={C.cmeta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup} · {PLAN[job.planName]||job.planName}</div>
-              </div>
-              <span style={{...C.badge,...C.bGray}}>Not Started</span>
-            </div>
-
-            {job.specialInstructions && (
-              <div style={C.info}>
-                <div style={C.infot}>Student Instructions</div>
-                {job.specialInstructions}
-              </div>
-            )}
-
-            {job.guidelineFileUrl && (
-              <a href={job.guidelineFileUrl} target="_blank" rel="noreferrer" style={C.link}>
-                📎 Download Guideline File
-              </a>
-            )}
-
-            {confirm===job.id ? (
-              <div style={C.warn}>
-                <div style={C.warnt}>Are you sure?</div>
-                <p style={{marginBottom:".75rem"}}>This will reassign the job to the next available writer.</p>
-                <div style={C.btns}>
-                  <button style={C.btnR} disabled={rejecting===job.id} onClick={()=>handleReject(job.id)}>
-                    {rejecting===job.id?"Rejecting...":"Yes, Reject"}
-                  </button>
-                  <button style={C.btnG} onClick={()=>setConfirm(null)}>Cancel</button>
+        ) : jobs.map((job:any) => {
+          const guideUrls = getGuideUrls(job.guidelineFileUrl);
+          return (
+            <div key={job.id} style={C.card}>
+              <div style={C.head}>
+                <div>
+                  <div style={C.title}>{job.chapterLabel}</div>
+                  <div style={C.meta}>{job.topic}</div>
+                  <div style={C.meta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup} · {job.planName}</div>
+                  {job.routedToQcAt && <div style={C.meta}>Received: {new Date(job.routedToQcAt).toLocaleDateString("en-NG")}</div>}
                 </div>
+                <span style={C.badge}>Pending Check</span>
               </div>
-            ) : (
+
+              <div style={C.tags}>
+                {job.requiresPlagiarism && <span style={C.tag}>🔍 Plagiarism Check</span>}
+                {job.requiresAI && <span style={{...C.tag, background:"#EDE9FE", color:"#5B21B6"}}>🤖 AI Check</span>}
+              </div>
+
+              <div style={C.files}>
+                <div style={C.filest}>Files</div>
+                {job.submittedFileUrl && (
+                  <a href={job.submittedFileUrl} target="_blank" rel="noreferrer" style={C.flink}>
+                    ⬇ Download Submitted Chapter
+                  </a>
+                )}
+                {guideUrls.length > 0 && guideUrls.map((url:string, i:number) => (
+                  <a key={i} href={url} target="_blank" rel="noreferrer" style={C.flink}>
+                    📎 Download Guideline {guideUrls.length > 1 ? `File ${i+1}` : "File"}
+                  </a>
+                ))}
+              </div>
+
+              {job.specialInstructions && (
+                <div style={{background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:"10px",padding:".75rem 1rem",marginBottom:"1rem",fontSize:".78rem",color:"#0369A1"}}>
+                  <div style={{fontSize:".65rem",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:".08em",marginBottom:".3rem"}}>Student Instructions</div>
+                  {job.specialInstructions}
+                </div>
+              )}
+
               <div style={C.btns}>
                 <button style={C.btnP} disabled={starting===job.id} onClick={()=>handleStart(job.id)}>
-                  {starting===job.id?"Starting...":"▶ Start Job"}
+                  {starting===job.id ? "Starting..." : "▶ Start Check →"}
                 </button>
-                <button style={C.btnR} onClick={()=>setConfirm(job.id)}>✕ Reject Job</button>
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </StaffLayout>
   );
