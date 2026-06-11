@@ -15,16 +15,23 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const filter = searchParams.get("filter") || "all";
 
-  let statusFilter: OrderStatus[] | undefined;
-  if (filter === "active")    statusFilter = [OrderStatus.IN_PROGRESS, OrderStatus.QC_REVIEW, OrderStatus.PAYMENT_CONFIRMED];
-  if (filter === "completed") statusFilter = [OrderStatus.DELIVERED];
-  if (filter === "revision")  statusFilter = [OrderStatus.REVISION_REQUESTED];
+  // Build where clause based on filter
+  let where: any = { clientId: session.user.id };
+
+  if (filter === "active") {
+    where.status = { in: [OrderStatus.IN_PROGRESS, OrderStatus.QC_REVIEW, OrderStatus.PAYMENT_CONFIRMED] };
+  } else if (filter === "completed") {
+    // Orders with at least one delivered chapter OR fully delivered order
+    where.OR = [
+      { status: OrderStatus.DELIVERED },
+      { chapters: { some: { status: "DELIVERED" } } },
+    ];
+  } else if (filter === "revision") {
+    where.status = OrderStatus.REVISION_REQUESTED;
+  }
 
   const orders = await prisma.order.findMany({
-    where: {
-      clientId: session.user.id,
-      status:   statusFilter ? { in: statusFilter } : undefined,
-    },
+    where,
     include: {
       plan: { select: { planName: true, degreeGroup: true, pricingType: true } },
       chapters: {
