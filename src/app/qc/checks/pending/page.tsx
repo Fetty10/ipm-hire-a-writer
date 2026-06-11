@@ -91,7 +91,7 @@ export default function WriterPendingJobs() {
   const PLAN:Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Pro"};
 
   return (
-    <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>Pending Checks</h1>
         <p style={C.sub}>Jobs assigned to you that haven't been started yet.</p>
