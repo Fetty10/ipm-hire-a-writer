@@ -75,7 +75,7 @@ function StaffLoginForm() {
         </div>
 
         <div style={C.notice}>
-          🔒 This portal is for iProjectMaster staff only. Students should use the <button style={{background:"none",border:"none",color:"#38BDF8",fontWeight:700,cursor:"pointer",fontSize:".78rem"}} onClick={()=>router.push("/login")}>student login</button>.
+          🔒 This portal is for iProjectMaster staff only.
         </div>
 
         <div style={C.card}>
