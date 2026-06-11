@@ -1,29 +1,53 @@
 "use client";
-// src/app/qc/corrections/pending/page.tsx
-
+export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { StaffLayout } from "@/components/staff/StaffLayout";
-import { Card, Spinner, Button } from "@/components/ui";
-import { QC_NAV } from "../../_nav";
-import toast from "react-hot-toast";
 
-interface CorrJob {
-  id: string; chapterLabel: string; topic: string;
-  department: string; degreeGroup: string; planName: string;
-  correctionNotes: string | null; submittedFileUrl: string | null;
-  adminNotes: string | null; routedToQcAt: string | null;
-}
+const QC_NAV = [
+  { label:"Dashboard",           icon:"📊", href:"/qc/dashboard"              },
+  { label:"Pending Checks",      icon:"🔍", href:"/qc/checks/pending"          },
+  { label:"Active Checks",       icon:"⚙️", href:"/qc/checks/active"           },
+  { label:"Cleared & Sent",      icon:"✅", href:"/qc/checks/cleared"          },
+  { label:"Pending Corrections", icon:"🔧", href:"/qc/corrections/pending"     },
+  { label:"Working on Corrections",icon:"✏️",href:"/qc/corrections/active"     },
+  { label:"Corrections Sent",    icon:"📨", href:"/qc/corrections/done"        },
+  { label:"Earnings",            icon:"💰", href:"/qc/earnings"                },
+  { label:"Withdraw",            icon:"🏦", href:"/qc/withdraw"                },
+  { label:"Notifications",       icon:"🔔", href:"/qc/notifications"           },
+  { label:"Profile",             icon:"👤", href:"/qc/profile"                 },
+];
 
-const DEG: Record<string,string> = {OND_HND_NCE:"HND/OND/NCE",BSC_BED_BA:"BSc/BEd/BA",PGD_MSC_PHD:"PGD/MSc/PhD"};
+const C = {
+  page:  { maxWidth:"640px", margin:"0 auto" },
+  h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:".75rem" },
+  notice:{ background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1.25rem", fontSize:".78rem", color:"#0369A1" },
+  card:  { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", boxShadow:"0 2px 12px rgba(14,165,233,.06)", padding:"1.25rem", marginBottom:"1rem" },
+  head:  { display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"1rem", marginBottom:"1rem" },
+  title: { fontFamily:"'Syne',sans-serif", fontSize:".9rem", fontWeight:700, color:"#0C1A2E" },
+  meta:  { fontSize:".75rem", color:"#5B7EA6", marginTop:".25rem" },
+  badge: { display:"inline-flex", padding:"3px 10px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, background:"#FFEDD5", color:"#9A3412", flexShrink:0 as const },
+  warn:  { background:"#FEF9C3", border:"1px solid #FDE68A", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem" },
+  warnt: { fontSize:".65rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#854D0E", marginBottom:".5rem" },
+  files: { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem" },
+  filest:{ fontSize:".65rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0369A1", marginBottom:".5rem" },
+  flink: { display:"block", fontSize:".78rem", fontWeight:600, color:"#0369A1", textDecoration:"none", marginBottom:".3rem" },
+  btnP:  { padding:".65rem 1.25rem", borderRadius:"10px", background:"#38BDF8", color:"#0C1A2E", fontSize:".85rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  empty: { textAlign:"center" as const, padding:"4rem 1rem" },
+  eicon: { fontSize:"2.5rem", marginBottom:".75rem" },
+  etitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
+};
+
+const DEG:Record<string,string> = {OND_HND_NCE:"HND/OND",BSC_BED_BA:"BSc/BEd",PGD_MSC_PHD:"PGD/MSc"};
 
 export default function QCCorrectionsPending() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [jobs, setJobs]     = useState<CorrJob[]>([]);
+  const [jobs,    setJobs]    = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [starting, setStarting] = useState<string|null>(null);
+  const [starting,setStarting]= useState<string|null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -35,105 +59,70 @@ export default function QCCorrectionsPending() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function handleStart(jobId: string) {
-    setStarting(jobId);
-    const res  = await fetch("/api/qc/start", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chapterId: jobId }),
-    });
+  async function handleStart(id: string) {
+    setStarting(id);
+    const res  = await fetch("/api/qc/start", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chapterId:id}) });
     const data = await res.json();
-    if (res.ok) {
-      toast.success("Started working on correction.");
-      setJobs(prev => prev.filter(j => j.id !== jobId));
-      router.push("/qc/corrections/active");
-    } else { toast.error(data.error); }
+    if (res.ok) { setJobs(prev=>prev.filter(j=>j.id!==id)); router.push("/qc/corrections/active"); }
+    else alert(data.error);
     setStarting(null);
   }
 
-  // Extract supervisor notes URL from adminNotes field
-  function getSupervisorNotesUrl(adminNotes: string | null): string | null {
+  function getSupervisorUrl(adminNotes: string|null) {
     if (!adminNotes) return null;
-    const match = adminNotes.match(/supervisor_notes:(.+)/);
-    return match ? match[1] : null;
+    const m = adminNotes.match(/supervisor_notes:(.+)/);
+    return m ? m[1] : null;
   }
 
-  const initials = session?.user?.name?.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
-  const nav = QC_NAV.map(item => item.href==="/qc/corrections/pending" ? {...item,badge:jobs.length} : item);
+  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
+  const nav = QC_NAV.map(item=>item.href==="/qc/corrections/pending"?{...item,badge:jobs.length}:item);
 
   return (
     <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
-      <div className="max-w-2xl mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">Pending Corrections</h1>
-        <p className="text-sm text-navy-muted mb-4">Student correction requests — you handle them before sending back.</p>
+      <div style={C.page}>
+        <h1 style={C.h1}>Pending Corrections</h1>
+        <p style={C.sub}>Student correction requests assigned to you.</p>
+        <div style={C.notice}>ℹ Your job is to make the corrections and send back. Only escalate to the writer if the issue requires content-level changes.</div>
 
-        <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 mb-5 text-xs text-sky-800">
-          ℹ Your job is to make the corrections based on the student's request and send back. Only escalate to the writer if the issue is content-level.
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center py-12"><Spinner size="lg" /></div>
-        ) : jobs.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-4xl mb-3">✅</div>
-            <p className="text-navy-muted font-600">No pending correction requests.</p>
+        {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
+        : jobs.length===0 ? (
+          <div style={C.empty}>
+            <div style={C.eicon}>✅</div>
+            <div style={C.etitle}>No pending correction requests.</div>
           </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {jobs.map((job) => {
-              const supervisorUrl = getSupervisorNotesUrl(job.adminNotes);
-              return (
-                <Card key={job.id}>
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div>
-                      <h3 className="text-sm font-700 text-navy-DEFAULT">{job.chapterLabel}</h3>
-                      <p className="text-xs text-navy-muted mt-1">{job.topic}</p>
-                      <p className="text-xs text-navy-muted">
-                        {job.department} · {DEG[job.degreeGroup]}
-                        {job.routedToQcAt && ` · ${new Date(job.routedToQcAt).toLocaleDateString("en-NG")}`}
-                      </p>
-                    </div>
-                    <span className="flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-700 bg-orange-50 text-orange-700">
-                      Correction Needed
-                    </span>
-                  </div>
+        ) : jobs.map((job:any) => {
+          const supUrl = getSupervisorUrl(job.adminNotes);
+          return (
+            <div key={job.id} style={C.card}>
+              <div style={C.head}>
+                <div>
+                  <div style={C.title}>{job.chapterLabel}</div>
+                  <div style={C.meta}>{job.topic}</div>
+                  <div style={C.meta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup}</div>
+                </div>
+                <span style={C.badge}>Correction Needed</span>
+              </div>
 
-                  {/* Student's request */}
-                  {job.correctionNotes && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4">
-                      <p className="text-xs font-700 text-yellow-800 uppercase tracking-wider mb-1.5">
-                        Student's Correction Request
-                      </p>
-                      <p className="text-sm text-yellow-900 leading-relaxed">{job.correctionNotes}</p>
-                    </div>
-                  )}
+              {job.correctionNotes && (
+                <div style={C.warn}>
+                  <div style={C.warnt}>Student's Correction Request</div>
+                  <p style={{fontSize:".82rem",color:"#854D0E",lineHeight:1.5}}>{job.correctionNotes}</p>
+                </div>
+              )}
 
-                  {/* Files */}
-                  <div className="bg-sky-50 border border-sky-100 rounded-xl p-3 mb-4">
-                    <p className="text-xs font-700 text-sky-700 uppercase tracking-wider mb-2">Files to Work From</p>
-                    <div className="flex flex-col gap-1.5">
-                      {job.submittedFileUrl && (
-                        <a href={job.submittedFileUrl} target="_blank" rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-600 text-sky-600 hover:underline">
-                          ⬇ Download {job.chapterLabel} (Delivered Version)
-                        </a>
-                      )}
-                      {supervisorUrl && (
-                        <a href={supervisorUrl} target="_blank" rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-600 text-sky-600 hover:underline">
-                          ⬇ Download Supervisor's Notes (from student)
-                        </a>
-                      )}
-                    </div>
-                  </div>
+              <div style={C.files}>
+                <div style={C.filest}>Files to Work From</div>
+                {job.submittedFileUrl && <a href={job.submittedFileUrl} target="_blank" rel="noreferrer" style={C.flink}>⬇ Download {job.chapterLabel} (Delivered Version)</a>}
+                {supUrl && <a href={supUrl} target="_blank" rel="noreferrer" style={C.flink}>⬇ Download Supervisor's Notes</a>}
+                {!job.submittedFileUrl && !supUrl && <p style={{fontSize:".78rem",color:"#5B7EA6",fontStyle:"italic"}}>No files uploaded yet.</p>}
+              </div>
 
-                  <Button variant="primary" loading={starting===job.id} onClick={() => handleStart(job.id)}>
-                    ✏️ Work on this Correction →
-                  </Button>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+              <button style={C.btnP} disabled={starting===job.id} onClick={()=>handleStart(job.id)}>
+                {starting===job.id?"Starting...":"✏️ Work on this Correction →"}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </StaffLayout>
   );
