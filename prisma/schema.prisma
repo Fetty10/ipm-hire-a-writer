@@ -278,6 +278,7 @@ model Order {
   numberOfPages       Int?
   specialInstructions String?     @db.Text
   guidelineFileUrl    String?     // client-uploaded format/guideline
+  selectedChapters    String?     // comma-separated chapter numbers e.g. "1,2,5"
 
   // Add-ons
   requiresPlagiarismCheck Boolean @default(false)
