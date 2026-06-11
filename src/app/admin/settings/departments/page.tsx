@@ -1,9 +1,22 @@
 "use client";
-// src/app/admin/settings/departments/page.tsx
+export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Spinner, Button } from "@/components/ui";
-import toast from "react-hot-toast";
+
+const C = {
+  page:  { maxWidth:"640px", margin:"0 auto" },
+  h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:".75rem" },
+  notice:{ background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1.5rem", fontSize:".78rem", color:"#0369A1" },
+  card:  { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", padding:"1.25rem", marginBottom:"1rem" },
+  wrap:  { display:"flex", flexWrap:"wrap" as const, gap:".5rem", minHeight:"48px" },
+  dchip: { display:"inline-flex", alignItems:"center", gap:".4rem", padding:".4rem 1rem", borderRadius:"999px", background:"#E0F2FE", border:"1px solid #BAE6FD", fontSize:".78rem", fontWeight:700, color:"#0C1A2E" },
+  xbtn:  { background:"none", border:"none", cursor:"pointer", color:"#EF4444", fontSize:"1rem", lineHeight:1, padding:0 },
+  empty: { color:"#5B7EA6", fontSize:".82rem" },
+  adRow: { display:"flex", gap:".75rem" },
+  input: { flex:1, padding:".65rem 1rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none" },
+  btnP:  { padding:".65rem 1.25rem", borderRadius:"10px", background:"#38BDF8", color:"#0C1A2E", fontSize:".85rem", fontWeight:700, border:"none", cursor:"pointer", flexShrink:0 as const },
+};
 
 export default function AdminDepartments() {
   const [depts,   setDepts]   = useState<any[]>([]);
@@ -14,64 +27,55 @@ export default function AdminDepartments() {
   async function load() {
     const res  = await fetch("/api/admin/settings?type=departments");
     const data = await res.json();
-    if (data.success) setDepts(data.data.departments);
+    if(data.success) setDepts(data.data.departments);
     setLoading(false);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(()=>{ load(); },[]);
 
   async function add() {
-    if (!newDept.trim()) return;
+    if(!newDept.trim()) return;
     setAdding(true);
-    const res  = await fetch("/api/admin/settings", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ name: newDept.trim() }),
-    });
+    const res  = await fetch("/api/admin/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:newDept.trim()})});
     const data = await res.json();
-    if (res.ok) { toast.success("Department added."); setNewDept(""); load(); }
-    else toast.error(data.error);
+    if(res.ok){ setNewDept(""); load(); } else alert(data.error);
     setAdding(false);
   }
 
-  async function remove(id: string) {
-    const res  = await fetch("/api/admin/settings", {
-      method:"DELETE", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ id }),
-    });
-    if (res.ok) { toast.success("Department removed."); setDepts(prev=>prev.filter(d=>d.id!==id)); }
+  async function remove(id:string) {
+    const res = await fetch("/api/admin/settings",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+    if(res.ok) setDepts(prev=>prev.filter(d=>d.id!==id));
   }
 
   return (
     <AdminLayout>
-      <div className="max-w-2xl mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">Exception Departments</h1>
-        <p className="text-sm text-navy-muted mb-5">Departments where all chapters go to Writers only — no Analyst split.</p>
+      <div style={C.page}>
+        <h1 style={C.h1}>Exception Departments</h1>
+        <p style={C.sub}>Departments where all chapters go to Writers only — no Analyst split.</p>
+        <div style={C.notice}>ℹ For these departments, the writer handles all 5 chapters regardless of the normal Writer/Analyst split.</div>
 
-        {loading ? <div className="flex justify-center py-12"><Spinner size="lg"/></div> : (
-          <>
-            <div className="bg-white rounded-2xl border border-sky-100 shadow-card p-5 mb-4">
-              <div className="flex flex-wrap gap-2">
-                {depts.map(d => (
-                  <span key={d.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-100 border border-sky-200 text-xs font-700 text-sky-800">
+        <div style={C.card}>
+          {loading ? <div style={{color:"#5B7EA6",fontSize:".82rem"}}>Loading...</div> : (
+            <div style={C.wrap}>
+              {depts.length===0
+                ? <span style={C.empty}>No exception departments yet.</span>
+                : depts.map((d:any)=>(
+                  <span key={d.id} style={C.dchip}>
                     {d.name}
-                    <button onClick={() => remove(d.id)} className="text-red-500 hover:text-red-700 ml-0.5">×</button>
+                    <button style={C.xbtn} onClick={()=>remove(d.id)}>×</button>
                   </span>
                 ))}
-                {depts.length === 0 && <p className="text-sm text-navy-muted">No exception departments yet.</p>}
-              </div>
             </div>
+          )}
+        </div>
 
-            <div className="bg-white rounded-2xl border border-sky-100 shadow-card p-5">
-              <h2 className="font-clash text-sm font-700 text-navy-DEFAULT mb-3">Add Department</h2>
-              <div className="flex gap-2">
-                <input value={newDept} onChange={e=>setNewDept(e.target.value)}
-                  onKeyDown={e => e.key==="Enter" && add()}
-                  placeholder="e.g. Anatomy"
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-                <Button variant="primary" loading={adding} onClick={add}>+ Add</Button>
-              </div>
-            </div>
-          </>
-        )}
+        <div style={C.card}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:".85rem",fontWeight:700,color:"#0C1A2E",marginBottom:"1rem"}}>Add Department</div>
+          <div style={C.adRow}>
+            <input style={C.input} value={newDept} onChange={e=>setNewDept(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&add()} placeholder="e.g. Anatomy" />
+            <button style={C.btnP} disabled={adding} onClick={add}>{adding?"Adding...":"+ Add"}</button>
+          </div>
+        </div>
       </div>
     </AdminLayout>
   );
