@@ -83,7 +83,7 @@ export default function WriterWithdraw() {
   }
 
   return (
-    <StaffLayout navItems={NAV} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>Request Withdrawal</h1>
         <p style={C.sub}>Withdraw your available balance via Paystack.</p>
