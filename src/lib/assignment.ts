@@ -225,20 +225,22 @@ export async function routeChapterToQC(chapterId: string): Promise<void> {
 
   const qcUserId = await getStaffWithFewestJobs(Role.QC);
 
+  // Set status to QC_IN_PROGRESS but leave routedToQcId null
+  // so any available QC can pick it up from Pending Checks
   await prisma.orderChapter.update({
     where: { id: chapterId },
     data: {
       status:       ChapterStatus.QC_IN_PROGRESS,
-      routedToQcId: qcUserId ?? undefined,
       routedToQcAt: new Date(),
-      assigneeRole: AssigneeRole.QC,
     },
   });
 
-  if (qcUserId) {
+  // Notify all QC staff (or specific one if assigned)
+  const qcToNotify = qcUserId;
+  if (qcToNotify) {
     await prisma.notification.create({
       data: {
-        userId:  qcUserId,
+        userId:  qcToNotify,
         orderId: order.id,
         title:   "QC Check Required",
         message: `A chapter from order "${order.topic}" has been submitted and requires ${
