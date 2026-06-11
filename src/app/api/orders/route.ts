@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // src/app/api/orders/route.ts
 // POST — student places a new order and gets a Paystack payment URL
 
@@ -47,6 +46,7 @@ export async function POST(req: NextRequest) {
       degreeGroup,
       specialInstructions: specialInstructions?.trim() || null,
       guidelineFileUrl:    guidelineFileUrl || null,
+      selectedChapters:    chaptersRequested?.length ? chaptersRequested.sort().join(",") : null,
       status:              "PENDING_PAYMENT",
       requiresPlagiarismCheck: plan.includesPlagiarismCheck,
       requiresAiCheck:         plan.includesPlagiarismCheck, // same flag
