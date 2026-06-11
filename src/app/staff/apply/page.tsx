@@ -123,9 +123,7 @@ function StaffApplyForm() {
           </div>
         </div>
 
-        <div style={C.backBox}>
-          <button style={C.backBtn} onClick={() => router.push("/login")}>← Back to Student Login</button>
-        </div>
+        
       </div>
     </div>
   );
