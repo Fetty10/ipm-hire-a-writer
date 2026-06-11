@@ -104,7 +104,7 @@ export default function WriterActiveJobs() {
   }
 
   const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
-  const nav = NAV.map(item=>item.href==="/qc/jobs/active"?{...item,badge:jobs.length}:item);
+  const nav = QC_NAV.map(item=>item.href==="/qc/checks/active"?{...item,badge:jobs.length}:item);
 
   return (
     <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
