@@ -207,13 +207,19 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
 export async function routeChapterToQC(chapterId: string): Promise<void> {
   const chapter = await prisma.orderChapter.findUnique({
     where: { id: chapterId },
-    include: { order: true },
+    include: { order: { include: { plan: true } } },
   });
 
   if (!chapter) throw new Error(`Chapter ${chapterId} not found`);
 
   const order = chapter.order;
-  const needsQc = order.requiresPlagiarismCheck || order.requiresAiCheck;
+
+  // Check order flags AND plan name directly (covers orders placed before flags were set)
+  const isProfessionalPlan =
+    order.plan.planName === "PROFESSIONAL" ||
+    order.plan.planName === "PHD_PROFESSIONAL";
+
+  const needsQc = order.requiresPlagiarismCheck || order.requiresAiCheck || isProfessionalPlan;
 
   if (!needsQc) return; // no QC needed — caller handles direct delivery
 
