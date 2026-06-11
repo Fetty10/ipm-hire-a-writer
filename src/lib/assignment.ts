@@ -146,9 +146,7 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
         chapterLabel:   ch.chapterLabel,
         assignedToId:   assignedToId ?? undefined,
         assigneeRole:   assignedToId ? ch.assigneeRole : undefined,
-        status:         assignedToId
-                          ? ChapterStatus.IN_PROGRESS
-                          : ChapterStatus.NOT_STARTED,
+        status:         ChapterStatus.NOT_STARTED,
         requiresPrelim: ch.requiresPrelim,
       },
     });
