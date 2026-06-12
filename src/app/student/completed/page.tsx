@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StudentLayout } from "@/components/student/StudentLayout";
-import dynamic from "next/dynamic";
+import NextDynamic from "next/dynamic";
 
 const AddChaptersModal = dynamic(() => import("@/components/student/AddChaptersModal"), { ssr: false });
 
