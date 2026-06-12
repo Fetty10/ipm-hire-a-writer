@@ -158,7 +158,7 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
                     {ch.assignedTo
                       ? `${ch.assignedTo.name} (${ch.assignedTo.role})`
                       : "Unassigned"}
-                    {ch.routedToQc && ` → QC: ${ch.routedToQc.name}`}
+                    {ch.routedToQcId && ` → QC assigned`}
                   </div>
                 </div>
                 <StatusBadge status={ch.status}/>
