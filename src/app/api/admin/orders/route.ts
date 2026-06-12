@@ -40,14 +40,17 @@ export async function GET(req: NextRequest) {
   const where: any = {};
 
   if (status === "DELIVERED") {
-    // Orders fully delivered OR with at least one delivered chapter
-    where.OR = [
-      { status: "DELIVERED" },
-      { chapters: { some: { status: "DELIVERED" } } },
-    ];
-  } else if (status !== "all") {
-    where.status = status as OrderStatus;
-  }
+  // Has at least one delivered chapter (partial or full)
+  where.OR = [
+    { status: "DELIVERED" },
+    { chapters: { some: { status: "DELIVERED" } } },
+  ];
+} else if (status === "FULLY_DELIVERED") {
+  // All chapters delivered — order status is DELIVERED
+  where.status = "DELIVERED";
+} else if (status !== "all") {
+  where.status = status as OrderStatus;
+}
 
   if (search) {
     const searchConditions = [
