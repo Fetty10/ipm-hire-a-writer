@@ -40,9 +40,18 @@ export default function StudentCompleted() {
   const [addModal, setAddModal] = useState<string|null>(null);
 
   useEffect(()=>{
-    fetch("/api/student/orders?filter=completed")
+    // Fetch ALL orders so we can show add-chapters on any order with delivered chapters
+    fetch("/api/student/orders")
       .then(r=>r.json())
-      .then(d=>{ if(d.success) setOrders(d.data); })
+      .then(d=>{
+        if(d.success){
+          // Filter to only orders that have at least one delivered chapter
+          const withDelivered = d.data.filter((o:any) =>
+            o.chapters.some((ch:any) => ch.status === "DELIVERED")
+          );
+          setOrders(withDelivered);
+        }
+      })
       .finally(()=>setLoading(false));
   },[]);
 
@@ -60,9 +69,9 @@ export default function StudentCompleted() {
             <div style={C.esub}>Delivered chapters will appear here.</div>
           </div>
         ) : orders.map((o:any)=>{
-          const delivered    = o.chapters.filter((ch:any)=>ch.status==="DELIVERED");
-          const isFullyDone  = o.status==="DELIVERED";
-          const hasAllChapters = o.totalChapters >= 5;
+          const delivered     = o.chapters.filter((ch:any)=>ch.status==="DELIVERED");
+          const isFullyDone   = o.status==="DELIVERED";
+          const hasAllChapters= o.totalChapters >= 5;
           return (
             <div key={o.id} style={C.card}>
               <div style={C.head}>
