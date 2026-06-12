@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { StudentLayout } from "@/components/student/StudentLayout";
 import NextDynamic from "next/dynamic";
 
-const AddChaptersModal = dynamic(() => import("@/components/student/AddChaptersModal"), { ssr: false });
+const AddChaptersModal = NextDynamic(() => import("@/components/student/AddChaptersModal"), { ssr: false });
 
 const DEG:Record<string,string>={OND_HND_NCE:"HND/OND/NCE",BSC_BED_BA:"BSc/BEd/BA",PGD_MSC_PHD:"PGD/MSc/PhD"};
 
