@@ -3,6 +3,7 @@
 // Called after Paystack payment webhook confirms a payment
 
 import { prisma } from "@/lib/prisma";
+import { sendChapterDeliveredEmail } from "@/lib/email";
 import { AssigneeRole, ChapterStatus, DegreeGroup, Role } from "@prisma/client";
 
 // ─────────────────────────────────────────────────────────────
@@ -268,7 +269,7 @@ export async function deliverChapterToClient(
   const chapter = await prisma.orderChapter.findUnique({
     where: { id: chapterId },
     include: {
-      order:      true,
+      order:      { include: { plan: true, client: true } },
       assignedTo: true,
       earnings:   true,
     },
@@ -308,6 +309,20 @@ export async function deliverChapterToClient(
       type:    "SUCCESS",
     },
   });
+
+  // Send delivery email to student
+  try {
+    await sendChapterDeliveredEmail({
+      to:           chapter.order.client.email,
+      name:         chapter.order.client.name,
+      topic:        chapter.order.topic,
+      chapterLabel: chapter.chapterLabel,
+      orderId:      chapter.order.id,
+      planName:     chapter.order.plan.planName,
+    });
+  } catch (err) {
+    console.error("[EMAIL] Failed to send chapter delivered email:", err);
+  }
 
   // Check if all chapters are delivered → mark order as DELIVERED
   const allChapters = await prisma.orderChapter.findMany({
