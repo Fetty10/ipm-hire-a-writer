@@ -1,19 +1,12 @@
 export const dynamic = "force-dynamic";
 // src/app/api/orders/add-chapters/route.ts
-// Student adds more chapters to an existing order
-// Same plan, same topic — just new chapter selection + payment
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import Paystack from "paystack-api";
-
-const paystack = Paystack(process.env.PAYSTACK_SECRET_KEY!);
 
 export async function GET(req: NextRequest) {
-  // Returns existing order info + which chapters are already ordered
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== Role.CLIENT) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -34,20 +27,19 @@ export async function GET(req: NextRequest) {
   if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
   const existingChapterNums = order.chapters.map(ch => ch.chapterNumber);
-  const allChapters = [1, 2, 3, 4, 5];
-  const availableChapters = allChapters.filter(n => !existingChapterNums.includes(n));
+  const availableChapters   = [1,2,3,4,5].filter(n => !existingChapterNums.includes(n));
 
   return NextResponse.json({
     success: true,
     data: {
-      orderId:           order.id,
-      topic:             order.topic,
-      department:        order.department,
-      degreeGroup:       order.degreeGroup,
-      planName:          order.plan.planName,
-      pricePerChapter:   order.plan.priceKobo / 100,
-      pricingType:       order.plan.pricingType,
-      existingChapters:  existingChapterNums,
+      orderId:          order.id,
+      topic:            order.topic,
+      department:       order.department,
+      degreeGroup:      order.degreeGroup,
+      planName:         order.plan.planName,
+      pricePerChapter:  order.plan.priceKobo / 100,
+      pricingType:      order.plan.pricingType,
+      existingChapters: existingChapterNums,
       availableChapters,
     },
   });
@@ -70,7 +62,6 @@ export async function POST(req: NextRequest) {
     include: {
       plan: true,
       chapters: { select: { chapterNumber: true } },
-      client: { select: { email: true, name: true } },
     },
   });
 
@@ -91,36 +82,40 @@ export async function POST(req: NextRequest) {
   // Update guideline if new one uploaded
   if (guidelineFileUrl) {
     const existing = order.guidelineFileUrl;
-    const combined = existing
-      ? `${existing},${guidelineFileUrl}`
-      : guidelineFileUrl;
     await prisma.order.update({
       where: { id: orderId },
-      data: { guidelineFileUrl: combined },
+      data: { guidelineFileUrl: existing ? `${existing},${guidelineFileUrl}` : guidelineFileUrl },
     });
   }
 
-  // Store pending chapters in metadata — will be created by webhook after payment
-  const metadata = {
-    orderId,
-    addChapters: chaptersRequested,
-    isAddChapters: true,
-  };
-
-  const paystackRes = await paystack.transaction.initialize({
-    email:     order.client.email,
-    amount:    amountKobo,
-    metadata:  JSON.stringify(metadata),
-    callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/inprogress`,
+  // Initialize Paystack payment
+  const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
+    method:  "POST",
+    headers: {
+      Authorization:  `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email:    session.user.email,
+      amount:   amountKobo,
+      currency: "NGN",
+      metadata: {
+        orderId,
+        addChapters:   chaptersRequested,
+        isAddChapters: true,
+      },
+      callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/inprogress`,
+    }),
   });
 
-  if (!paystackRes.status) {
-    return NextResponse.json({ error: "Failed to initialize payment." }, { status: 500 });
+  const paystackData = await paystackRes.json();
+  if (!paystackData.status) {
+    return NextResponse.json({ error: "Payment initialization failed. Please try again." }, { status: 500 });
   }
 
   return NextResponse.json({
-    success: true,
-    paymentUrl: paystackRes.data.authorization_url,
+    success:    true,
+    paymentUrl: paystackData.data.authorization_url,
     amountNaira: amountKobo / 100,
   });
 }
