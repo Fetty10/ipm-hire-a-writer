@@ -10,56 +10,104 @@ const DEG_LBL:Record<string,string>  = {OND_HND_NCE:"HND/OND/NCE",BSC_BED_BA:"BS
 const PLAN_LBL:Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Professional"};
 
 const C = {
-  page:  { maxWidth:"1000px", margin:"0 auto" },
-  h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
-  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.5rem" },
-  card:  { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", overflow:"hidden", marginBottom:"1.5rem" },
-  thead: { background:"#F8FBFF" },
-  table: { width:"100%", borderCollapse:"collapse" as const, fontSize:".78rem" },
-  th:    { textAlign:"left" as const, padding:".6rem 1rem", fontSize:".6rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#5B7EA6", borderBottom:"1px solid #E0F2FE", whiteSpace:"nowrap" as const },
-  td:    { padding:".65rem 1rem", borderBottom:"1px solid #F0F9FF", color:"#0C1A2E", verticalAlign:"middle" as const },
-  badge: { display:"inline-flex", padding:"2px 8px", borderRadius:"999px", fontSize:".65rem", fontWeight:700, background:"#E0F2FE", color:"#0369A1" },
-  input: { width:"100px", padding:".35rem .6rem", borderRadius:"8px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none" },
-  btnS:  { padding:".35rem .75rem", borderRadius:"8px", background:"#38BDF8", color:"#0C1A2E", fontSize:".72rem", fontWeight:700, border:"none", cursor:"pointer" },
-  btnR:  { padding:".35rem .75rem", borderRadius:"8px", background:"#FEE2E2", color:"#991B1B", fontSize:".72rem", fontWeight:700, border:"none", cursor:"pointer" },
-  addBox:{ background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"16px", padding:"1.25rem", marginBottom:"1.5rem" },
-  addT:  { fontFamily:"'Syne',sans-serif", fontSize:".88rem", fontWeight:700, color:"#0C1A2E", marginBottom:"1rem" },
-  addRow:{ display:"flex", gap:".75rem", flexWrap:"wrap" as const, alignItems:"flex-end" },
-  fg:    { display:"flex", flexDirection:"column" as const, gap:".3rem" },
-  lbl:   { fontSize:".65rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#5B7EA6" },
-  sel:   { padding:".35rem .6rem", borderRadius:"8px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", background:"#fff" },
-  chk:   { width:"16px", height:"16px", cursor:"pointer" },
-  btnA:  { padding:".55rem 1.25rem", borderRadius:"10px", background:"#0C1A2E", color:"#38BDF8", fontSize:".82rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  page:   { maxWidth:"1100px", margin:"0 auto" },
+  h1:     { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:    { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.5rem" },
+  addBox: { background:"#F0F9FF", border:"1.5px solid #BAE6FD", borderRadius:"16px", padding:"1.25rem", marginBottom:"1.5rem" },
+  addT:   { fontFamily:"'Syne',sans-serif", fontSize:".9rem", fontWeight:700, color:"#0C1A2E", marginBottom:"1rem" },
+  grid:   { display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:".75rem", marginBottom:"1rem" },
+  fg:     { display:"flex", flexDirection:"column" as const, gap:".3rem" },
+  lbl:    { fontSize:".62rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#5B7EA6" },
+  sel:    { padding:".5rem .75rem", borderRadius:"8px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", background:"#fff" },
+  inp:    { padding:".5rem .75rem", borderRadius:"8px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", width:"100%", boxSizing:"border-box" as const },
+  chkRow: { display:"flex", gap:"1rem", flexWrap:"wrap" as const, marginBottom:"1rem" },
+  chkItem:{ display:"flex", alignItems:"center", gap:".4rem", fontSize:".82rem", color:"#0C1A2E", cursor:"pointer" },
+  btnA:   { padding:".55rem 1.5rem", borderRadius:"10px", background:"#0C1A2E", color:"#38BDF8", fontSize:".82rem", fontWeight:700, border:"none", cursor:"pointer" },
+  // Table
+  card:   { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", overflow:"hidden" },
+  table:  { width:"100%", borderCollapse:"collapse" as const, fontSize:".78rem" },
+  thead:  { background:"#F8FBFF" },
+  th:     { textAlign:"left" as const, padding:".65rem 1rem", fontSize:".6rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#5B7EA6", borderBottom:"1px solid #E0F2FE", whiteSpace:"nowrap" as const },
+  td:     { padding:".6rem .9rem", borderBottom:"1px solid #F0F9FF", verticalAlign:"middle" as const },
+  tdInp:  { padding:".4rem .6rem", borderRadius:"7px", border:"1.5px solid #BAE6FD", fontSize:".8rem", fontFamily:"'DM Sans',sans-serif", outline:"none", width:"90px" },
+  tdSel:  { padding:".4rem .6rem", borderRadius:"7px", border:"1.5px solid #BAE6FD", fontSize:".8rem", fontFamily:"'DM Sans',sans-serif", outline:"none", background:"#fff" },
+  badge:  { display:"inline-flex", padding:"2px 8px", borderRadius:"999px", fontSize:".65rem", fontWeight:700 },
+  bGreen: { background:"#D1FAE5", color:"#065F46" },
+  bGrey:  { background:"#F1F5F9", color:"#64748B" },
+  bBlue:  { background:"#E0F2FE", color:"#0369A1" },
+  btnS:   { padding:".3rem .7rem", borderRadius:"7px", background:"#38BDF8", color:"#0C1A2E", fontSize:".7rem", fontWeight:700, border:"none", cursor:"pointer" },
+  btnR:   { padding:".3rem .7rem", borderRadius:"7px", background:"#FEE2E2", color:"#991B1B", fontSize:".7rem", fontWeight:700, border:"none", cursor:"pointer" },
+  btnT:   { padding:".3rem .7rem", borderRadius:"7px", background:"#F1F5F9", color:"#64748B", fontSize:".7rem", fontWeight:700, border:"none", cursor:"pointer" },
+  acts:   { display:"flex", gap:".35rem", flexWrap:"wrap" as const },
 };
+
+const BLANK = { degreeGroup:"OND_HND_NCE", planName:"BASIC", pricingType:"FLAT", priceKobo:"", includesCorrections:false, includesPlagiarismCheck:false, includesFormat:false };
 
 export default function AdminPlans() {
   const [plans,   setPlans]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState<string|null>(null);
-  const [edits,   setEdits]   = useState<Record<string,string>>({});
   const [adding,  setAdding]  = useState(false);
-  const [newPlan, setNewPlan] = useState({
-    degreeGroup:"OND_HND_NCE", planName:"BASIC", pricingType:"FLAT",
-    priceKobo:"", includesCorrections:false, includesPlagiarismCheck:false, includesFormat:false,
-  });
+  const [newPlan, setNewPlan] = useState({...BLANK});
+  // Per-row edits
+  const [edits,   setEdits]   = useState<Record<string,any>>({});
 
   async function load() {
+    setLoading(true);
     const res  = await fetch("/api/admin/settings?type=plans");
     const data = await res.json();
-    if (data.success) setPlans(data.data.plans);
+    if (data.success) {
+      setPlans(data.data.plans);
+      // Init edits with current values
+      const init:any = {};
+      data.data.plans.forEach((p:any) => {
+        init[p.id] = { priceKobo: p.priceKobo/100, pricingType: p.pricingType,
+          includesCorrections: p.includesCorrections, includesPlagiarismCheck: p.includesPlagiarismCheck,
+          includesFormat: p.includesFormat, isActive: p.isActive };
+      });
+      setEdits(init);
+    }
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
 
-  async function save(id: string) {
-    if (!edits[id]) return;
+  function updEdit(id:string, field:string, val:any) {
+    setEdits(prev => ({...prev,[id]:{...prev[id],[field]:val}}));
+  }
+
+  async function savePlan(id:string) {
+    const e = edits[id];
+    if (!e) return;
     setSaving(id);
     const res  = await fetch("/api/admin/settings", {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type:"plan", id, priceKobo: Math.round(parseFloat(edits[id]) * 100) }),
+      method: "PATCH", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        type:                   "plan",
+        id,
+        priceKobo:              Math.round(parseFloat(e.priceKobo) * 100),
+        pricingType:            e.pricingType,
+        includesCorrections:    e.includesCorrections,
+        includesPlagiarismCheck:e.includesPlagiarismCheck,
+        includesFormat:         e.includesFormat,
+        isActive:               e.isActive,
+      }),
     });
     const data = await res.json();
-    if (res.ok) { alert("Plan updated!"); load(); } else alert(data.error);
+    if (res.ok) { await load(); }
+    else alert(data.error);
+    setSaving(null);
+  }
+
+  async function deletePlan(id:string, label:string) {
+    if (!confirm(`Delete "${label}"? This cannot be undone. Orders using this plan will be unaffected.`)) return;
+    setSaving("del"+id);
+    const res  = await fetch("/api/admin/settings", {
+      method:"DELETE", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ type:"plan", id }),
+    });
+    const data = await res.json();
+    if (res.ok) { await load(); }
+    else alert(data.error);
     setSaving(null);
   }
 
@@ -67,7 +115,7 @@ export default function AdminPlans() {
     if (!newPlan.priceKobo) { alert("Enter a price."); return; }
     setAdding(true);
     const res  = await fetch("/api/admin/settings", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         type:                   "plan",
         degreeGroup:            newPlan.degreeGroup,
@@ -80,11 +128,8 @@ export default function AdminPlans() {
       }),
     });
     const data = await res.json();
-    if (res.ok) {
-      alert("Plan added!");
-      setNewPlan({degreeGroup:"OND_HND_NCE",planName:"BASIC",pricingType:"FLAT",priceKobo:"",includesCorrections:false,includesPlagiarismCheck:false,includesFormat:false});
-      load();
-    } else alert(data.error);
+    if (res.ok) { setNewPlan({...BLANK}); await load(); }
+    else alert(data.error);
     setAdding(false);
   }
 
@@ -92,20 +137,20 @@ export default function AdminPlans() {
     <AdminLayout>
       <div style={C.page}>
         <h1 style={C.h1}>Plans & Pricing</h1>
-        <p style={C.sub}>Update pricing for all service plans or add new ones.</p>
+        <p style={C.sub}>Add, edit or remove service plans. Changes take effect immediately for new orders.</p>
 
         {/* Add new plan */}
         <div style={C.addBox}>
-          <div style={C.addT}>+ Add New Plan</div>
-          <div style={C.addRow}>
+          <div style={C.addT}>➕ Add New Plan</div>
+          <div style={C.grid}>
             <div style={C.fg}>
-              <label style={C.lbl}>Level</label>
+              <label style={C.lbl}>Degree Level</label>
               <select style={C.sel} value={newPlan.degreeGroup} onChange={e=>setNewPlan(p=>({...p,degreeGroup:e.target.value}))}>
                 {DEG_GROUPS.map(d=><option key={d} value={d}>{DEG_LBL[d]}</option>)}
               </select>
             </div>
             <div style={C.fg}>
-              <label style={C.lbl}>Plan</label>
+              <label style={C.lbl}>Plan Name</label>
               <select style={C.sel} value={newPlan.planName} onChange={e=>setNewPlan(p=>({...p,planName:e.target.value}))}>
                 {PLAN_NAMES.map(n=><option key={n} value={n}>{PLAN_LBL[n]}</option>)}
               </select>
@@ -113,33 +158,32 @@ export default function AdminPlans() {
             <div style={C.fg}>
               <label style={C.lbl}>Pricing Type</label>
               <select style={C.sel} value={newPlan.pricingType} onChange={e=>setNewPlan(p=>({...p,pricingType:e.target.value}))}>
-                {PRICING_TYPES.map(t=><option key={t} value={t}>{t==="FLAT"?"Flat Rate":"Per Chapter"}</option>)}
+                <option value="FLAT">Flat Rate</option>
+                <option value="PER_CHAPTER">Per Chapter</option>
               </select>
             </div>
             <div style={C.fg}>
               <label style={C.lbl}>Price (₦)</label>
-              <input style={C.input} type="number" placeholder="e.g. 12000" value={newPlan.priceKobo}
-                onChange={e=>setNewPlan(p=>({...p,priceKobo:e.target.value}))} />
+              <input style={C.inp} type="number" min="0" placeholder="e.g. 12000"
+                value={newPlan.priceKobo} onChange={e=>setNewPlan(p=>({...p,priceKobo:e.target.value}))} />
             </div>
-            <div style={C.fg}>
-              <label style={C.lbl}>Corrections</label>
-              <input type="checkbox" style={C.chk} checked={newPlan.includesCorrections}
-                onChange={e=>setNewPlan(p=>({...p,includesCorrections:e.target.checked}))} />
-            </div>
-            <div style={C.fg}>
-              <label style={C.lbl}>Plagiarism</label>
-              <input type="checkbox" style={C.chk} checked={newPlan.includesPlagiarismCheck}
-                onChange={e=>setNewPlan(p=>({...p,includesPlagiarismCheck:e.target.checked}))} />
-            </div>
-            <div style={C.fg}>
-              <label style={C.lbl}>Format</label>
-              <input type="checkbox" style={C.chk} checked={newPlan.includesFormat}
-                onChange={e=>setNewPlan(p=>({...p,includesFormat:e.target.checked}))} />
-            </div>
-            <button style={C.btnA} disabled={adding} onClick={addPlan}>
-              {adding ? "Adding..." : "+ Add Plan"}
-            </button>
           </div>
+          <div style={C.chkRow}>
+            {[
+              {label:"Includes Corrections",  field:"includesCorrections"},
+              {label:"Includes Plagiarism Check", field:"includesPlagiarismCheck"},
+              {label:"Includes Format",        field:"includesFormat"},
+            ].map(f=>(
+              <label key={f.field} style={C.chkItem}>
+                <input type="checkbox" checked={(newPlan as any)[f.field]}
+                  onChange={e=>setNewPlan(p=>({...p,[f.field]:e.target.checked}))} />
+                {f.label}
+              </label>
+            ))}
+          </div>
+          <button style={C.btnA} disabled={adding} onClick={addPlan}>
+            {adding ? "Adding..." : "+ Add Plan"}
+          </button>
         </div>
 
         {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div> : (
@@ -147,33 +191,65 @@ export default function AdminPlans() {
             <div style={{overflowX:"auto"}}>
               <table style={C.table}>
                 <thead style={C.thead}>
-                  <tr>{["Level","Plan","Type","Price (₦)","Corrections","Plagiarism","Format","Active",""].map(h=><th key={h} style={C.th}>{h}</th>)}</tr>
+                  <tr>
+                    {["Level","Plan","Type","Price (₦)","Corrections","Plagiarism","Format","Status","Actions"].map(h=>
+                      <th key={h} style={C.th}>{h}</th>
+                    )}
+                  </tr>
                 </thead>
                 <tbody>
-                  {plans.map((p:any) => (
-                    <tr key={p.id}>
-                      <td style={{...C.td,fontWeight:600,whiteSpace:"nowrap" as const}}>{DEG_LBL[p.degreeGroup]||p.degreeGroup}</td>
-                      <td style={C.td}><span style={C.badge}>{PLAN_LBL[p.planName]||p.planName}</span></td>
-                      <td style={{...C.td,color:"#5B7EA6"}}>{p.pricingType==="FLAT"?"Flat":"Per Ch"}</td>
-                      <td style={C.td}>
-                        <input style={C.input} type="number" defaultValue={p.priceKobo/100}
-                          onChange={e=>setEdits(prev=>({...prev,[p.id]:e.target.value}))} />
-                      </td>
-                      <td style={{...C.td,textAlign:"center" as const}}>{p.includesCorrections?"✅":"—"}</td>
-                      <td style={{...C.td,textAlign:"center" as const}}>{p.includesPlagiarismCheck?"✅":"—"}</td>
-                      <td style={{...C.td,textAlign:"center" as const}}>{p.includesFormat?"✅":"—"}</td>
-                      <td style={C.td}>
-                        <span style={{...C.badge,...(p.isActive?{background:"#D1FAE5",color:"#065F46"}:{background:"#F1F5F9",color:"#64748B"})}}>
-                          {p.isActive?"Active":"Off"}
-                        </span>
-                      </td>
-                      <td style={C.td}>
-                        <button style={C.btnS} disabled={saving===p.id} onClick={()=>save(p.id)}>
-                          {saving===p.id?"...":"Save"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {plans.map((p:any) => {
+                    const e = edits[p.id] || {};
+                    const label = `${PLAN_LBL[p.planName]||p.planName} — ${DEG_LBL[p.degreeGroup]||p.degreeGroup}`;
+                    return (
+                      <tr key={p.id} style={{opacity:e.isActive===false?.6:1}}>
+                        <td style={{...C.td,fontWeight:600,whiteSpace:"nowrap" as const,fontSize:".75rem"}}>{DEG_LBL[p.degreeGroup]||p.degreeGroup}</td>
+                        <td style={C.td}><span style={{...C.badge,...C.bBlue}}>{PLAN_LBL[p.planName]||p.planName}</span></td>
+                        <td style={C.td}>
+                          <select style={C.tdSel} value={e.pricingType||p.pricingType}
+                            onChange={ev=>updEdit(p.id,"pricingType",ev.target.value)}>
+                            <option value="FLAT">Flat</option>
+                            <option value="PER_CHAPTER">Per Ch</option>
+                          </select>
+                        </td>
+                        <td style={C.td}>
+                          <input style={C.tdInp} type="number" min="0"
+                            value={e.priceKobo ?? p.priceKobo/100}
+                            onChange={ev=>updEdit(p.id,"priceKobo",ev.target.value)} />
+                        </td>
+                        <td style={{...C.td,textAlign:"center" as const}}>
+                          <input type="checkbox" checked={e.includesCorrections ?? p.includesCorrections}
+                            onChange={ev=>updEdit(p.id,"includesCorrections",ev.target.checked)} />
+                        </td>
+                        <td style={{...C.td,textAlign:"center" as const}}>
+                          <input type="checkbox" checked={e.includesPlagiarismCheck ?? p.includesPlagiarismCheck}
+                            onChange={ev=>updEdit(p.id,"includesPlagiarismCheck",ev.target.checked)} />
+                        </td>
+                        <td style={{...C.td,textAlign:"center" as const}}>
+                          <input type="checkbox" checked={e.includesFormat ?? p.includesFormat}
+                            onChange={ev=>updEdit(p.id,"includesFormat",ev.target.checked)} />
+                        </td>
+                        <td style={C.td}>
+                          <span style={{...C.badge,...(e.isActive!==false?C.bGreen:C.bGrey)}}>
+                            {e.isActive!==false?"Active":"Inactive"}
+                          </span>
+                        </td>
+                        <td style={C.td}>
+                          <div style={C.acts}>
+                            <button style={C.btnS} disabled={saving===p.id} onClick={()=>savePlan(p.id)}>
+                              {saving===p.id?"...":"💾 Save"}
+                            </button>
+                            <button style={C.btnT} onClick={()=>updEdit(p.id,"isActive",!(e.isActive??p.isActive))}>
+                              {(e.isActive??p.isActive)?"⏸ Deactivate":"▶ Activate"}
+                            </button>
+                            <button style={C.btnR} disabled={saving==="del"+p.id} onClick={()=>deletePlan(p.id,label)}>
+                              {saving==="del"+p.id?"...":"🗑 Delete"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
