@@ -17,14 +17,14 @@ export async function POST(req: NextRequest) {
   }
 
   const event = JSON.parse(body);
-  console.log("[WEBHOOK] Event received:", event.event);
+  console.log("[WEBHOOK] event:", event.event);
 
   if (event.event === "charge.success") {
     const { reference, amount, metadata } = event.data;
 
-    console.log("[WEBHOOK] Raw metadata:", JSON.stringify(metadata));
+    console.log("[WEBHOOK] raw metadata:", JSON.stringify(metadata));
 
-    // Paystack can send metadata as object or JSON string
+    // Normalise metadata — Paystack can send as object or JSON string
     let meta: any = {};
     if (typeof metadata === "string") {
       try { meta = JSON.parse(metadata); } catch { meta = {}; }
@@ -32,15 +32,17 @@ export async function POST(req: NextRequest) {
       meta = metadata;
     }
 
-    console.log("[WEBHOOK] Parsed meta:", JSON.stringify(meta));
-    console.log("[WEBHOOK] isAddChapters:", meta?.isAddChapters);
-    console.log("[WEBHOOK] addChapters:", meta?.addChapters);
-    console.log("[WEBHOOK] orderId:", meta?.orderId);
+    console.log("[WEBHOOK] parsed meta:", JSON.stringify(meta));
 
-    const orderId = meta?.orderId as string;
+    const orderId  = meta?.orderId as string;
+    // Handle isAddChapters as boolean OR string "true"
+    const isAdd    = meta?.isAddChapters === true || meta?.isAddChapters === "true";
+    const addChs   = Array.isArray(meta?.addChapters) ? meta.addChapters : [];
+
+    console.log("[WEBHOOK] orderId:", orderId, "isAdd:", isAdd, "addChs:", addChs);
 
     if (!orderId) {
-      console.error("[WEBHOOK] No orderId in metadata");
+      console.error("[WEBHOOK] No orderId");
       return NextResponse.json({ error: "No orderId in metadata" }, { status: 400 });
     }
 
@@ -50,23 +52,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    console.log("[WEBHOOK] Order status:", order.status);
+    console.log("[WEBHOOK] order status:", order.status);
 
-    // ── Add chapters — MUST be before status guard ──
-    if (meta?.isAddChapters === true && Array.isArray(meta?.addChapters) && meta.addChapters.length > 0) {
-      console.log("[WEBHOOK] Processing add-chapters:", meta.addChapters);
+    // ── Add chapters — BEFORE status guard ──────────────────
+    if (isAdd && addChs.length > 0) {
+      console.log("[WEBHOOK] Adding chapters:", addChs);
       await prisma.order.update({
         where: { id: orderId },
         data:  { amountPaidKobo: { increment: amount } },
       });
-      await assignSpecificChapters(orderId, meta.addChapters);
-      console.log("[WEBHOOK] Add-chapters done");
+      await assignSpecificChapters(orderId, addChs.map(Number));
+      console.log("[WEBHOOK] Chapters added successfully");
       return NextResponse.json({ ok: true, note: "Additional chapters assigned." });
     }
 
-    // ── New order ──
+    // ── New order — guard ────────────────────────────────────
     if (order.status !== "PENDING_PAYMENT") {
-      console.log("[WEBHOOK] Already processed, skipping");
+      console.log("[WEBHOOK] Already processed");
       return NextResponse.json({ ok: true, note: "Already processed" });
     }
 
