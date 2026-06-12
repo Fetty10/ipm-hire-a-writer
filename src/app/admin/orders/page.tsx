@@ -6,12 +6,11 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 
 const STATUSES = [
-  { value:"all",             label:"All Statuses" },
-  { value:"IN_PROGRESS",    label:"In Progress" },
-  { value:"QC_REVIEW",      label:"QC Review" },
-  { value:"DELIVERED",      label:"Has Delivered Chapters" },
-  { value:"PENDING_PAYMENT",label:"Pending Payment" },
-  { value:"CANCELLED",      label:"Cancelled" },
+  { value:"all",              label:"All Statuses" },
+  { value:"IN_PROGRESS",     label:"In Progress" },
+  { value:"DELIVERED",       label:"Has Delivered Chapters" },
+  { value:"PENDING_PAYMENT", label:"Pending Payment" },
+  { value:"CANCELLED",       label:"Cancelled" },
 ];
 
 const STATUS_COLORS:Record<string,React.CSSProperties> = {
