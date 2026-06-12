@@ -9,7 +9,7 @@ const STATUS_GROUPS: Record<string, string[]> = {
   pending:   ["NOT_STARTED"],
   active:    ["IN_PROGRESS", "PRELIM_SUBMITTED"],
   delivered: ["SUBMITTED", "QC_IN_PROGRESS", "QC_DONE", "DELIVERED"],
-  all:       ["NOT_STARTED","IN_PROGRESS","PRELIM_SUBMITTED","SUBMITTED","QC_IN_PROGRESS","QC_DONE","DELIVERED","CORRECTION_NEEDED"],
+  all:       ["NOT_STARTED","IN_PROGRESS","PRELIM_SUBMITTED","SUBMITTED","QC_IN_PROGRESS","QC_DONE","DELIVERED"],
 };
 
 export async function GET(req: NextRequest) {
