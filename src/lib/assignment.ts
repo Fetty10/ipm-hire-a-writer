@@ -325,3 +325,66 @@ export async function deliverChapterToClient(
     });
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// ASSIGN SPECIFIC CHAPTERS TO EXISTING ORDER
+// Called when student adds more chapters to an existing order
+// ─────────────────────────────────────────────────────────────
+
+export async function assignSpecificChapters(
+  orderId: string,
+  chapterNumbers: number[]
+): Promise<void> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { plan: true },
+  });
+  if (!order) throw new Error(`Order ${orderId} not found`);
+
+  const isException = await isExceptionDepartment(order.department);
+  const writerId    = await getStaffWithFewestJobs(Role.WRITER);
+  const analystId   = isException ? null : await getStaffWithFewestJobs(Role.ANALYST);
+
+  for (const num of chapterNumbers) {
+    const isWriterChapter  = isException || WRITER_CHAPTERS.includes(num);
+    const assignedToId     = isWriterChapter ? writerId : analystId;
+    const assigneeRole     = isWriterChapter ? AssigneeRole.WRITER : AssigneeRole.ANALYST;
+    const role             = isWriterChapter ? Role.WRITER : Role.ANALYST;
+
+    await prisma.orderChapter.create({
+      data: {
+        orderId,
+        chapterNumber:  num,
+        chapterLabel:   `Chapter ${num}`,
+        assignedToId:   assignedToId ?? undefined,
+        assigneeRole:   assignedToId ? assigneeRole : undefined,
+        status:         ChapterStatus.NOT_STARTED,
+        requiresPrelim: num === PRELIM_REQUIRED_CHAPTER,
+      },
+    });
+
+    // Notify the assigned staff
+    if (assignedToId) {
+      await prisma.notification.create({
+        data: {
+          userId:  assignedToId,
+          orderId,
+          title:   "New Chapter Assigned",
+          message: `Chapter ${num} for "${order.topic}" has been added and assigned to you. Log in to your dashboard to begin.`,
+          type:    "ACTION_REQUIRED",
+        },
+      });
+    }
+  }
+
+  // Notify student
+  await prisma.notification.create({
+    data: {
+      userId:  order.clientId,
+      orderId,
+      title:   "Additional Chapters Added",
+      message: `Your additional chapter${chapterNumbers.length > 1 ? "s" : ""} (${chapterNumbers.map(n => `Chapter ${n}`).join(", ")}) for "${order.topic}" have been assigned to our writing team.`,
+      type:    "INFO",
+    },
+  });
+}
