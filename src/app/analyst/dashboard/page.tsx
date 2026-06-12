@@ -25,21 +25,24 @@ const C = {
   sicon:  { fontSize:"1.3rem", marginBottom:".5rem" },
   sval:   { fontFamily:"'Syne',sans-serif", fontSize:"1.4rem", fontWeight:800, color:"#0C1A2E", lineHeight:1 },
   slabel: { fontSize:".72rem", color:"#5B7EA6", marginTop:".2rem" },
-  grid2:  { display:"flex", flexDirection:"column" as const, gap:"1rem" },
+  stack:  { display:"flex", flexDirection:"column" as const, gap:"1rem" },
   earBox: { background:"#0C1A2E", borderRadius:"16px", padding:"1.25rem", color:"#fff", cursor:"pointer", position:"relative" as const, overflow:"hidden" },
+  earRow: { display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap" as const, gap:"1rem" },
+  earLeft:{ flex:1 },
   earLbl: { fontSize:".68rem", color:"#7DD3FC", textTransform:"uppercase" as const, letterSpacing:".08em", fontWeight:700, marginBottom:".3rem" },
-  earVal: { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#fff", marginBottom:".75rem" },
-  earGrid:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:".4rem" },
-  earItem:{ fontSize:".65rem", color:"#7DD3FC" },
-  earNum: { fontWeight:700, color:"#fff", fontSize:".78rem" },
+  earVal: { fontFamily:"'Syne',sans-serif", fontSize:"2rem", fontWeight:800, color:"#fff", marginBottom:0 },
+  earGrid:{ display:"flex", gap:"1.5rem" },
+  earItem:{ fontSize:".7rem", color:"#7DD3FC" },
+  earNum: { fontWeight:700, color:"#fff", fontSize:".85rem" },
   card:   { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", padding:"1.25rem" },
   chead:  { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"1rem" },
   ctitle: { fontFamily:"'Syne',sans-serif", fontSize:".85rem", fontWeight:700, color:"#0C1A2E" },
   clink:  { fontSize:".75rem", color:"#0369A1", fontWeight:600, background:"none", border:"none", cursor:"pointer", textDecoration:"underline" },
   jrow:   { display:"flex", alignItems:"center", gap:".75rem", padding:".6rem .75rem", borderRadius:"10px", border:"1px solid #E0F2FE", marginBottom:".4rem", cursor:"pointer" },
   jnum:   { width:"32px", height:"32px", borderRadius:"8px", background:"#E0F2FE", color:"#0369A1", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:".78rem", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
-  jlabel: { flex:1, fontSize:".8rem", fontWeight:600, color:"#0C1A2E", minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const },
-  jtopic: { fontSize:".72rem", color:"#5B7EA6", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" as const },
+  jinfo:  { flex:1, minWidth:0 },
+  jlabel: { fontSize:".82rem", fontWeight:700, color:"#0C1A2E" },
+  jtopic: { fontSize:".72rem", color:"#5B7EA6", marginTop:"2px", wordBreak:"break-word" as const },
   badge:  { display:"inline-flex", padding:"2px 8px", borderRadius:"999px", fontSize:".65rem", fontWeight:700, flexShrink:0 },
   bYellow:{ background:"#FEF9C3", color:"#854D0E" },
   empty:  { textAlign:"center" as const, padding:"1.5rem", fontSize:".8rem", color:"#5B7EA6" },
@@ -89,7 +92,6 @@ export default function AnalystDashboard() {
           <div style={{textAlign:"center", padding:"3rem", color:"#5B7EA6"}}>Loading...</div>
         ) : (
           <>
-            {/* Stats */}
             <div style={C.grid4}>
               {[
                 {icon:"📋", val:jobs.length,      label:"All Jobs",  href:"/analyst/jobs/pending"},
@@ -108,27 +110,30 @@ export default function AnalystDashboard() {
               ))}
             </div>
 
-
-            {/* Earnings */}
+            <div style={C.stack}>
+              {/* Earnings — full width, horizontal layout */}
               <div style={C.earBox} onClick={() => router.push("/analyst/earnings")}>
-                <div style={{position:"absolute", top:"-20px", right:"-20px", width:"80px", height:"80px", background:"rgba(56,189,248,.1)", borderRadius:"50%"}}/>
-                <div style={C.earLbl}>Available</div>
-                <div style={C.earVal}>₦{(earnings?.available||0).toLocaleString()}</div>
-                <div style={C.earGrid}>
-                  {[
-                    {label:"Pending",   val: earnings?.pending||0},
-                    {label:"Total",     val: earnings?.totalEarned||0},
-                    {label:"Withdrawn", val: earnings?.withdrawn||0},
-                  ].map(e => (
-                    <div key={e.label}>
-                      <div style={C.earItem}>{e.label}</div>
-                      <div style={C.earNum}>₦{e.val.toLocaleString()}</div>
-                    </div>
-                  ))}
+                <div style={{position:"absolute", top:"-20px", right:"-20px", width:"100px", height:"100px", background:"rgba(56,189,248,.08)", borderRadius:"50%"}}/>
+                <div style={C.earRow}>
+                  <div style={C.earLeft}>
+                    <div style={C.earLbl}>Available Balance</div>
+                    <div style={C.earVal}>₦{(earnings?.available||0).toLocaleString()}</div>
+                  </div>
+                  <div style={C.earGrid}>
+                    {[
+                      {label:"Pending",   val: earnings?.pending||0},
+                      {label:"Total",     val: earnings?.totalEarned||0},
+                      {label:"Withdrawn", val: earnings?.withdrawn||0},
+                    ].map(e => (
+                      <div key={e.label} style={{textAlign:"center" as const}}>
+                        <div style={C.earItem}>{e.label}</div>
+                        <div style={C.earNum}>₦{e.val.toLocaleString()}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              </div>
 
-            {/* Jobs first (wider), Earnings second (narrower) */}
-            <div style={C.grid2}>
               {/* Recent active jobs */}
               <div style={C.card}>
                 <div style={C.chead}>
@@ -141,7 +146,7 @@ export default function AnalystDashboard() {
                   active.slice(0, 3).map((job: any) => (
                     <div key={job.id} style={C.jrow} onClick={() => router.push("/analyst/jobs/active")}>
                       <div style={C.jnum}>{job.chapterNumber}</div>
-                      <div style={{flex:1, minWidth:0}}>
+                      <div style={C.jinfo}>
                         <div style={C.jlabel}>{job.chapterLabel}</div>
                         <div style={C.jtopic}>{job.topic}</div>
                       </div>
@@ -149,9 +154,6 @@ export default function AnalystDashboard() {
                     </div>
                   ))
                 )}
-              </div>
-
-              
               </div>
             </div>
           </>
