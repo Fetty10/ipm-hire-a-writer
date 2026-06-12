@@ -8,7 +8,8 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 const STATUSES = [
   { value:"all",              label:"All Statuses" },
   { value:"IN_PROGRESS",     label:"In Progress" },
-  { value:"DELIVERED",       label:"Has Delivered Chapters" },
+  { value:"DELIVERED",       label:"Delivered (Full or Partial)" },
+  { value:"FULLY_DELIVERED", label:"Fully Completed" },
   { value:"PENDING_PAYMENT", label:"Pending Payment" },
   { value:"CANCELLED",       label:"Cancelled" },
 ];
