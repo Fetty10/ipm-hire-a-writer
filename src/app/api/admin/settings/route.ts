@@ -1,9 +1,5 @@
 export const dynamic = "force-dynamic";
 // src/app/api/admin/settings/route.ts
-// GET  — fetch pay rates, plans, departments
-// PATCH — update pay rates or plan prices
-// POST  — add exception department
-// DELETE — remove exception department
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -63,9 +59,51 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { name } = await req.json();
-  if (!name?.trim()) return NextResponse.json({ error: "Department name is required." }, { status: 400 });
+  const body = await req.json();
+  const { type } = body;
 
+  // ── Add new pay rate ─────────────────────────────────────────
+  if (type === "payrate") {
+    const { role, degreeGroup, planName, amountKobo } = body;
+    if (!role || !degreeGroup || !planName || !amountKobo) {
+      return NextResponse.json({ error: "All fields are required." }, { status: 400 });
+    }
+    const existing = await prisma.payRate.findFirst({ where: { role, degreeGroup, planName, chapterNumber: null } });
+    if (existing) {
+      return NextResponse.json({ error: "A pay rate for this combination already exists. Edit the existing one." }, { status: 409 });
+    }
+    const rate = await prisma.payRate.create({
+      data: { role, degreeGroup, planName, amountKobo, updatedById: session.user.id },
+    });
+    return NextResponse.json({ success: true, data: rate, message: "Pay rate added." });
+  }
+
+  // ── Add new plan ─────────────────────────────────────────────
+  if (type === "plan") {
+    const { degreeGroup, planName, pricingType, priceKobo, includesCorrections, includesPlagiarismCheck, includesFormat } = body;
+    if (!degreeGroup || !planName || !pricingType || !priceKobo) {
+      return NextResponse.json({ error: "All fields are required." }, { status: 400 });
+    }
+    const existing = await prisma.plan.findFirst({ where: { degreeGroup, planName } });
+    if (existing) {
+      return NextResponse.json({ error: "A plan for this combination already exists. Edit the existing one." }, { status: 409 });
+    }
+    const plan = await prisma.plan.create({
+      data: {
+        degreeGroup, planName, pricingType, priceKobo,
+        includesCorrections:     includesCorrections || false,
+        includesPlagiarismCheck: includesPlagiarismCheck || false,
+        includesFormat:          includesFormat || false,
+        isActive:                true,
+        updatedById:             session.user.id,
+      },
+    });
+    return NextResponse.json({ success: true, data: plan, message: "Plan added." });
+  }
+
+  // ── Add exception department ─────────────────────────────────
+  const { name } = body;
+  if (!name?.trim()) return NextResponse.json({ error: "Department name is required." }, { status: 400 });
   const dept = await prisma.exceptionDepartment.create({
     data: { name: name.trim(), createdBy: session.user.id },
   });
@@ -78,9 +116,15 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await req.json();
+  const { id, type } = await req.json();
   if (!id) return NextResponse.json({ error: "id is required." }, { status: 400 });
 
+  if (type === "payrate") {
+    await prisma.payRate.delete({ where: { id } });
+    return NextResponse.json({ success: true, message: "Pay rate deleted." });
+  }
+
+  // Default: delete exception department
   await prisma.exceptionDepartment.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }
