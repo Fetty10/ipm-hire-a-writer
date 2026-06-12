@@ -53,8 +53,16 @@ function wrap(content: string): string {
 
 /** Student: chapter delivered to their dashboard */
 export async function sendChapterDeliveredEmail(opts: {
-  to: string; name: string; topic: string; chapterLabel: string; orderId: string;
+  to: string; name: string; topic: string; chapterLabel: string; orderId: string; planName: string;
 }) {
+  const isBasic = opts.planName === "BASIC";
+  const correctionSection = isBasic
+    ? `<p class="text" style="font-size:.85rem;color:#9A3412;background:#FFF7ED;padding:.75rem 1rem;border-radius:8px;border-left:3px solid #F97316;margin-top:8px;">
+        <strong>Note:</strong> Your current plan (Basic) does not include free corrections. If you need corrections, you can upgrade your plan by placing a new order.
+       </p>`
+    : `<p class="text" style="font-size:.85rem;">Need corrections? You can request them directly from your dashboard. Corrections are <strong>free</strong> on your current plan.</p>
+       <a href="${APP}/student/corrections" class="btn" style="background:#F0F9FF;color:#0369A1;border:1.5px solid #38BDF8;margin-top:4px;">Request a Correction →</a>`;
+
   await resend.emails.send({
     from: FROM, to: opts.to,
     subject: `✅ ${opts.chapterLabel} is ready — ${opts.topic}`,
@@ -63,9 +71,9 @@ export async function sendChapterDeliveredEmail(opts: {
       <p class="text">Hi ${opts.name}, great news! Your <strong>${opts.chapterLabel}</strong> for the project:</p>
       <div class="highlight">${opts.topic}</div>
       <p class="text">has been completed and is now available in your dashboard. Log in to download it.</p>
-      <a href="${APP}/student/dashboard" class="btn">Go to My Dashboard →</a>
+      <a href="${APP}/student/downloads" class="btn">⬇ Download My Chapter →</a>
       <div class="divider"></div>
-      <p class="text" style="font-size:.8rem">If you have corrections, you can request them directly from your dashboard under <strong>Request Correction</strong>.</p>
+      ${correctionSection}
     `),
   });
 }
@@ -131,7 +139,7 @@ export async function sendAccountApprovedEmail(opts: {
       <div class="title">Welcome to iProjectMaster!</div>
       <p class="text">Hi ${opts.name}, your <strong>${opts.role}</strong> account has been reviewed and approved by our admin team.</p>
       <p class="text">You can now log in and start accepting jobs. Jobs will be automatically assigned to you based on your availability.</p>
-      <a href="${APP}/staff/login" class="btn">Log In to Staff Portal →</a>
+      <a href="${APP}/login" class="btn">Log In Now →</a>
     `),
   });
 }
