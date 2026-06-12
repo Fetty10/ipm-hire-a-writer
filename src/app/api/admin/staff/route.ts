@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
   if (filter === "pending")   { where.isApproved = false; }
   if (filter === "active")    { where.isApproved = true; where.isSuspended = false; }
   if (filter === "suspended") { where.isSuspended = true; }
+  if (filter === "approved")  { where.isApproved = true; } // all approved staff including suspended
   if (search) {
     where.OR = [
       { name:  { contains: search, mode: "insensitive" } },
