@@ -25,7 +25,7 @@ const C = {
   sicon:  { fontSize:"1.3rem", marginBottom:".5rem" },
   sval:   { fontFamily:"'Syne',sans-serif", fontSize:"1.4rem", fontWeight:800, color:"#0C1A2E", lineHeight:1 },
   slabel: { fontSize:".72rem", color:"#5B7EA6", marginTop:".2rem" },
-  grid2:  { display:"grid", gridTemplateColumns:"1fr 1fr", gap:"1rem" },
+  grid2:  { display:"grid", gridTemplateColumns:"3fr 2fr", gap:"1rem" },
   earBox: { background:"#0C1A2E", borderRadius:"16px", padding:"1.25rem", color:"#fff", cursor:"pointer", position:"relative" as const, overflow:"hidden" },
   earLbl: { fontSize:".68rem", color:"#7DD3FC", textTransform:"uppercase" as const, letterSpacing:".08em", fontWeight:700, marginBottom:".3rem" },
   earVal: { fontFamily:"'Syne',sans-serif", fontSize:"2rem", fontWeight:800, color:"#fff", marginBottom:"1rem" },
