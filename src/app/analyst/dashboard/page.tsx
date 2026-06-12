@@ -108,6 +108,25 @@ export default function AnalystDashboard() {
               ))}
             </div>
 
+
+            {/* Earnings */}
+              <div style={C.earBox} onClick={() => router.push("/analyst/earnings")}>
+                <div style={{position:"absolute", top:"-20px", right:"-20px", width:"80px", height:"80px", background:"rgba(56,189,248,.1)", borderRadius:"50%"}}/>
+                <div style={C.earLbl}>Available</div>
+                <div style={C.earVal}>₦{(earnings?.available||0).toLocaleString()}</div>
+                <div style={C.earGrid}>
+                  {[
+                    {label:"Pending",   val: earnings?.pending||0},
+                    {label:"Total",     val: earnings?.totalEarned||0},
+                    {label:"Withdrawn", val: earnings?.withdrawn||0},
+                  ].map(e => (
+                    <div key={e.label}>
+                      <div style={C.earItem}>{e.label}</div>
+                      <div style={C.earNum}>₦{e.val.toLocaleString()}</div>
+                    </div>
+                  ))}
+                </div>
+
             {/* Jobs first (wider), Earnings second (narrower) */}
             <div style={C.grid2}>
               {/* Recent active jobs */}
@@ -132,23 +151,7 @@ export default function AnalystDashboard() {
                 )}
               </div>
 
-              {/* Earnings */}
-              <div style={C.earBox} onClick={() => router.push("/analyst/earnings")}>
-                <div style={{position:"absolute", top:"-20px", right:"-20px", width:"80px", height:"80px", background:"rgba(56,189,248,.1)", borderRadius:"50%"}}/>
-                <div style={C.earLbl}>Available</div>
-                <div style={C.earVal}>₦{(earnings?.available||0).toLocaleString()}</div>
-                <div style={C.earGrid}>
-                  {[
-                    {label:"Pending",   val: earnings?.pending||0},
-                    {label:"Total",     val: earnings?.totalEarned||0},
-                    {label:"Withdrawn", val: earnings?.withdrawn||0},
-                  ].map(e => (
-                    <div key={e.label}>
-                      <div style={C.earItem}>{e.label}</div>
-                      <div style={C.earNum}>₦{e.val.toLocaleString()}</div>
-                    </div>
-                  ))}
-                </div>
+              
               </div>
             </div>
           </>
