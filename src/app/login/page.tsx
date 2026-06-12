@@ -1,7 +1,7 @@
 "use client";
 // src/app/login/page.tsx
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthLayout } from "@/components/layout/AuthLayout";
@@ -9,7 +9,7 @@ import { Button, Input, Card } from "@/components/ui";
 import { Eye, EyeOff, LogIn, AlertCircle, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 
-export default function LoginPage() {
+function LoginContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl  = searchParams.get("callbackUrl") || "";
@@ -28,7 +28,7 @@ export default function LoginPage() {
     const result = await signIn("credentials", {
       email,
       password,
-      portal: "student",
+      portal:   "student",
       redirect: false,
     });
 
@@ -50,19 +50,15 @@ export default function LoginPage() {
       return;
     }
 
-    // Redirect to the right dashboard based on role
-    // Middleware will handle incorrect paths — just redirect to root and let it bounce
     toast.success("Welcome back!");
 
-    // If there's a callbackUrl use it, otherwise fetch the session to route by role
     if (callbackUrl) {
       router.push(callbackUrl);
     } else {
-      // Re-fetch session to get role
-      const res = await fetch("/api/auth/session");
+      const res     = await fetch("/api/auth/session");
       const session = await res.json();
       const roleMap: Record<string, string> = {
-        CLIENT:     "/client/dashboard",
+        CLIENT:     "/student/dashboard",
         WRITER:     "/writer/dashboard",
         ANALYST:    "/analyst/dashboard",
         QC:         "/qc/dashboard",
@@ -85,14 +81,13 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Error States */}
         {error === "pending" && (
           <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex gap-3 items-start">
             <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-700 text-yellow-800">Account Pending Approval</p>
               <p className="text-xs text-yellow-700 mt-1">
-                Your account is awaiting review by our admin team. You'll receive an email notification once it's approved. This usually takes 24–48 hours.
+                Your account is awaiting review by our admin team. You'll receive an email once it's approved.
               </p>
             </div>
           </div>
@@ -104,11 +99,23 @@ export default function LoginPage() {
             <div>
               <p className="text-sm font-700 text-red-800">Account Suspended</p>
               <p className="text-xs text-red-700 mt-1">
-                Your account has been suspended. Please contact the admin team at{" "}
+                Your account has been suspended. Please contact{" "}
                 <a href="mailto:admin@iprojectmaster.com" className="underline font-600">
                   admin@iprojectmaster.com
-                </a>{" "}
-                for more information.
+                </a>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {error === "invalid" && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-4 flex gap-3 items-start">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-700 text-red-800">Login Failed</p>
+              <p className="text-xs text-red-700 mt-1">
+                Incorrect email or password, or wrong portal. Staff must use the{" "}
+                <a href="/staff/login" className="underline font-600">Staff Login</a>.
               </p>
             </div>
           </div>
@@ -137,7 +144,6 @@ export default function LoginPage() {
                   required
                   autoComplete="current-password"
                   className="pr-12"
-                  error={error === "invalid" ? "Invalid email or password." : undefined}
                 />
                 <button
                   type="button"
@@ -158,19 +164,27 @@ export default function LoginPage() {
           <div className="mt-6 pt-5 border-t border-sky-100 text-center space-y-2">
             <p className="text-sm text-navy-muted">
               New client?{" "}
-              <a href="/register?role=client" className="text-sky-600 font-700 hover:underline">
+              <a href="/register" className="text-sky-600 font-700 hover:underline">
                 Create an account
               </a>
             </p>
             <p className="text-sm text-navy-muted">
-              Joining as Writer / Analyst / QC?{" "}
-              <a href="/register?role=staff" className="text-sky-600 font-700 hover:underline">
-                Apply here
+              Staff?{" "}
+              <a href="/staff/login" className="text-sky-600 font-700 hover:underline">
+                Staff Login →
               </a>
             </p>
           </div>
         </Card>
       </div>
     </AuthLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{minHeight:"100vh"}}/>}>
+      <LoginContent />
+    </Suspense>
   );
 }
