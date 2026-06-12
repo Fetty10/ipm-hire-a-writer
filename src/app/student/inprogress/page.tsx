@@ -2,9 +2,9 @@
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { StudentLayout } from "@/components/student/StudentLayout";
-import dynamic from "next/dynamic";
+import NextDynamic from "next/dynamic";
 
-const AddChaptersModal = dynamic(() => import("@/components/student/AddChaptersModal"), { ssr: false });
+const AddChaptersModal = NextDynamic(() => import("@/components/student/AddChaptersModal"), { ssr: false });
 
 const STEPS=["Paid","Assigned","Writing","QC","Done"];
 const STATUS_STEPS:Record<string,number>={PENDING_PAYMENT:0,PAYMENT_CONFIRMED:1,IN_PROGRESS:2,QC_REVIEW:3,DELIVERED:4};
