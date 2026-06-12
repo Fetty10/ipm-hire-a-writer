@@ -38,14 +38,31 @@ export async function GET(req: NextRequest) {
 
   // ── Order list ───────────────────────────────────────────────
   const where: any = {};
-  if (status !== "all") where.status = status as OrderStatus;
-  if (search) {
+
+  if (status === "DELIVERED") {
+    // Orders fully delivered OR with at least one delivered chapter
     where.OR = [
+      { status: "DELIVERED" },
+      { chapters: { some: { status: "DELIVERED" } } },
+    ];
+  } else if (status !== "all") {
+    where.status = status as OrderStatus;
+  }
+
+  if (search) {
+    const searchConditions = [
       { topic:              { contains: search, mode: "insensitive" } },
       { client: { name:     { contains: search, mode: "insensitive" } } },
       { client: { phone:    { contains: search, mode: "insensitive" } } },
       { client: { email:    { contains: search, mode: "insensitive" } } },
     ];
+    // Merge with existing OR if present
+    if (where.OR) {
+      where.AND = [{ OR: where.OR }, { OR: searchConditions }];
+      delete where.OR;
+    } else {
+      where.OR = searchConditions;
+    }
   }
 
   const [orders, total] = await Promise.all([
