@@ -27,13 +27,25 @@ export async function POST(req: NextRequest) {
       status: ChapterStatus.DELIVERED,
       order:  { clientId: session.user.id },
     },
-    include: { order: { select: { topic: true, clientId: true } } },
+    include: {
+      order: {
+        include: { plan: true, client: true },
+      },
+    },
   });
 
   if (!chapter) {
     return NextResponse.json(
       { error: "Chapter not found or not eligible for correction." },
       { status: 404 }
+    );
+  }
+
+  // ── Block Basic plan corrections ──────────────────────────────
+  if (chapter.order.plan.planName === "BASIC") {
+    return NextResponse.json(
+      { error: "Your current plan (Basic) does not include free corrections. Please upgrade your plan by placing a new order." },
+      { status: 403 }
     );
   }
 
@@ -67,7 +79,6 @@ export async function POST(req: NextRequest) {
       })),
     });
   } else {
-    // No QC — alert admin
     const admins = await prisma.user.findMany({
       where: { role: { in: [Role.MAIN_ADMIN, Role.SUB_ADMIN] } },
       select: { id: true },
