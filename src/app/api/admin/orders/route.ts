@@ -15,21 +15,19 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const status  = searchParams.get("status") || "all";
   const search  = searchParams.get("search") || "";
-  const orderId = searchParams.get("orderId"); // single order detail
+  const orderId = searchParams.get("orderId");
 
   // ── Single order detail ──────────────────────────────────────
   if (orderId) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        client: { select: { id:true, name:true, email:true, phone:true } },
-        plan:   { select: { planName:true, degreeGroup:true, pricingType:true, priceKobo:true } },
+        client:   { select: { id:true, name:true, email:true, phone:true } },
+        plan:     { select: { planName:true, degreeGroup:true, pricingType:true, priceKobo:true } },
         chapters: {
-  include: {
-    assignedTo: { select: { id:true, name:true, role:true, email:true } },
-  },
-  orderBy: { chapterNumber: "asc" },
-},
+          include: {
+            assignedTo: { select: { id:true, name:true, role:true, email:true } },
+          },
           orderBy: { chapterNumber: "asc" },
         },
       },
@@ -70,7 +68,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ success: true, data: { orders, total } });
 }
 
-// ── Admin adjustments ────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user || !["MAIN_ADMIN","SUB_ADMIN"].includes(session.user.role)) {
@@ -80,7 +77,6 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { action, orderId, chapterId, staffId, notes } = body;
 
-  // ── Reassign a chapter to a different staff ──
   if (action === "reassign_chapter") {
     if (!chapterId || !staffId) return NextResponse.json({ error: "chapterId and staffId required" }, { status: 400 });
     const staff = await prisma.user.findUnique({ where: { id: staffId }, select: { role:true } });
@@ -90,21 +86,20 @@ export async function PATCH(req: NextRequest) {
       data: {
         assignedToId: staffId,
         assigneeRole: staff.role as any,
-        status: "NOT_STARTED",
+        status:       "NOT_STARTED",
       },
     });
     await prisma.notification.create({
       data: {
         userId:  staffId,
         title:   "Chapter Reassigned to You",
-        message: `Admin has reassigned a chapter to you. Please check your Pending Jobs.`,
+        message: "Admin has reassigned a chapter to you. Please check your Pending Jobs.",
         type:    "ACTION_REQUIRED",
       },
     });
     return NextResponse.json({ success: true, message: "Chapter reassigned." });
   }
 
-  // ── Add admin note to order ──
   if (action === "add_note") {
     if (!orderId || !notes) return NextResponse.json({ error: "orderId and notes required" }, { status: 400 });
     await prisma.order.update({
@@ -114,7 +109,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, message: "Note saved." });
   }
 
-  // ── Mark order as delivered manually ──
   if (action === "mark_delivered") {
     if (!orderId) return NextResponse.json({ error: "orderId required" }, { status: 400 });
     await prisma.order.update({
@@ -124,7 +118,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, message: "Order marked as delivered." });
   }
 
-  // ── Cancel order ──
   if (action === "cancel") {
     if (!orderId) return NextResponse.json({ error: "orderId required" }, { status: 400 });
     await prisma.order.update({
@@ -134,7 +127,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, message: "Order cancelled." });
   }
 
-  // ── Reset chapter to NOT_STARTED ──
   if (action === "reset_chapter") {
     if (!chapterId) return NextResponse.json({ error: "chapterId required" }, { status: 400 });
     await prisma.orderChapter.update({
