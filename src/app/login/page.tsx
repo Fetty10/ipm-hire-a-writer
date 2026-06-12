@@ -1,102 +1,176 @@
 "use client";
-export const dynamic = "force-dynamic";
-import { Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+// src/app/login/page.tsx
+
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AuthLayout } from "@/components/layout/AuthLayout";
+import { Button, Input, Card } from "@/components/ui";
+import { Eye, EyeOff, LogIn, AlertCircle, Clock } from "lucide-react";
+import toast from "react-hot-toast";
 
-const C = {
-  wrap:  { minHeight:"100vh", background:"#F0F9FF", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem", fontFamily:"'DM Sans',sans-serif" },
-  box:   { width:"100%", maxWidth:"420px" },
-  logo:  { textAlign:"center" as const, marginBottom:"2rem" },
-  lname: { fontFamily:"'Syne',sans-serif", fontSize:"1.8rem", fontWeight:800, color:"#0C1A2E" },
-  lspan: { color:"#38BDF8" },
-  lsub:  { fontSize:".85rem", color:"#5B7EA6", marginTop:".3rem" },
-  card:  { background:"#fff", borderRadius:"20px", border:"1.5px solid #E0F2FE", boxShadow:"0 4px 24px rgba(14,165,233,.08)", padding:"1.75rem" },
-  fg:    { marginBottom:"1rem" },
-  lbl:   { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0C1A2E", display:"block", marginBottom:".4rem" },
-  inp:   { width:"100%", padding:".75rem 1rem", borderRadius:"12px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" as const },
-  pw:    { position:"relative" as const },
-  eye:   { position:"absolute" as const, right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:"1rem" },
-  err:   { fontSize:".75rem", color:"#EF4444", fontWeight:600, marginBottom:".75rem" },
-  btn:   { width:"100%", padding:".85rem", borderRadius:"12px", border:"none", background:"#38BDF8", color:"#0C1A2E", fontSize:".88rem", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
-  btnD:  { opacity:.6, cursor:"not-allowed" as const },
-  foot:  { textAlign:"center" as const, marginTop:"1.25rem" },
-  flink: { background:"none", border:"none", color:"#0369A1", fontWeight:700, cursor:"pointer", fontSize:".82rem" },
-  div:   { textAlign:"center" as const, margin:"1.25rem 0", color:"#5B7EA6", fontSize:".78rem", position:"relative" as const },
-  staffBox: { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"12px", padding:"1rem 1.25rem", textAlign:"center" as const, marginTop:"1rem" },
-  staffTxt: { fontSize:".78rem", color:"#5B7EA6", marginBottom:".6rem" },
-  staffBtn: { display:"inline-flex", alignItems:"center", gap:".4rem", padding:".5rem 1.1rem", borderRadius:"10px", border:"1.5px solid #0C1A2E", background:"none", color:"#0C1A2E", fontSize:".78rem", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
-};
+export default function LoginPage() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl  = searchParams.get("callbackUrl") || "";
 
-function LoginForm() {
-  const router = useRouter();
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState("");
   const [showPw,   setShowPw]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState<"pending" | "suspended" | "invalid" | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setError("");
-    const result = await signIn("credentials", { redirect: false, email, password });
-    if (result?.error) {
-      setError(
-        result.error === "ACCOUNT_PENDING_APPROVAL" ? "Your account is pending admin approval." :
-        result.error === "ACCOUNT_SUSPENDED" ? "Your account has been suspended. Contact admin." :
-        "Invalid email or password."
-      );
-      setLoading(false); return;
+    setLoading(true);
+    setError(null);
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      portal: "student",
+      redirect: false,
+    });
+
+    setLoading(false);
+
+    if (!result?.ok) {
+      const err = result?.error;
+      if (err === "ACCOUNT_PENDING_APPROVAL") {
+        setError("pending");
+      } else if (err === "ACCOUNT_SUSPENDED") {
+        setError("suspended");
+      } else if (err === "WRONG_PORTAL_USE_STAFF_LOGIN") {
+        setError("invalid");
+        toast.error("Staff accounts must log in via the Staff Login page.");
+      } else {
+        setError("invalid");
+        toast.error("Incorrect email or password.");
+      }
+      return;
     }
-    router.push("/student/dashboard");
+
+    // Redirect to the right dashboard based on role
+    // Middleware will handle incorrect paths — just redirect to root and let it bounce
+    toast.success("Welcome back!");
+
+    // If there's a callbackUrl use it, otherwise fetch the session to route by role
+    if (callbackUrl) {
+      router.push(callbackUrl);
+    } else {
+      // Re-fetch session to get role
+      const res = await fetch("/api/auth/session");
+      const session = await res.json();
+      const roleMap: Record<string, string> = {
+        CLIENT:     "/client/dashboard",
+        WRITER:     "/writer/dashboard",
+        ANALYST:    "/analyst/dashboard",
+        QC:         "/qc/dashboard",
+        SUB_ADMIN:  "/admin/dashboard",
+        MAIN_ADMIN: "/admin/dashboard",
+      };
+      router.push(roleMap[session?.user?.role] || "/");
+    }
   }
 
   return (
-    <div style={C.wrap}>
-      <div style={C.box}>
-        <div style={C.logo}>
-          <div style={C.lname}>iProject<span style={C.lspan}>Master</span></div>
-          <div style={C.lsub}>Student Login</div>
+    <AuthLayout>
+      <div className="w-full max-w-md fade-up">
+        <div className="text-center mb-8">
+          <h1 className="font-clash text-3xl font-700 text-navy-DEFAULT mb-2">
+            Welcome back
+          </h1>
+          <p className="text-sm text-navy-muted">
+            Sign in to your iProjectMaster account
+          </p>
         </div>
 
-        <div style={C.card}>
-          <form onSubmit={handleSubmit}>
-            <div style={C.fg}>
-              <label style={C.lbl}>Email or Phone</label>
-              <input style={C.inp} type="text" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="you@email.com or 08012345678" />
+        {/* Error States */}
+        {error === "pending" && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex gap-3 items-start">
+            <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-700 text-yellow-800">Account Pending Approval</p>
+              <p className="text-xs text-yellow-700 mt-1">
+                Your account is awaiting review by our admin team. You'll receive an email notification once it's approved. This usually takes 24–48 hours.
+              </p>
             </div>
-            <div style={C.fg}>
-              <label style={C.lbl}>Password</label>
-              <div style={C.pw}>
-                <input style={C.inp} type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} required placeholder="••••••••" />
-                <button type="button" style={C.eye} onClick={()=>setShowPw(!showPw)}>{showPw?"🙈":"👁"}</button>
+          </div>
+        )}
+
+        {error === "suspended" && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-4 flex gap-3 items-start">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-700 text-red-800">Account Suspended</p>
+              <p className="text-xs text-red-700 mt-1">
+                Your account has been suspended. Please contact the admin team at{" "}
+                <a href="mailto:admin@iprojectmaster.com" className="underline font-600">
+                  admin@iprojectmaster.com
+                </a>{" "}
+                for more information.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <Card className="shadow-card-hover">
+          <form onSubmit={handleLogin} className="flex flex-col gap-5">
+            <Input
+              label="Email Address"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
+
+            <div className="flex flex-col gap-1.5">
+              <div className="relative">
+                <Input
+                  label="Password"
+                  type={showPw ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="pr-12"
+                  error={error === "invalid" ? "Invalid email or password." : undefined}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-[38px] text-navy-muted hover:text-sky-500 transition-colors"
+                >
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
-            {error && <p style={C.err}>{error}</p>}
-            <button type="submit" style={{...C.btn,...(loading?C.btnD:{})}} disabled={loading}>
-              {loading ? "Signing in..." : "Sign In →"}
-            </button>
+
+            <Button type="submit" loading={loading} size="lg" className="w-full mt-1">
+              <LogIn className="w-4 h-4" />
+              Sign In
+            </Button>
           </form>
 
-          <div style={C.foot}>
-            <p style={{fontSize:".82rem", color:"#5B7EA6"}}>
-              New student?{" "}
-              <button style={C.flink} onClick={()=>router.push("/register")}>Create account</button>
+          <div className="mt-6 pt-5 border-t border-sky-100 text-center space-y-2">
+            <p className="text-sm text-navy-muted">
+              New client?{" "}
+              <a href="/register?role=client" className="text-sky-600 font-700 hover:underline">
+                Create an account
+              </a>
+            </p>
+            <p className="text-sm text-navy-muted">
+              Joining as Writer / Analyst / QC?{" "}
+              <a href="/register?role=staff" className="text-sky-600 font-700 hover:underline">
+                Apply here
+              </a>
             </p>
           </div>
-        </div>
-
-        
+        </Card>
       </div>
-    </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#5B7EA6"}}>Loading...</div>}>
-      <LoginForm />
-    </Suspense>
+    </AuthLayout>
   );
 }
