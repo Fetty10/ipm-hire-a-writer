@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
 
 const STATUS_GROUPS: Record<string, string[]> = {
   pending:   ["NOT_STARTED"],
@@ -41,7 +40,6 @@ export async function GET(req: NextRequest) {
           department:          true,
           degreeGroup:         true,
           specialInstructions: true,
-          adminNote:           true,
           guidelineFileUrl:    true,
           plan: { select: { planName: true } },
         },
@@ -51,6 +49,7 @@ export async function GET(req: NextRequest) {
   });
 
   // For Chapter 3 & 4 (analyst jobs), also fetch the writer's prelim notes
+  // from Chapter 1 of the same order — so analyst has context
   const enriched = await Promise.all(
     chapters.map(async (ch) => {
       let writerPrelimNotes = null;
@@ -70,31 +69,30 @@ export async function GET(req: NextRequest) {
       }
 
       return {
-        id:              ch.id,
-        chapterNumber:   ch.chapterNumber,
-        chapterLabel:    ch.chapterLabel,
-        status:          ch.status,
-        requiresPrelim:  ch.requiresPrelim,
-        researchObjectives: ch.researchObjectives,
-        researchQuestions:  ch.researchQuestions,
-        hypotheses:         ch.hypotheses,
-        scopeOfStudy:       ch.scopeOfStudy,
-        prelimSubmittedAt:  ch.prelimSubmittedAt,
-        submittedFileUrl:   ch.submittedFileUrl,
-        deliveredFileUrl:   ch.deliveredFileUrl,
-        writerNotes:        ch.writerNotes,
-        correctionNotes:    ch.correctionNotes,
-        createdAt:          ch.createdAt,
-        submittedAt:        ch.submittedAt,
-        deliveredAt:        ch.deliveredAt,
+        id:                  ch.id,
+        chapterNumber:       ch.chapterNumber,
+        chapterLabel:        ch.chapterLabel,
+        status:              ch.status,
+        requiresPrelim:      ch.requiresPrelim,
+        researchObjectives:  ch.researchObjectives,
+        researchQuestions:   ch.researchQuestions,
+        hypotheses:          ch.hypotheses,
+        scopeOfStudy:        ch.scopeOfStudy,
+        prelimSubmittedAt:   ch.prelimSubmittedAt,
+        submittedFileUrl:    ch.submittedFileUrl,
+        deliveredFileUrl:    ch.deliveredFileUrl,
+        writerNotes:         ch.writerNotes,
+        correctionNotes:     ch.correctionNotes,
+        createdAt:           ch.createdAt,
+        submittedAt:         ch.submittedAt,
+        deliveredAt:         ch.deliveredAt,
         topic:               ch.order.topic,
         department:          ch.order.department,
         degreeGroup:         ch.order.degreeGroup,
-        specialInstructions: ch.order.specialInstructions, // student's original instructions
-        adminNote:           ch.order.adminNote,           // admin's separate note
+        specialInstructions: ch.order.specialInstructions,
         guidelineFileUrl:    ch.order.guidelineFileUrl,
         planName:            ch.order.plan.planName,
-        writerPrelimNotes,  // Chapter 1 prelim data for analyst context
+        writerPrelimNotes,
       };
     })
   );
