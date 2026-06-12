@@ -3,6 +3,9 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StudentLayout } from "@/components/student/StudentLayout";
+import dynamic from "next/dynamic";
+
+const AddChaptersModal = dynamic(() => import("@/components/student/AddChaptersModal"), { ssr: false });
 
 const DEG:Record<string,string>={OND_HND_NCE:"HND/OND/NCE",BSC_BED_BA:"BSc/BEd/BA",PGD_MSC_PHD:"PGD/MSc/PhD"};
 
@@ -20,9 +23,10 @@ const C = {
   chrow: { display:"flex", alignItems:"center", gap:".75rem", padding:".5rem .75rem", borderRadius:"8px", border:"1px solid #E0F2FE", marginBottom:".3rem", background:"rgba(240,249,255,.4)" },
   chnum: { width:"26px", height:"26px", borderRadius:"6px", background:"#38BDF8", color:"#0C1A2E", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:".72rem", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
   chlbl: { flex:1, fontSize:".78rem", fontWeight:600, color:"#0C1A2E" },
-  dlBtn: { fontSize:".72rem", fontWeight:600, color:"#0369A1", background:"none", border:"none", cursor:"pointer", textDecoration:"underline", flexShrink:0 },
+  dlBtn: { fontSize:".72rem", fontWeight:600, color:"#0369A1", background:"none", border:"none", cursor:"pointer", textDecoration:"underline" },
   btns:  { display:"flex", gap:".5rem", marginTop:"1rem", flexWrap:"wrap" as const },
   btnO:  { padding:".5rem 1rem", borderRadius:"10px", background:"#fff", color:"#0369A1", fontSize:".78rem", fontWeight:700, border:"1.5px solid #38BDF8", cursor:"pointer" },
+  addBtn:{ padding:".5rem 1rem", borderRadius:"10px", background:"#38BDF8", color:"#0C1A2E", fontSize:".78rem", fontWeight:700, border:"none", cursor:"pointer" },
   empty: { textAlign:"center" as const, padding:"4rem 1rem" },
   eicon: { fontSize:"2.5rem", marginBottom:".75rem" },
   etitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
@@ -31,8 +35,9 @@ const C = {
 
 export default function StudentCompleted() {
   const router = useRouter();
-  const [orders,  setOrders]  = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders,   setOrders]   = useState<any[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [addModal, setAddModal] = useState<string|null>(null);
 
   useEffect(()=>{
     fetch("/api/student/orders?filter=completed")
@@ -55,8 +60,9 @@ export default function StudentCompleted() {
             <div style={C.esub}>Delivered chapters will appear here.</div>
           </div>
         ) : orders.map((o:any)=>{
-          const delivered = o.chapters.filter((ch:any)=>ch.status==="DELIVERED");
-          const isFullyDone = o.status==="DELIVERED";
+          const delivered    = o.chapters.filter((ch:any)=>ch.status==="DELIVERED");
+          const isFullyDone  = o.status==="DELIVERED";
+          const hasAllChapters = o.totalChapters >= 5;
           return (
             <div key={o.id} style={C.card}>
               <div style={C.head}>
@@ -70,7 +76,6 @@ export default function StudentCompleted() {
                 </span>
               </div>
 
-              {/* Delivered chapters */}
               {delivered.map((ch:any)=>(
                 <div key={ch.id} style={C.chrow}>
                   <div style={C.chnum}>{ch.chapterNumber}</div>
@@ -84,11 +89,18 @@ export default function StudentCompleted() {
               <div style={C.btns}>
                 <button style={C.btnO} onClick={()=>router.push("/student/downloads")}>⬇ All Downloads</button>
                 <button style={C.btnO} onClick={()=>router.push("/student/corrections")}>🔧 Request Correction</button>
+                {!hasAllChapters && (
+                  <button style={C.addBtn} onClick={()=>setAddModal(o.id)}>➕ Add More Chapters</button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {addModal && (
+        <AddChaptersModal orderId={addModal} onClose={()=>setAddModal(null)} />
+      )}
     </StudentLayout>
   );
 }
