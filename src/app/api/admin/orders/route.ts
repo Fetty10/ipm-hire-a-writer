@@ -40,31 +40,28 @@ export async function GET(req: NextRequest) {
   const where: any = {};
 
   if (status === "DELIVERED") {
-  // Has at least one delivered chapter (partial or full)
-  where.OR = [
-    { status: "DELIVERED" },
-    { chapters: { some: { status: "DELIVERED" } } },
-  ];
-} else if (status === "FULLY_DELIVERED") {
-  // All chapters delivered — order status is DELIVERED
-  where.status = "DELIVERED";
-} else if (status !== "all") {
-  where.status = status as OrderStatus;
-}
+    where.OR = [
+      { status: "DELIVERED" },
+      { chapters: { some: { status: "DELIVERED" } } },
+    ];
+  } else if (status === "FULLY_DELIVERED") {
+    where.status = "DELIVERED";
+  } else if (status !== "all") {
+    where.status = status as OrderStatus;
+  }
 
   if (search) {
-    const searchConditions = [
+    const searchConds = [
       { topic:              { contains: search, mode: "insensitive" } },
       { client: { name:     { contains: search, mode: "insensitive" } } },
       { client: { phone:    { contains: search, mode: "insensitive" } } },
       { client: { email:    { contains: search, mode: "insensitive" } } },
     ];
-    // Merge with existing OR if present
     if (where.OR) {
-      where.AND = [{ OR: where.OR }, { OR: searchConditions }];
+      where.AND = [{ OR: where.OR }, { OR: searchConds }];
       delete where.OR;
     } else {
-      where.OR = searchConditions;
+      where.OR = searchConds;
     }
   }
 
@@ -121,12 +118,13 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (action === "add_note") {
-    if (!orderId || !notes) return NextResponse.json({ error: "orderId and notes required" }, { status: 400 });
+    if (!orderId) return NextResponse.json({ error: "orderId required" }, { status: 400 });
+    // Save to adminNote — separate from student's specialInstructions
     await prisma.order.update({
       where: { id: orderId },
-      data:  { specialInstructions: notes },
+      data:  { adminNote: notes || null } as any,
     });
-    return NextResponse.json({ success: true, message: "Note saved." });
+    return NextResponse.json({ success: true, message: "Admin note saved." });
   }
 
   if (action === "mark_delivered") {
