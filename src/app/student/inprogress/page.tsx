@@ -2,6 +2,9 @@
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { StudentLayout } from "@/components/student/StudentLayout";
+import dynamic from "next/dynamic";
+
+const AddChaptersModal = dynamic(() => import("@/components/student/AddChaptersModal"), { ssr: false });
 
 const STEPS=["Paid","Assigned","Writing","QC","Done"];
 const STATUS_STEPS:Record<string,number>={PENDING_PAYMENT:0,PAYMENT_CONFIRMED:1,IN_PROGRESS:2,QC_REVIEW:3,DELIVERED:4};
@@ -31,6 +34,7 @@ const C = {
   chnumD:{ width:"28px", height:"28px", borderRadius:"8px", background:"#38BDF8", color:"#0C1A2E", fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:".75rem", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
   chlbl: { flex:1, fontSize:".8rem", fontWeight:600, color:"#0C1A2E" },
   dlBtn: { fontSize:".75rem", fontWeight:600, color:"#0369A1", background:"none", border:"none", cursor:"pointer", textDecoration:"underline" },
+  addBtn:{ display:"inline-flex", alignItems:"center", gap:".3rem", padding:".45rem .9rem", borderRadius:"8px", border:"1.5px solid #38BDF8", background:"#F0F9FF", color:"#0369A1", fontSize:".75rem", fontWeight:700, cursor:"pointer", marginTop:".75rem" },
   empty: { textAlign:"center" as const, padding:"4rem 1rem" },
   eicon: { fontSize:"2.5rem", marginBottom:".75rem" },
   etitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
@@ -39,13 +43,13 @@ const C = {
 export default function StudentInProgress() {
   const [orders,  setOrders]  = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addModal,setAddModal]= useState<string|null>(null);
 
   useEffect(()=>{
     fetch("/api/student/orders?filter=active")
-  .then(r=>r.json())
-  .then(d=>{ if(d.success) setOrders(d.data); })
-  .catch(()=>{})
-  .finally(()=>setLoading(false));
+      .then(r=>r.json())
+      .then(d=>{ if(d.success) setOrders(d.data); })
+      .finally(()=>setLoading(false));
   },[]);
 
   return (
@@ -62,6 +66,7 @@ export default function StudentInProgress() {
           </div>
         ) : orders.map((order:any)=>{
           const curr = STATUS_STEPS[order.status]||0;
+          const hasAllChapters = order.totalChapters >= 5;
           return (
             <div key={order.id} style={C.card}>
               <div style={C.ohead}>
@@ -70,15 +75,15 @@ export default function StudentInProgress() {
                   <div style={C.ometa}>{order.planName} Plan · {order.deliveredChapters}/{order.totalChapters} chapters delivered</div>
                 </div>
                 <span style={{...C.badge,...(order.status==="QC_REVIEW"?C.bS:C.bY)}}>
-                  {order.status==="IN_PROGRESS"?"In Progress":order.status==="QC_REVIEW"?"QC Review":"In Progress"}
+                  {order.status==="QC_REVIEW"?"QC Review":"In Progress"}
                 </span>
               </div>
 
-              {/* Tracker */}
+              {/* Progress tracker */}
               <div style={C.tracker}>
                 <div style={C.tline}/>
                 {STEPS.map((label,i)=>{
-                  const done=i<curr,act=i===curr;
+                  const done=i<curr, act=i===curr;
                   return (
                     <div key={label} style={C.tstep}>
                       <div style={done?C.tdotD:act?C.tdotA:C.tdot}>{done?"✓":i+1}</div>
@@ -100,10 +105,21 @@ export default function StudentInProgress() {
                       </span>}
                 </div>
               ))}
+
+              {/* Add more chapters button */}
+              {!hasAllChapters && (
+                <button style={C.addBtn} onClick={()=>setAddModal(order.id)}>
+                  ➕ Add More Chapters
+                </button>
+              )}
             </div>
           );
         })}
       </div>
+
+      {addModal && (
+        <AddChaptersModal orderId={addModal} onClose={()=>setAddModal(null)} />
+      )}
     </StudentLayout>
   );
 }
