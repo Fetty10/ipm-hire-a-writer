@@ -25,10 +25,11 @@ export async function GET(req: NextRequest) {
         client: { select: { id:true, name:true, email:true, phone:true } },
         plan:   { select: { planName:true, degreeGroup:true, pricingType:true, priceKobo:true } },
         chapters: {
-          include: {
-            assignedTo: { select: { id:true, name:true, role:true, email:true } },
-            routedToQc: { select: { id:true, name:true, role:true } },
-          },
+  include: {
+    assignedTo: { select: { id:true, name:true, role:true, email:true } },
+  },
+  orderBy: { chapterNumber: "asc" },
+},
           orderBy: { chapterNumber: "asc" },
         },
       },
