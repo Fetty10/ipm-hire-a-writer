@@ -14,7 +14,7 @@ const NAV = [
   { label: "Pay Rates",     icon: "💰", href: "/admin/settings/payrates",       section: "Settings"  },
   { label: "Plans & Pricing",icon:"💳", href: "/admin/settings/plans",          section: "Settings"  },
   { label: "Other Services", icon:"🛠️", href: "/admin/settings/other-services", section: "Settings"  },
-  { label: "Exception Courses", icon: "🏛️", href: "/admin/settings/departments", section: "Settings"  },
+  { label: "Bank Transfers",icon:"🏦", href: "/admin/bank-transfers",           section: "Overview"  },
   { label: "Settings",      icon: "⚙️", href: "/admin/settings",                section: "Settings"  },
 ];
 
