@@ -3,7 +3,7 @@
 // Called after Paystack payment webhook confirms a payment
 
 import { prisma } from "@/lib/prisma";
-import { sendChapterDeliveredEmail } from "@/lib/email";
+import { sendChapterDeliveredEmail, sendJobAssignedEmail, sendQCCheckAssignedEmail, sendPrelimReadyEmail } from "@/lib/email";
 import { AssigneeRole, ChapterStatus, DegreeGroup, Role } from "@prisma/client";
 
 // ─────────────────────────────────────────────────────────────
@@ -165,6 +165,7 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   const notified = new Set<string>();
 
   if (writerId && !notified.has(writerId)) {
+    const writer = await prisma.user.findUnique({ where: { id: writerId }, select: { email: true, name: true } });
     await prisma.notification.create({
       data: {
         userId:  writerId,
@@ -174,10 +175,23 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
         type:    "ACTION_REQUIRED",
       },
     });
+    if (writer) {
+      try {
+        await sendJobAssignedEmail({
+          to:           writer.email,
+          name:         writer.name,
+          role:         "WRITER",
+          topic:        order.topic,
+          chapterLabel: "Chapter(s)",
+          department:   order.department,
+        });
+      } catch (e) { console.error("[EMAIL] Writer job assigned:", e); }
+    }
     notified.add(writerId);
   }
 
   if (analystId && !notified.has(analystId)) {
+    const analyst = await prisma.user.findUnique({ where: { id: analystId }, select: { email: true, name: true } });
     await prisma.notification.create({
       data: {
         userId:  analystId,
@@ -187,6 +201,18 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
         type:    "ACTION_REQUIRED",
       },
     });
+    if (analyst) {
+      try {
+        await sendJobAssignedEmail({
+          to:           analyst.email,
+          name:         analyst.name,
+          role:         "ANALYST",
+          topic:        order.topic,
+          chapterLabel: "Chapter(s)",
+          department:   order.department,
+        });
+      } catch (e) { console.error("[EMAIL] Analyst job assigned:", e); }
+    }
     notified.add(analystId);
   }
 
@@ -241,22 +267,36 @@ export async function routeChapterToQC(chapterId: string): Promise<void> {
 
   // Notify all QC staff (or specific one if assigned)
   const qcToNotify = qcUserId;
-  if (qcToNotify) {
+  // Notify ALL available QC staff so anyone can pick it up
+  const allQc = await prisma.user.findMany({
+    where: { role: Role.QC, isApproved: true, isSuspended: false },
+    select: { id: true, email: true, name: true },
+  });
+
+  const checks: string[] = [];
+  if (order.requiresPlagiarismCheck) checks.push("Plagiarism Check");
+  if (order.requiresAiCheck)         checks.push("AI Detection Check");
+  if (checks.length === 0)           checks.push("Quality Review");
+
+  for (const qc of allQc) {
     await prisma.notification.create({
       data: {
-        userId:  qcToNotify,
+        userId:  qc.id,
         orderId: order.id,
         title:   "QC Check Required",
-        message: `A chapter from order "${order.topic}" has been submitted and requires ${
-          order.requiresPlagiarismCheck && order.requiresAiCheck
-            ? "plagiarism and AI checks"
-            : order.requiresPlagiarismCheck
-            ? "a plagiarism check"
-            : "an AI check"
-        }. Please log in to review.`,
-        type: "ACTION_REQUIRED",
+        message: `A chapter from "${order.topic}" needs ${checks.join(" & ")}. Log in to claim it.`,
+        type:    "ACTION_REQUIRED",
       },
     });
+    try {
+      await sendQCCheckAssignedEmail({
+        to:           qc.email,
+        name:         qc.name,
+        topic:        order.topic,
+        chapterLabel: chapter.chapterLabel,
+        checks,
+      });
+    } catch (e) { console.error("[EMAIL] QC assigned:", e); }
   }
 }
 
@@ -383,6 +423,7 @@ export async function assignSpecificChapters(
 
     // Notify the assigned staff
     if (assignedToId) {
+      const staff = await prisma.user.findUnique({ where: { id: assignedToId }, select: { email: true, name: true, role: true } });
       await prisma.notification.create({
         data: {
           userId:  assignedToId,
@@ -392,6 +433,18 @@ export async function assignSpecificChapters(
           type:    "ACTION_REQUIRED",
         },
       });
+      if (staff) {
+        try {
+          await sendJobAssignedEmail({
+            to:           staff.email,
+            name:         staff.name,
+            role:         staff.role,
+            topic:        order.topic,
+            chapterLabel: `Chapter ${num}`,
+            department:   order.department,
+          });
+        } catch (e) { console.error("[EMAIL] Specific chapter assigned:", e); }
+      }
     }
   }
 
