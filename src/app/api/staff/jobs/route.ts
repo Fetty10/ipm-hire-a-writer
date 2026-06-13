@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/staff/jobs/route.ts
 // Returns all chapters assigned to the currently logged-in staff member
 // Filtered by status: pending | active | delivered | all
