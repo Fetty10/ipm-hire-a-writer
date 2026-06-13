@@ -43,10 +43,10 @@ export default function AdminBankTransfers() {
 
   async function loadOrders() {
     setLoading(true);
-    const res  = await fetch(`/api/admin/orders?status=${tab==="pending"?"PENDING_PAYMENT":"IN_PROGRESS"}&paymentMethod=BANK_TRANSFER`);
+    const res  = await fetch(`/api/admin/orders?status=${tab==="pending"?"PENDING_PAYMENT":"IN_PROGRESS"}`);
     const data = await res.json();
     if (data.success) {
-      const filtered = (data.data.orders || []).filter((o:any) => (o as any).paymentMethod === "BANK_TRANSFER");
+      const filtered = (data.data.orders || []).filter((o:any) => o.paymentMethod === "BANK_TRANSFER");
       setOrders(filtered);
     }
     setLoading(false);
@@ -145,7 +145,7 @@ export default function AdminBankTransfers() {
                   )}
                 </div>
                 <div>
-                  <div style={C.amount}>₦{((o.amountPaidKobo||0)/100).toLocaleString()}</div>
+                  <div style={C.amount}>₦{(o.amountPaid||0).toLocaleString()}</div>
                   <div style={C.meta}>{o.paidAt ? new Date(o.paidAt).toLocaleDateString("en-NG") : "Not paid yet"}</div>
                 </div>
                 {tab === "pending" ? (
