@@ -307,6 +307,10 @@ model Order {
 
   // Payment
   paystackReference   String?  @unique
+  paymentMethod             String    @default("PAYSTACK")
+  bankTransferReference     String?
+  bankTransferConfirmedAt   DateTime?
+  bankTransferConfirmedById String?
   amountPaidKobo      Int?
   paidAt              DateTime?
 
