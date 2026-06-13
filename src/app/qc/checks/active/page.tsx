@@ -4,7 +4,6 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
-import DeadlineTimer from "@/components/staff/DeadlineTimer";
 
 const NAV = [
   { label:"Dashboard",      icon:"📊", href:"/qc/dashboard" },
@@ -141,10 +140,8 @@ export default function QCChecksActive() {
                 </div>
               </div>
 
-              {/* Status + 24h Timer */}
               <div style={C.badges}>
                 <span style={C.badge}>QC Active</span>
-                {job.deadlineAt && <DeadlineTimer deadlineAt={job.deadlineAt} />}
               </div>
 
               {job.specialInstructions && (
