@@ -293,6 +293,8 @@ function AdminOrdersContent() {
       .then(d => { if (d.success) setStaffList(d.data); });
   }, []);
 
+  useEffect(() => { setPage(1); }, [status, search]);
+
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -302,7 +304,7 @@ function AdminOrdersContent() {
       setLoading(false);
     }
     load();
-  }, [status, search]);
+  }, [status, search, page]);
 
   return (
     <AdminLayout>
