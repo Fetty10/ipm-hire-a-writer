@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -25,13 +26,13 @@ export default function AdminSettings() {
 
   async function save(e:React.FormEvent) {
     e.preventDefault();
-    if(newPw!==confirmPw){ alert("Passwords do not match."); return; }
-    if(newPw.length<8)   { alert("Min. 8 characters."); return; }
+    if(newPw!==confirmPw){ toast.error("Passwords do not match."); return; }
+    if(newPw.length<8)   { toast.error("Min. 8 characters."); return; }
     setSaving(true);
     const res  = await fetch("/api/staff/profile",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({currentPassword:currentPw,newPassword:newPw})});
     const data = await res.json();
-    if(res.ok){ alert("Password updated."); setCurrentPw(""); setNewPw(""); setConfirmPw(""); }
-    else alert(data.error);
+    if(res.ok){ toast.success("Password updated."); setCurrentPw(""); setNewPw(""); setConfirmPw(""); }
+    else toast.error(data.error || "Something went wrong");
     setSaving(false);
   }
 
