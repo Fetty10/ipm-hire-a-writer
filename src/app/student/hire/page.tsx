@@ -11,9 +11,16 @@ import toast from "react-hot-toast";
 interface Plan { id:string; planName:string; degreeGroup:string; pricingType:string; priceKobo:number; includesPlagiarismCheck:boolean; includesCorrections:boolean; }
 
 const DEG_GROUPS = [
-  { value:"OND_HND_NCE", label:"HND | OND | NCE" },
-  { value:"BSC_BED_BA",  label:"BSc | BEd | BA | BTech | BEng | Nursing" },
-  { value:"PGD_MSC_PHD", label:"PGD | MSc | MBA | MBBS | LL.B | PhD" },
+  { group:"Diploma / Certificate", options:[
+    { value:"OND_HND_NCE", label:"HND | OND | NCE" },
+  ]},
+  { group:"Undergraduate", options:[
+    { value:"BSC_BED_BA",  label:"BSc | BEd | BA | BTech | BEng | Nursing" },
+  ]},
+  { group:"Postgraduate", options:[
+    { value:"PGD_MSC_PHD", label:"PGD | MSc | MBA | MBBS | LL.B" },
+    { value:"PHD",         label:"PhD" },
+  ]},
 ];
 
 const PROJECT_SERVICE = { value:"project", label:"Project / Thesis / Dissertation / Term Paper", hasPlan:true };
@@ -30,7 +37,7 @@ export default function HireAWriter() {
   // Build full services list: project first, then dynamic others
   const SERVICES = [
     PROJECT_SERVICE,
-    ...otherSvcs.map(s => ({ value: s.value, label: s.label, hasPlan: false, priceOND: s.priceOND, priceBSC: s.priceBSC, pricePGD: s.pricePGD })),
+    ...otherSvcs.map(s => ({ value: s.value, label: s.label, hasPlan: false, priceOND: s.priceOND, priceBSC: s.priceBSC, pricePGD: s.pricePGD, pricePHD: s.pricePHD || s.pricePGD })),
   ];
 
   // Form state
@@ -74,6 +81,7 @@ export default function HireAWriter() {
         OND_HND_NCE: svc.priceOND || 0,
         BSC_BED_BA:  svc.priceBSC || 0,
         PGD_MSC_PHD: svc.pricePGD || 0,
+        PHD:         svc.pricePHD || svc.pricePGD || 0,
       };
       return (priceMap[degreeGroup] || 0) / 100;
     }
@@ -147,8 +155,12 @@ export default function HireAWriter() {
             <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Academic Level</label>
             <select value={degreeGroup} onChange={e => { setDegreeGroup(e.target.value); setPlanId(""); setSelChapters([]); }}
               className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
-              <option value="">-- Select your level --</option>
-              {DEG_GROUPS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+              <option value="">Select level</option>
+              {DEG_GROUPS.map(g => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </optgroup>
+              ))}
             </select>
             {errors.degreeGroup && <p className="text-xs text-red-500 mt-1">{errors.degreeGroup}</p>}
           </div>
