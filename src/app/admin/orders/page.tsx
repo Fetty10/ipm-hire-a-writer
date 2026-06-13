@@ -78,7 +78,7 @@ const DEG:Record<string,string> = { OND_HND_NCE:"HND/OND", BSC_BED_BA:"BSc/BEd",
 
 function StatusBadge({ status }: { status: string }) {
   const s = STATUS_COLORS[status] || { background:"#F1F5F9", color:"#64748B" };
-  return <span style={{ ...C.badge, ...s }}>{status.replace(/_/g," ")}</span>;
+  return <span style={{ ...C.badge, ...s }}>{(status||"").replace(/_/g," ")}</span>;
 }
 
 function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:()=>void, staffList:any[] }) {
@@ -158,7 +158,7 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
             {[
               { label:"Topic",       val:order.topic },
               { label:"Department",  val:order.department||"—" },
-              { label:"Level",       val:DEG[order.degreeGroup]||order.degreeGroup },
+              { label:"Level",       val:DEG[order.degreeGroup]||order.degreeGroup||"—" },
               { label:"Plan",        val:order.plan?.planName },
               { label:"Amount Paid", val:`₦${((order.amountPaidKobo||0)/100).toLocaleString()}` },
               { label:"Status",      val:<StatusBadge status={order.status}/> },
@@ -341,7 +341,7 @@ function AdminOrdersContent() {
                   </div>
                   <div>
                     <div style={{ fontSize:".78rem", fontWeight:600, color:"#0C1A2E" }}>{o.plan?.planName}</div>
-                    <div style={C.rmeta}>{DEG[o.degreeGroup]||o.degreeGroup}</div>
+                    <div style={C.rmeta}>{DEG[o.degreeGroup]||o.degreeGroup||"—"}</div>
                   </div>
                   <div>
                     <div style={{ fontSize:".78rem", fontWeight:600, color:"#0C1A2E" }}>
