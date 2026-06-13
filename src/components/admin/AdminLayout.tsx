@@ -1,81 +1,64 @@
 "use client";
+// src/components/admin/AdminLayout.tsx
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-
-const S = {
-  wrap:    { display:"flex", minHeight:"100vh", background:"#F0F9FF", fontFamily:"'DM Sans',sans-serif" } as React.CSSProperties,
-  sidebar: { width:"215px", background:"#0C1A2E", display:"flex", flexDirection:"column" as const, padding:"1.25rem .75rem", position:"sticky" as const, top:0, height:"100vh", flexShrink:0, overflowY:"auto" as const, zIndex:50 },
-  logo:    { fontFamily:"'Syne',sans-serif", fontSize:".95rem", fontWeight:800, color:"#fff", padding:".5rem", paddingBottom:"1rem", borderBottom:"1px solid rgba(255,255,255,.1)", marginBottom:"1rem" },
-  logoSpan:{ color:"#38BDF8" },
-  adminLbl:{ fontSize:".6rem", color:"#38BDF8", fontWeight:600, marginTop:".2rem" },
-  secLabel:{ fontSize:".58rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".1em", color:"rgba(255,255,255,.3)", padding:".25rem .5rem", marginTop:".75rem" },
-  navBtn:  { display:"flex", alignItems:"center", gap:".5rem", padding:".5rem .75rem", borderRadius:"10px", fontSize:".77rem", fontWeight:500, color:"#5B7EA6", cursor:"pointer", transition:"all .2s", width:"100%", background:"none", border:"none", textAlign:"left" as const, fontFamily:"'DM Sans',sans-serif" },
-  navActive:{ background:"rgba(56,189,248,.15)", color:"#38BDF8", fontWeight:600 },
-  badge:   { marginLeft:"auto", background:"#38BDF8", color:"#0C1A2E", fontSize:".56rem", fontWeight:800, padding:"2px 6px", borderRadius:"999px" },
-  userBox: { display:"flex", alignItems:"center", gap:".5rem", padding:".5rem", background:"rgba(56,189,248,.08)", borderRadius:"10px", border:"1px solid rgba(56,189,248,.12)", marginBottom:".5rem", marginTop:"auto" },
-  avatar:  { width:"32px", height:"32px", borderRadius:"50%", background:"#38BDF8", display:"flex", alignItems:"center", justifyContent:"center", fontSize:".68rem", fontWeight:800, color:"#0C1A2E", flexShrink:0 },
-  uname:   { fontSize:".73rem", fontWeight:600, color:"#fff", lineHeight:1.2 },
-  urole:   { fontSize:".6rem", color:"#38BDF8" },
-  logout:  { width:"100%", padding:".5rem .75rem", borderRadius:"10px", border:"1px solid rgba(239,68,68,.2)", background:"rgba(239,68,68,.08)", color:"#FCA5A5", fontSize:".73rem", fontWeight:600, cursor:"pointer", textAlign:"left" as const, fontFamily:"'DM Sans',sans-serif" },
-  main:    { flex:1, padding:"1.5rem", overflowX:"hidden" as const, minWidth:0 },
-  topbar:  { background:"#0C1A2E", height:"48px", display:"flex", alignItems:"center", padding:"0 1rem", gap:".75rem", borderBottom:"1px solid rgba(56,189,248,.1)" },
-  menuBtn: { background:"none", border:"none", color:"#38BDF8", fontSize:"1.4rem", cursor:"pointer" },
-  topLogo: { fontFamily:"'Syne',sans-serif", color:"#fff", fontSize:".9rem", fontWeight:800 },
-  overlay: { position:"fixed" as const, inset:0, background:"rgba(12,26,46,.6)", zIndex:40 },
-};
+import { clsx } from "clsx";
 
 const NAV = [
-  { label:"Overview",       icon:"📊", href:"/admin/dashboard",            section:"Overview" },
-  { label:"All Orders",     icon:"📦", href:"/admin/orders",                section:"Overview" },
-  { label:"Approvals",      icon:"⏳", href:"/admin/staff/approvals",       section:"Staff"    },
-  { label:"All Staff",      icon:"👥", href:"/admin/staff/list",            section:"Staff"    },
-  { label:"Withdrawals",    icon:"💸", href:"/admin/withdrawals",           section:"Staff"    },
-  { label:"Pay Rates",      icon:"💰", href:"/admin/settings/payrates",     section:"Settings" },
-  { label:"Plans & Pricing",icon:"💳", href:"/admin/settings/plans",        section:"Settings" },
-  { label:"Departments",    icon:"🏛️", href:"/admin/settings/departments",  section:"Settings" },
-  { label:"Settings",       icon:"⚙️", href:"/admin/settings",              section:"Settings" },
+  { label: "Overview",      icon: "📊", href: "/admin/dashboard",           section: "Overview"  },
+  { label: "All Orders",    icon: "📦", href: "/admin/orders",               section: "Overview"  },
+  { label: "Approvals",     icon: "⏳", href: "/admin/staff/approvals",      section: "Staff"     },
+  { label: "All Staff",     icon: "👥", href: "/admin/staff/list",           section: "Staff"     },
+  { label: "Withdrawals",   icon: "💸", href: "/admin/withdrawals",          section: "Staff"     },
+  { label: "Pay Rates",     icon: "💰", href: "/admin/settings/payrates",       section: "Settings"  },
+  { label: "Plans & Pricing",icon:"💳", href: "/admin/settings/plans",          section: "Settings"  },
+  { label: "Other Services", icon:"🛠️", href: "/admin/settings/other-services", section: "Settings"  },
+  { label: "Departments",   icon: "🏛️", href: "/admin/settings/departments",    section: "Settings"  },
+  { label: "Settings",      icon: "⚙️", href: "/admin/settings",                section: "Settings"  },
 ];
 
-export function AdminLayout({ children, badges = {} }: { children: React.ReactNode; badges?: Record<string,number> }) {
+export function AdminLayout({ children, badges = {} }: {
+  children: React.ReactNode;
+  badges?: Record<string, number>;
+}) {
   const pathname = usePathname();
   const router   = useRouter();
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
-  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase() || "MA";
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
-  const sidebarStyle = {
-    ...S.sidebar,
-    ...(isMobile ? { position:"fixed" as const, left:0, top:0, transform: open?"translateX(0)":"translateX(-100%)", transition:"transform .25s" } : {}),
-  };
+  const sections = ["Overview", "Staff", "Settings"];
 
   return (
-    <div style={S.wrap}>
-      {open && <div style={S.overlay} onClick={()=>setOpen(false)} />}
+    <div className="flex min-h-screen bg-sky-50">
+      {open && <div className="fixed inset-0 bg-navy/60 z-40 lg:hidden" onClick={() => setOpen(false)} />}
 
-      {/* Sidebar */}
-      <div style={sidebarStyle}>
-        <div style={S.logo}>
-          iProject<span style={S.logoSpan}>Master</span>
-          <div style={S.adminLbl}>Admin Panel</div>
+      <aside className={clsx(
+        "fixed top-0 left-0 h-full w-[220px] bg-navy z-50 flex flex-col py-5 px-3 transition-transform duration-250",
+        "lg:sticky lg:top-0 lg:translate-x-0 lg:h-screen",
+        open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      )}>
+        <div className="font-clash text-[.95rem] font-800 text-white px-2 pb-4 border-b border-white/10 mb-4">
+          iProject<span className="text-sky-400">Master</span>
+          <div className="text-[.6rem] text-sky-400 font-600 mt-0.5">Admin Panel</div>
         </div>
 
-        <nav style={{display:"flex",flexDirection:"column",flex:1,overflowY:"auto",gap:"1px"}}>
-          {["Overview","Staff","Settings"].map(sec=>(
-            <div key={sec}>
-              <div style={S.secLabel}>{sec}</div>
-              {NAV.filter(n=>n.section===sec).map(item=>{
-                const active = pathname===item.href || pathname.startsWith(item.href+"/");
-                const badge  = badges[item.href]||0;
+        <nav className="flex flex-col flex-1 overflow-y-auto gap-px">
+          {sections.map(section => (
+            <div key={section}>
+              <p className="text-[.58rem] font-700 uppercase tracking-widest text-white/30 px-2 py-1 mt-2">{section}</p>
+              {NAV.filter(n => n.section === section).map(item => {
+                const active = pathname === item.href || pathname.startsWith(item.href + "/");
+                const badge  = badges[item.href] || 0;
                 return (
-                  <button key={item.href} style={{...S.navBtn,...(active?S.navActive:{})}}
-                    onClick={()=>{ router.push(item.href); setOpen(false); }}
-                    onMouseEnter={e=>{ if(!active)(e.currentTarget as HTMLElement).style.background="rgba(56,189,248,.08)"; }}
-                    onMouseLeave={e=>{ if(!active)(e.currentTarget as HTMLElement).style.background="none"; }}>
-                    <span style={{fontSize:".85rem",width:"16px",textAlign:"center",flexShrink:0}}>{item.icon}</span>
-                    <span style={{flex:1}}>{item.label}</span>
-                    {badge>0 && <span style={S.badge}>{badge}</span>}
+                  <button key={item.href} onClick={() => { router.push(item.href); setOpen(false); }}
+                    className={clsx(
+                      "flex items-center gap-2 px-3 py-2 rounded-lg text-[.77rem] font-500 transition-all w-full text-left",
+                      active ? "bg-sky-400/15 text-sky-400 font-600" : "text-navy-muted hover:bg-sky-400/8 hover:text-sky-200"
+                    )}>
+                    <span className="text-[.85rem] w-4 text-center flex-shrink-0">{item.icon}</span>
+                    <span className="flex-1">{item.label}</span>
+                    {badge > 0 && <span className="bg-sky-400 text-navy text-[.56rem] font-800 px-1.5 py-0.5 rounded-full">{badge}</span>}
                   </button>
                 );
               })}
@@ -83,31 +66,28 @@ export function AdminLayout({ children, badges = {} }: { children: React.ReactNo
           ))}
         </nav>
 
-        <div style={S.userBox}>
-          <div style={S.avatar}>{initials}</div>
-          <div>
-            <div style={S.uname}>{session?.user?.name || "Admin"}</div>
-            <div style={S.urole}>{session?.user?.role?.replace("_"," ")}</div>
+        <div className="mt-auto pt-3 border-t border-white/10">
+          <div className="flex items-center gap-2 px-2 py-2 bg-sky-400/8 rounded-lg border border-sky-400/12 mb-2">
+            <div className="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-[.68rem] font-800 text-white flex-shrink-0">MA</div>
+            <div>
+              <div className="text-[.73rem] font-600 text-white leading-tight truncate max-w-[120px]">{session?.user?.name}</div>
+              <div className="text-[.6rem] text-sky-400">{session?.user?.role?.replace("_"," ")}</div>
+            </div>
           </div>
+          <button onClick={() => signOut({ callbackUrl: "/login" })}
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-[.73rem] font-600 text-red-300 bg-red-500/8 border border-red-500/15 hover:bg-red-500/15 transition-all">
+            🚪 Logout
+          </button>
         </div>
-        <button style={S.logout} onClick={()=>signOut({callbackUrl:"/staff/login"})}>🚪 Logout</button>
-      </div>
+      </aside>
 
-      {/* Main content */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
-        {/* Mobile topbar */}
-        <div style={{...S.topbar, display:"none"}} className="mobile-topbar">
-          <button style={S.menuBtn} onClick={()=>setOpen(true)}>☰</button>
-          <span style={S.topLogo}>iProject<span style={{color:"#38BDF8"}}>Master</span></span>
-        </div>
-        <main style={S.main}>{children}</main>
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="lg:hidden sticky top-0 z-30 bg-navy h-12 flex items-center px-4 gap-3 border-b border-sky-400/10">
+          <button onClick={() => setOpen(true)} className="text-sky-400 text-xl p-1">☰</button>
+          <span className="font-clash text-white text-[.9rem] font-800">iProject<span className="text-sky-400">Master</span> <span className="text-sky-400 text-[.7rem]">Admin</span></span>
+        </header>
+        <main className="flex-1 p-4 lg:p-6 overflow-x-hidden">{children}</main>
       </div>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .mobile-topbar { display: flex !important; }
-        }
-      `}</style>
     </div>
   );
 }
