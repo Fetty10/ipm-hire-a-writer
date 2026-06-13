@@ -168,12 +168,7 @@ function LoginContent() {
                 Create an account
               </a>
             </p>
-            <p className="text-sm text-navy-muted">
-              Staff?{" "}
-              <a href="/staff/login" className="text-sky-600 font-700 hover:underline">
-                Staff Login →
-              </a>
-            </p>
+          
           </div>
         </Card>
       </div>
