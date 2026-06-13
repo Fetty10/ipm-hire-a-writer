@@ -446,3 +446,11 @@ model Notification {
 
   @@index([userId, isRead])
 }
+model BankAccount {
+  id            String   @id @default(cuid())
+  accountName   String
+  accountNumber String
+  bankName      String
+  isActive      Boolean  @default(true)
+  updatedAt     DateTime @updatedAt
+}
