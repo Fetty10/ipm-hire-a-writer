@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { StudentLayout } from "@/components/student/StudentLayout";
 
 const DEG:Record<string,string>={OND_HND_NCE:"HND/OND/NCE",BSC_BED_BA:"BSc/BEd/BA",PGD_MSC_PHD:"PGD/MSc/PhD"};
-
 const C = {
   page:  { maxWidth:"640px", margin:"0 auto" },
   h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
@@ -27,10 +26,7 @@ export default function StudentDownloads() {
   const [loading,   setLoading]   = useState(true);
 
   useEffect(()=>{
-    fetch("/api/student/downloads")
-      .then(r=>r.json())
-      .then(d=>{ if(d.success) setDownloads(d.data); })
-      .finally(()=>setLoading(false));
+    fetch("/api/student/downloads").then(r=>r.json()).then(d=>{ if(d.success) setDownloads(d.data); setLoading(false); });
   },[]);
 
   return (
@@ -38,7 +34,6 @@ export default function StudentDownloads() {
       <div style={C.page}>
         <h1 style={C.h1}>Downloads</h1>
         <p style={C.sub}>All your delivered chapters ready to download.</p>
-
         {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
         : downloads.length===0 ? (
           <div style={C.empty}>
@@ -57,6 +52,8 @@ export default function StudentDownloads() {
                     <span>·</span>
                     <span>{DEG[d.degreeGroup]||d.degreeGroup}</span>
                     {d.isQcCleared&&<span style={C.tag}>QC Cleared ✓</span>}
+                    {d.plagiarismScore!=null&&<span style={{padding:"1px 6px",borderRadius:"999px",fontSize:".62rem",fontWeight:700,background:"#EDE9FE",color:"#5B21B6"}}>Plagiarism: {d.plagiarismScore}%</span>}
+                    {d.aiScore!=null&&<span style={{padding:"1px 6px",borderRadius:"999px",fontSize:".62rem",fontWeight:700,background:"#FEF9C3",color:"#854D0E"}}>AI: {d.aiScore}%</span>}
                     {d.deliveredAt&&<span style={{color:"#5B7EA6"}}>{new Date(d.deliveredAt).toLocaleDateString("en-NG")}</span>}
                   </div>
                 </div>
