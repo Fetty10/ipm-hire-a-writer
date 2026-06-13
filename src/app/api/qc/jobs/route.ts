@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/qc/jobs/route.ts
 // Returns chapters assigned to QC — split by flow: checks or corrections
 
@@ -39,36 +40,49 @@ export async function GET(req: NextRequest) {
     routingFilter = { routedToQcId: session.user.id };
   }
 
-  const chapters = await prisma.orderChapter.findMany({
-    where: {
-      ...routingFilter,
-      status: { in: statusFilter },
-      ...(flow === "corrections"
-        ? { correctionNotes: { not: null } }
-        : { correctionNotes: null }),
-      ...(search
-        ? { order: { topic: { contains: search, mode: "insensitive" } } }
-        : {}),
-    },
-    include: {
-      order: {
-        select: {
-          id:                      true,
-          topic:                   true,
-          department:              true,
-          degreeGroup:             true,
-          requiresPlagiarismCheck: true,
-          requiresAiCheck:         true,
-          specialInstructions:     true,
-          guidelineFileUrl:        true,
-          plan: { select: { planName: true } },
-          // No client info — QC should not see student name
+  const page    = parseInt(searchParams.get("page") || "1");
+  const perPage = status === "cleared" ? 15 : 50;
+
+  const where = {
+    ...routingFilter,
+    status: { in: statusFilter },
+    ...(flow === "corrections"
+      ? { correctionNotes: { not: null } }
+      : { correctionNotes: null }),
+    ...(search
+      ? { order: { topic: { contains: search, mode: "insensitive" } } }
+      : {}),
+  };
+
+  const orderBy = status === "cleared"
+    ? { qcClearedAt: "desc" as const }
+    : { routedToQcAt: "asc" as const };
+
+  const [chapters, total] = await Promise.all([
+    prisma.orderChapter.findMany({
+      where,
+      include: {
+        order: {
+          select: {
+            id:                      true,
+            topic:                   true,
+            department:              true,
+            degreeGroup:             true,
+            requiresPlagiarismCheck: true,
+            requiresAiCheck:         true,
+            specialInstructions:     true,
+            guidelineFileUrl:        true,
+            plan: { select: { planName: true } },
+          },
         },
+        assignedTo: { select: { id: true, role: true } },
       },
-      assignedTo: { select: { id: true, role: true } },
-    },
-    orderBy: { routedToQcAt: "asc" },
-  });
+      orderBy,
+      skip: (page - 1) * perPage,
+      take: perPage,
+    }),
+    prisma.orderChapter.count({ where }),
+  ]);
 
   const formatted = chapters.map((ch) => ({
     id:              ch.id,
@@ -92,5 +106,5 @@ export async function GET(req: NextRequest) {
     originalStaffRole:   ch.assignedTo?.role || null,
   }));
 
-  return NextResponse.json({ success: true, data: formatted });
+  return NextResponse.json({ success: true, data: formatted, total, page, pages: Math.ceil(total / perPage) });
 }
