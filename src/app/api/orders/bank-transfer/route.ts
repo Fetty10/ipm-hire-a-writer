@@ -53,9 +53,17 @@ export async function POST(req: NextRequest) {
       ? plan.priceKobo * (chaptersRequested?.length || 1)
       : plan.priceKobo;
   } else {
-    // Fetch price from OtherService
+    // Fetch price from OtherService — map enum back to value
+    const svcValueMap: Record<string,string> = {
+      PROPOSAL_SEMINAR: "seminar",
+      JOURNAL_WRITING:  "journal",
+      JOURNAL_SOURCING: "journal",
+      TOPIC_SUGGESTION: "topic",
+      HIRE_WRITER:      "assignment",
+    };
+    const svcValue = svcValueMap[serviceType] || serviceType?.toLowerCase();
     const svc = await (prisma as any).otherService.findFirst({
-      where: { value: (serviceType || "").toLowerCase().replace("hire_writer","project"), isActive: true },
+      where: { value: svcValue, isActive: true },
     });
     const priceMap: Record<string,number> = {
       OND_HND_NCE: svc?.priceOND || 0,
