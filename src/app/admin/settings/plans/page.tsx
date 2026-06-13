@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -94,12 +95,12 @@ export default function AdminPlans() {
     });
     const data = await res.json();
     if (res.ok) { await load(); }
-    else alert(data.error);
+    else toast.error(data.error || "Something went wrong");
     setSaving(null);
   }
 
   async function deletePlan(id:string, label:string) {
-    if (!confirm(`Delete "${label}"? This cannot be undone. Orders using this plan will be unaffected.`)) return;
+    let confirmed = false; await new Promise<void>(resolve => { toast((t) => (<span style={{display:"flex",alignItems:"center",gap:"1rem",fontSize:".82rem"}}><span>Delete this plan? Existing orders unaffected.</span><button style={{background:"#FEE2E2",color:"#991B1B",border:"none",padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontWeight:700}} onClick={()=>{confirmed=true;toast.dismiss(t.id);resolve();}}>Delete</button><button style={{background:"#F1F5F9",border:"none",padding:"4px 10px",borderRadius:"6px",cursor:"pointer"}} onClick={()=>{toast.dismiss(t.id);resolve();}}>Cancel</button></span>), {duration:10000}); }); if (!confirmed) return;
     setSaving("del"+id);
     const res  = await fetch("/api/admin/settings", {
       method:"DELETE", headers:{"Content-Type":"application/json"},
@@ -107,12 +108,12 @@ export default function AdminPlans() {
     });
     const data = await res.json();
     if (res.ok) { await load(); }
-    else alert(data.error);
+    else toast.error(data.error || "Something went wrong");
     setSaving(null);
   }
 
   async function addPlan() {
-    if (!newPlan.priceKobo) { alert("Enter a price."); return; }
+    if (!newPlan.priceKobo) { toast.error("Enter a price."); return; }
     setAdding(true);
     const res  = await fetch("/api/admin/settings", {
       method:"POST", headers:{"Content-Type":"application/json"},
@@ -129,7 +130,7 @@ export default function AdminPlans() {
     });
     const data = await res.json();
     if (res.ok) { setNewPlan({...BLANK}); await load(); }
-    else alert(data.error);
+    else toast.error(data.error || "Something went wrong");
     setAdding(false);
   }
 
