@@ -3,8 +3,10 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { resend } from "@/lib/email";
+import { Resend } from "resend";
 import bcrypt from "bcryptjs";
+
+const resend = new Resend(process.env.RESEND_API_KEY!);
 import crypto from "crypto";
 
 const APP = process.env.NEXTAUTH_URL || "https://hire.iprojectmaster.com";
