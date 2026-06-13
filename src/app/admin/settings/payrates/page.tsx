@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -55,24 +56,24 @@ export default function AdminPayRates() {
       body: JSON.stringify({ type:"payrate", id, amountKobo: Math.round(parseFloat(edits[id]) * 100) }),
     });
     const data = await res.json();
-    if (res.ok) { alert("Pay rate updated!"); load(); } else alert(data.error);
+    if (res.ok) { toast.success("Pay rate updated!"); load(); } else toast.error(data.error || "Something went wrong");
     setSaving(null);
   }
 
   async function deleteRate(id: string) {
-    if (!confirm("Delete this pay rate?")) return;
+    let confirmed = false; await new Promise<void>(resolve => { toast((t) => (<span style={{display:"flex",alignItems:"center",gap:"1rem",fontSize:".82rem"}}><span>Delete this pay rate?</span><button style={{background:"#FEE2E2",color:"#991B1B",border:"none",padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontWeight:700}} onClick={()=>{confirmed=true;toast.dismiss(t.id);resolve();}}>Delete</button><button style={{background:"#F1F5F9",border:"none",padding:"4px 10px",borderRadius:"6px",cursor:"pointer"}} onClick={()=>{toast.dismiss(t.id);resolve();}}>Cancel</button></span>), {duration:10000}); }); if (!confirmed) return;
     setSaving("del"+id);
     const res  = await fetch("/api/admin/settings", {
       method: "DELETE", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type:"payrate", id }),
     });
     const data = await res.json();
-    if (res.ok) { load(); } else alert(data.error);
+    if (res.ok) { load(); } else toast.error(data.error || "Something went wrong");
     setSaving(null);
   }
 
   async function addRate() {
-    if (!newRate.amountKobo) { alert("Enter an amount."); return; }
+    if (!newRate.amountKobo) { toast.error("Enter an amount."); return; }
     setAdding(true);
     const res  = await fetch("/api/admin/settings", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -85,8 +86,8 @@ export default function AdminPayRates() {
       }),
     });
     const data = await res.json();
-    if (res.ok) { alert("Pay rate added!"); setNewRate({role:"WRITER",degreeGroup:"OND_HND_NCE",planName:"STANDARD",amountKobo:""}); load(); }
-    else alert(data.error);
+    if (res.ok) { toast.success("Pay rate added!"); setNewRate({role:"WRITER",degreeGroup:"OND_HND_NCE",planName:"STANDARD",amountKobo:""}); load(); }
+    else toast.error(data.error || "Something went wrong");
     setAdding(false);
   }
 
