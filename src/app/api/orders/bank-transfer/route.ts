@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
         status:               "PENDING_PAYMENT",
         paymentMethod:        "BANK_TRANSFER",
         bankTransferReference: reference,
+        amountPaidKobo:       amountKobo,
       } as any,
     });
 
