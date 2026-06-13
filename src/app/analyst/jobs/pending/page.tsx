@@ -45,6 +45,8 @@ export default function AnalystPendingJobs() {
   const [jobs,    setJobs]    = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [starting,setStarting]= useState<string|null>(null);
+  const [rejecting,setRejecting]=useState<string|null>(null);  // chapterId being confirmed
+  const [rejected, setRejected] =useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,6 +57,21 @@ export default function AnalystPendingJobs() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  async function rejectJob(chapterId: string) {
+    setRejecting(null);
+    const res  = await fetch("/api/chapters/reject", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ chapterId }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast.success("Job rejected. Admin has been notified.");
+      setRejected(prev => new Set([...prev, chapterId]));
+    } else {
+      toast.error(data.error || "Something went wrong.");
+    }
+  }
 
   async function startJob(chapterId: string) {
     setStarting(chapterId);
@@ -111,6 +128,30 @@ export default function AnalystPendingJobs() {
               </a>
             ))}
 
+            {/* Writer's Chapter 1 Prelim Fields */}
+            {job.writerPrelimNotes && (job.writerPrelimNotes.researchObjectives || job.writerPrelimNotes.researchQuestions || job.writerPrelimNotes.hypotheses || job.writerPrelimNotes.scopeOfStudy) ? (
+              <div style={{background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:"12px",padding:"1rem",marginBottom:"1rem"}}>
+                <div style={{fontSize:".65rem",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:".08em",color:"#0369A1",marginBottom:".75rem"}}>
+                  📝 Writer&apos;s Chapter 1 Preliminary Notes
+                </div>
+                {[
+                  { label:"Research Objectives", val:job.writerPrelimNotes.researchObjectives },
+                  { label:"Research Questions",  val:job.writerPrelimNotes.researchQuestions  },
+                  { label:"Hypotheses",          val:job.writerPrelimNotes.hypotheses         },
+                  { label:"Scope of Study",      val:job.writerPrelimNotes.scopeOfStudy      },
+                ].filter(f => f.val).map(f => (
+                  <div key={f.label} style={{marginBottom:".6rem"}}>
+                    <div style={{fontSize:".65rem",fontWeight:700,color:"#5B7EA6",marginBottom:".2rem"}}>{f.label}</div>
+                    <div style={{fontSize:".82rem",color:"#0C1A2E",lineHeight:1.6}}>{f.val}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:"12px",padding:".75rem 1rem",marginBottom:"1rem",fontSize:".78rem",color:"#9A3412"}}>
+                ⏳ <strong>Waiting for Writer:</strong> Chapter 1 preliminary notes have not been submitted yet. You will receive an email notification when they are ready.
+              </div>
+            )}
+
             <div style={C.notice}>
               ⏱ Once you click <strong>Start Job</strong>, your 3-working-day deadline begins immediately. Only start when you are ready to work on it.
             </div>
@@ -121,6 +162,38 @@ export default function AnalystPendingJobs() {
               onClick={()=>startJob(job.id)}>
               {starting===job.id ? "Starting..." : "▶ Start Job →"}
             </button>
+
+            {/* Reject button */}
+            {!rejected.has(job.id) && (
+              rejecting === job.id ? (
+                <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:"10px",padding:".75rem 1rem",marginTop:".75rem",fontSize:".82rem",color:"#991B1B"}}>
+                  <strong>Are you sure you want to reject this job?</strong> Admin will be notified and it will be reassigned.
+                  <div style={{display:"flex",gap:".5rem",marginTop:".6rem"}}>
+                    <button
+                      style={{padding:".4rem 1rem",borderRadius:"8px",background:"#DC2626",color:"#fff",fontSize:".78rem",fontWeight:700,border:"none",cursor:"pointer"}}
+                      onClick={()=>rejectJob(job.id)}>
+                      Yes, Reject
+                    </button>
+                    <button
+                      style={{padding:".4rem 1rem",borderRadius:"8px",background:"#F1F5F9",color:"#64748B",fontSize:".78rem",fontWeight:700,border:"none",cursor:"pointer"}}
+                      onClick={()=>setRejecting(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  style={{width:"100%",padding:".65rem",borderRadius:"10px",border:"1.5px solid #FECACA",background:"transparent",color:"#DC2626",fontSize:".82rem",fontWeight:700,cursor:"pointer",marginTop:".5rem"}}
+                  onClick={()=>setRejecting(job.id)}>
+                  ✕ Reject Job
+                </button>
+              )
+            )}
+            {rejected.has(job.id) && (
+              <div style={{textAlign:"center" as const,padding:".75rem",fontSize:".78rem",color:"#5B7EA6",background:"#F8FAFC",borderRadius:"10px",marginTop:".5rem"}}>
+                ✓ Job rejected — admin notified
+              </div>
+            )}
           </div>
         ))}
       </div>
