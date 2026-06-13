@@ -157,7 +157,7 @@ export function JobCard(props: JobCardProps) {
           <h3 className="text-sm font-700 text-navy-DEFAULT">{props.chapterLabel}</h3>
           <p className="text-xs text-navy-muted mt-1 line-clamp-2">{props.topic}</p>
           <p className="text-xs text-navy-muted">
-            {props.department} · {DEG_LABELS[props.degreeGroup]} · {PLAN_LABELS[props.planName]}
+            {props.department} · {DEG_LABELS[props.degreeGroup]}
           </p>
         </div>
         <StatusBadge status={props.status} qcStarted={props.qcStarted} />
