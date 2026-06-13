@@ -12,6 +12,51 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
+  const orderId = searchParams.get("orderId");
+
+  // ── Single order fetch ──────────────────────────────────────
+  if (orderId) {
+    const o = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        client:   { select: { id: true, name: true, phone: true, email: true } },
+        plan:     { select: { planName: true, degreeGroup: true } },
+        chapters: {
+          select: {
+            id: true, chapterLabel: true, chapterNumber: true, status: true,
+            assignedToId: true, assigneeRole: true, correctionNotes: true,
+            submittedFileUrl: true, deliveredFileUrl: true, qcFileUrl: true,
+            plagiarismScore: true, aiScore: true,
+            assignedTo: { select: { id: true, name: true, role: true } },
+          },
+          orderBy: { chapterNumber: "asc" },
+        },
+      },
+    });
+    if (!o) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: o.id, topic: o.topic, department: o.department,
+        degreeGroup: o.degreeGroup, status: o.status,
+        planName: o.plan.planName, amountPaid: (o.amountPaidKobo || 0) / 100,
+        amountPaidKobo: o.amountPaidKobo || 0,
+        requiresPlagiarismCheck: o.requiresPlagiarismCheck,
+        requiresAiCheck: o.requiresAiCheck,
+        specialInstructions: o.specialInstructions,
+        guidelineFileUrl: o.guidelineFileUrl,
+        adminNote: o.adminNote || null,
+        student: o.client,
+        client:  o.client,
+        chapters: o.chapters,
+        createdAt: o.createdAt, paidAt: o.paidAt,
+        paymentMethod:         (o as any).paymentMethod || "PAYSTACK",
+        bankTransferReference: (o as any).bankTransferReference || null,
+      },
+    });
+  }
+
+  // ── List fetch ──────────────────────────────────────────────
   const status  = searchParams.get("status") as OrderStatus | "all" | null;
   const search  = searchParams.get("search") || "";
   const page    = parseInt(searchParams.get("page") || "1");
