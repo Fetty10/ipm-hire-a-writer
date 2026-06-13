@@ -155,7 +155,7 @@ export default function HireAWriter() {
         specialInstructions: instructions.trim() || undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
-        serviceType:       service.toUpperCase(),
+        serviceType:       service === 'project' ? 'HIRE_WRITER' : service.toUpperCase(),
       };
       const res  = await fetch("/api/orders/bank-transfer", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -183,7 +183,7 @@ export default function HireAWriter() {
         specialInstructions: instructions.trim() || undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
-        serviceType:       service.toUpperCase(),
+        serviceType:       service === 'project' ? 'HIRE_WRITER' : service.toUpperCase(),
       };
 
       const res  = await fetch("/api/orders", {
