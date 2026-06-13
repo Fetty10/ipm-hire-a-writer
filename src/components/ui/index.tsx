@@ -232,7 +232,11 @@ const STATUS_MAP: Record<string, { label: string; variant: BadgeVariant }> = {
   QC_DONE:            { label: "QC Done",           variant: "green"  },
 };
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status, qcStarted }: { status: string; qcStarted?: boolean }) {
+  // Distinguish "sent to QC but not yet started" vs "QC actively working"
+  if (status === "QC_IN_PROGRESS" && qcStarted === false) {
+    return <Badge variant="sky">Sent to QC</Badge>;
+  }
   const s = STATUS_MAP[status] ?? { label: status, variant: "gray" as BadgeVariant };
   return <Badge variant={s.variant}>{s.label}</Badge>;
 }
