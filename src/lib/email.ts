@@ -97,17 +97,44 @@ export async function sendCorrectionReadyEmail(opts: {
 
 /** Staff: new job assigned */
 export async function sendJobAssignedEmail(opts: {
-  to: string; name: string; role: string; topic: string; chapterLabel: string;
+  to: string; name: string; role: string; topic: string; chapterLabel: string; department?: string;
+}) {
+  const dashLink = opts.role === "ANALYST" ? `${APP}/analyst/jobs/pending`
+                 : opts.role === "QC"      ? `${APP}/qc/checks/pending`
+                 : `${APP}/writer/jobs/pending`;
+  const roleLabel = opts.role === "ANALYST" ? "Analyst" : opts.role === "QC" ? "QC" : "Writer";
+  await resend.emails.send({
+    from: FROM, to: opts.to,
+    subject: `📋 New Job Assigned — ${opts.chapterLabel}`,
+    html: wrap(`
+      <div class="title">New Job Assigned to You</div>
+      <p class="text">Hi ${opts.name}, a new <strong>${opts.chapterLabel}</strong> job has been assigned to you${opts.department ? ` (${opts.department})` : ""}:</p>
+      <div class="highlight">${opts.topic}</div>
+      <p class="text">Log in to your <strong>${roleLabel}</strong> dashboard to review the student's instructions and start working. Remember your deadline is <strong>3 working days</strong> from when you start the job.</p>
+      <a href="${dashLink}" class="btn">View Pending Jobs →</a>
+    `),
+  });
+}
+
+/** Analyst: writer has submitted Chapter 1 prelim fields */
+export async function sendPrelimReadyEmail(opts: {
+  to: string; name: string; topic: string;
+  researchObjectives: string; researchQuestions: string;
+  hypotheses: string; scopeOfStudy: string;
 }) {
   await resend.emails.send({
     from: FROM, to: opts.to,
-    subject: `📋 New ${opts.role} Job — ${opts.chapterLabel}`,
+    subject: `📝 Chapter 1 Preliminary Notes Ready — ${opts.topic}`,
     html: wrap(`
-      <div class="title">New Job Assigned to You</div>
-      <p class="text">Hi ${opts.name}, a new <strong>${opts.chapterLabel}</strong> job has been assigned to you for the topic:</p>
+      <div class="title">Writer's Preliminary Notes are Ready</div>
+      <p class="text">Hi ${opts.name}, the writer has submitted the Chapter 1 preliminary fields for:</p>
       <div class="highlight">${opts.topic}</div>
-      <p class="text">Please log in to your dashboard to review the student's instructions and start working on it.</p>
-      <a href="${APP}/writer/dashboard" class="btn">View My Jobs →</a>
+      <p class="text">Here are the details you need to work on Chapters 3 & 4:</p>
+      <p class="text"><strong>Research Objectives:</strong><br>${opts.researchObjectives}</p>
+      <p class="text"><strong>Research Questions:</strong><br>${opts.researchQuestions}</p>
+      <p class="text"><strong>Hypotheses:</strong><br>${opts.hypotheses}</p>
+      <p class="text"><strong>Scope of Study:</strong><br>${opts.scopeOfStudy}</p>
+      <a href="${APP}/analyst/jobs/active" class="btn">View My Active Jobs →</a>
     `),
   });
 }
@@ -173,7 +200,7 @@ export async function sendQCCheckAssignedEmail(opts: {
       <p class="text">Hi ${opts.name}, a new chapter requires quality control checks:</p>
       <div class="highlight"><strong>${opts.chapterLabel}</strong> — ${opts.topic}<br>Checks required: <strong>${opts.checks.join(", ")}</strong></div>
       <p class="text">Please log in to your dashboard to download the file and run the required checks.</p>
-      <a href="${APP}/qc/dashboard" class="btn">View QC Jobs →</a>
+      <a href="${APP}/qc/checks/pending" class="btn">View Pending Checks →</a>
     `),
   });
 }
