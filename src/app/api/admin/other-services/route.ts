@@ -10,12 +10,23 @@ function adminOnly(role: Role) {
   return [Role.MAIN_ADMIN, Role.SUB_ADMIN].includes(role);
 }
 
-// Public GET — used by hire page
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const all = searchParams.get("all") === "true";
+
+  // If all=true, require admin auth
+  if (all) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || !adminOnly(session.user.role)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   const services = await (prisma as any).otherService.findMany({
-    where:   { isActive: true },
+    where:   all ? {} : { isActive: true },
     orderBy: { sortOrder: "asc" },
   });
+
   return NextResponse.json({ success: true, data: services });
 }
 
@@ -25,13 +36,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { label, value, description, priceOND, priceBSC, pricePGD, sortOrder } = await req.json();
+  const { label, value, description, priceOND, priceBSC, pricePGD, pricePHD, sortOrder } = await req.json();
 
   if (!label?.trim() || !value?.trim()) {
     return NextResponse.json({ error: "Label and value are required." }, { status: 400 });
   }
 
-  // Check unique value
   const existing = await (prisma as any).otherService.findUnique({ where: { value: value.trim().toLowerCase() } });
   if (existing) {
     return NextResponse.json({ error: "A service with this identifier already exists." }, { status: 409 });
@@ -45,6 +55,7 @@ export async function POST(req: NextRequest) {
       priceOND:    Math.round((priceOND || 0) * 100),
       priceBSC:    Math.round((priceBSC || 0) * 100),
       pricePGD:    Math.round((pricePGD || 0) * 100),
+      pricePHD:    Math.round((pricePHD || 0) * 100),
       sortOrder:   sortOrder || 0,
       isActive:    true,
     },
@@ -59,7 +70,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id, label, description, priceOND, priceBSC, pricePGD, sortOrder, isActive } = await req.json();
+  const { id, label, description, priceOND, priceBSC, pricePGD, pricePHD, sortOrder, isActive } = await req.json();
   if (!id) return NextResponse.json({ error: "id required." }, { status: 400 });
 
   const data: any = { updatedAt: new Date() };
@@ -68,6 +79,7 @@ export async function PATCH(req: NextRequest) {
   if (priceOND    !== undefined) data.priceOND    = Math.round(priceOND * 100);
   if (priceBSC    !== undefined) data.priceBSC    = Math.round(priceBSC * 100);
   if (pricePGD    !== undefined) data.pricePGD    = Math.round(pricePGD * 100);
+  if (pricePHD    !== undefined) data.pricePHD    = Math.round(pricePHD * 100);
   if (sortOrder   !== undefined) data.sortOrder   = sortOrder;
   if (isActive    !== undefined) data.isActive    = isActive;
 
