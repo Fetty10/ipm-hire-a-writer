@@ -25,6 +25,19 @@ const DEG_GROUPS = [
 
 const PROJECT_SERVICE = { value:"project", label:"Project / Thesis / Dissertation / Term Paper", hasPlan:true };
 
+// Map service values to valid ServiceType enum values
+const SERVICE_TYPE_MAP: Record<string,string> = {
+  project:    "HIRE_WRITER",
+  seminar:    "PROPOSAL_SEMINAR",
+  proposal:   "PROPOSAL_SEMINAR",
+  journal:    "JOURNAL_WRITING",
+  topic:      "TOPIC_SUGGESTION",
+  assignment: "HIRE_WRITER",
+};
+function toServiceType(svc: string): string {
+  return SERVICE_TYPE_MAP[svc] || "HIRE_WRITER";
+}
+
 const CHAPTER_LABELS = ["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5"];
 const PLAN_DISPLAY: Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Professional"};
 
@@ -160,7 +173,7 @@ export default function HireAWriter() {
         specialInstructions: instructions.trim() || undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
-        serviceType:       service === 'project' ? 'HIRE_WRITER' : service.toUpperCase(),
+        serviceType:       toServiceType(service),
       };
       const res  = await fetch("/api/orders/bank-transfer", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -187,7 +200,7 @@ export default function HireAWriter() {
         specialInstructions: instructions.trim() || undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
-        serviceType:       service === 'project' ? 'HIRE_WRITER' : service.toUpperCase(),
+        serviceType:       toServiceType(service),
       };
 
       const res  = await fetch("/api/orders", {
