@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { Suspense } from "react";
 import { useEffect, useState } from "react";
@@ -107,8 +108,8 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
       body: JSON.stringify({ action, orderId, ...extra }),
     });
     const data = await res.json();
-    if (res.ok) { alert(data.message); load(); }
-    else alert(data.error);
+    if (res.ok) { toast.success(data.message); load(); }
+    else toast.error(data.error || "Something went wrong");
     setSaving(null);
     setReassign(null);
     setNewStaff("");
@@ -256,14 +257,14 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
             {order.status !== "DELIVERED" && (
               <button style={{ ...C.btnSm, ...C.btnG, padding:".5rem 1rem" }}
                 disabled={saving==="mark_delivered"}
-                onClick={() => { if (confirm("Mark this entire order as delivered?")) act("mark_delivered"); }}>
+                onClick={() => { toast((t) => (<span style={{display:"flex",alignItems:"center",gap:"1rem",fontSize:".82rem"}}><span>Mark entire order as delivered?</span><button style={{background:"#D1FAE5",color:"#065F46",border:"none",padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontWeight:700}} onClick={()=>{toast.dismiss(t.id);act("mark_delivered");}}>Yes</button><button style={{background:"#F1F5F9",border:"none",padding:"4px 10px",borderRadius:"6px",cursor:"pointer"}} onClick={()=>toast.dismiss(t.id)}>No</button></span>), {duration:10000}); }}>
                 ✅ Mark Delivered
               </button>
             )}
             {order.status !== "CANCELLED" && (
               <button style={{ ...C.btnSm, ...C.btnR, padding:".5rem 1rem" }}
                 disabled={saving==="cancel"}
-                onClick={() => { if (confirm("Cancel this order? This cannot be undone.")) act("cancel"); }}>
+                onClick={() => { toast((t) => (<span style={{display:"flex",alignItems:"center",gap:"1rem",fontSize:".82rem"}}><span>Cancel this order? Cannot be undone.</span><button style={{background:"#FEE2E2",color:"#991B1B",border:"none",padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontWeight:700}} onClick={()=>{toast.dismiss(t.id);act("cancel");}}>Yes, Cancel</button><button style={{background:"#F1F5F9",border:"none",padding:"4px 10px",borderRadius:"6px",cursor:"pointer"}} onClick={()=>toast.dismiss(t.id)}>No</button></span>), {duration:10000}); }}>
                 ✕ Cancel Order
               </button>
             )}
