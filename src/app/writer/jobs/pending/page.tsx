@@ -45,6 +45,8 @@ export default function WriterPendingJobs() {
   const [jobs,    setJobs]    = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [starting,setStarting]= useState<string|null>(null);
+  const [rejecting,setRejecting]=useState<string|null>(null);  // chapterId being confirmed
+  const [rejected, setRejected] =useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,6 +57,21 @@ export default function WriterPendingJobs() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  async function rejectJob(chapterId: string) {
+    setRejecting(null);
+    const res  = await fetch("/api/chapters/reject", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ chapterId }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast.success("Job rejected. Admin has been notified.");
+      setRejected(prev => new Set([...prev, chapterId]));
+    } else {
+      toast.error(data.error || "Something went wrong.");
+    }
+  }
 
   async function startJob(chapterId: string) {
     setStarting(chapterId);
@@ -121,6 +138,38 @@ export default function WriterPendingJobs() {
               onClick={()=>startJob(job.id)}>
               {starting===job.id ? "Starting..." : "▶ Start Job →"}
             </button>
+
+            {/* Reject button */}
+            {!rejected.has(job.id) && (
+              rejecting === job.id ? (
+                <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:"10px",padding:".75rem 1rem",marginTop:".75rem",fontSize:".82rem",color:"#991B1B"}}>
+                  <strong>Are you sure you want to reject this job?</strong> Admin will be notified and it will be reassigned.
+                  <div style={{display:"flex",gap:".5rem",marginTop:".6rem"}}>
+                    <button
+                      style={{padding:".4rem 1rem",borderRadius:"8px",background:"#DC2626",color:"#fff",fontSize:".78rem",fontWeight:700,border:"none",cursor:"pointer"}}
+                      onClick={()=>rejectJob(job.id)}>
+                      Yes, Reject
+                    </button>
+                    <button
+                      style={{padding:".4rem 1rem",borderRadius:"8px",background:"#F1F5F9",color:"#64748B",fontSize:".78rem",fontWeight:700,border:"none",cursor:"pointer"}}
+                      onClick={()=>setRejecting(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  style={{width:"100%",padding:".65rem",borderRadius:"10px",border:"1.5px solid #FECACA",background:"transparent",color:"#DC2626",fontSize:".82rem",fontWeight:700,cursor:"pointer",marginTop:".5rem"}}
+                  onClick={()=>setRejecting(job.id)}>
+                  ✕ Reject Job
+                </button>
+              )
+            )}
+            {rejected.has(job.id) && (
+              <div style={{textAlign:"center" as const,padding:".75rem",fontSize:".78rem",color:"#5B7EA6",background:"#F8FAFC",borderRadius:"10px",marginTop:".5rem"}}>
+                ✓ Job rejected — admin notified
+              </div>
+            )}
           </div>
         ))}
       </div>
