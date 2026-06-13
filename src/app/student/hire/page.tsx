@@ -175,7 +175,6 @@ export default function HireAWriter() {
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       toServiceType(service),
       };
-      console.log("Sending:", JSON.stringify(payload));
       const res  = await fetch("/api/orders/bank-transfer", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
