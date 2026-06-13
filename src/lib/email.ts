@@ -4,7 +4,7 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
-const FROM   = process.env.EMAIL_FROM || "iProjectMaster <noreply@iprojectmaster.com>";
+const FROM   = process.env.EMAIL_FROM || "iProjectMaster <noreply@hire.iprojectmaster.com>";
 const APP    = process.env.NEXT_PUBLIC_APP_URL || "https://iprojectmaster.com";
 
 // ─────────────────────────────────────────
