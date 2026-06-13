@@ -3,10 +3,10 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 
-const DEG_GROUPS  = ["OND_HND_NCE","BSC_BED_BA","PGD_MSC_PHD"];
+const DEG_GROUPS  = ["OND_HND_NCE","BSC_BED_BA","PGD_MSC_PHD","PHD"];
 const PLAN_NAMES  = ["BASIC","STANDARD","PROFESSIONAL","PHD_PROFESSIONAL"];
 const PRICING_TYPES = ["FLAT","PER_CHAPTER"];
-const DEG_LBL:Record<string,string>  = {OND_HND_NCE:"HND/OND/NCE",BSC_BED_BA:"BSc/BEd/BA",PGD_MSC_PHD:"PGD/MSc/PhD"};
+const DEG_LBL:Record<string,string>  = {OND_HND_NCE:"HND/OND/NCE",BSC_BED_BA:"BSc/BEd/BA",PGD_MSC_PHD:"PGD/MSc",PHD:"PhD"};
 const PLAN_LBL:Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Professional"};
 
 const C = {
