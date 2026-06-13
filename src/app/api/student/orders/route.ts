@@ -1,6 +1,5 @@
+export const dynamic = "force-dynamic";
 // src/app/api/student/orders/route.ts
-// Returns orders for the logged-in student with full chapter status
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -14,55 +13,69 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const filter = searchParams.get("filter") || "all"; // all | active | completed | revision
+  const filter = searchParams.get("filter") || "all";
 
-  let statusFilter: OrderStatus[] | undefined;
-  if (filter === "active")    statusFilter = [OrderStatus.IN_PROGRESS, OrderStatus.QC_REVIEW, OrderStatus.PAYMENT_CONFIRMED, OrderStatus.PENDING_PAYMENT];
-  if (filter === "completed") statusFilter = [OrderStatus.DELIVERED];
-  if (filter === "revision")  statusFilter = [OrderStatus.REVISION_REQUESTED];
+  let where: any = { clientId: session.user.id };
 
-  const orders = await prisma.order.findMany({
-    where: {
-      clientId: session.user.id,
-      status:   statusFilter ? { in: statusFilter } : undefined,
-    },
-    include: {
-      plan: { select: { planName: true, degreeGroup: true, pricingType: true } },
-      chapters: {
-        select: {
-          id: true, chapterNumber: true, chapterLabel: true,
-          status: true, deliveredFileUrl: true, deliveredAt: true,
-          requiresPlagiarismCheck: false,
+  if (filter === "active") {
+    where.status = { in: [
+      OrderStatus.IN_PROGRESS,
+      OrderStatus.QC_REVIEW,
+      OrderStatus.PAYMENT_CONFIRMED,
+      OrderStatus.PENDING_PAYMENT,
+    ]};
+  } else if (filter === "completed") {
+    where.OR = [
+      { status: OrderStatus.DELIVERED },
+      { chapters: { some: { status: "DELIVERED" } } },
+    ];
+  }
+
+  try {
+    const orders = await prisma.order.findMany({
+      where,
+      include: {
+        plan: { select: { planName: true, degreeGroup: true, pricingType: true } },
+        chapters: {
+          select: {
+            id: true, chapterNumber: true, chapterLabel: true,
+            status: true, deliveredFileUrl: true, deliveredAt: true,
+          },
+          orderBy: { chapterNumber: "asc" },
         },
-        orderBy: { chapterNumber: "asc" },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    });
 
-  const formatted = orders.map(o => ({
-    id:          o.id,
-    topic:       o.topic,
-    department:  o.department,
-    degreeGroup: o.degreeGroup,
-    status:      o.status,
-    planName:    o.plan.planName,
-    paidAt:      o.paidAt,
-    createdAt:   o.createdAt,
-    paymentMethod:        (o as any).paymentMethod || "PAYSTACK",
-    bankTransferReference:(o as any).bankTransferReference || null,
-    chapters:    o.chapters.map(ch => ({
-      id:              ch.id,
-      chapterNumber:   ch.chapterNumber,
-      chapterLabel:    ch.chapterLabel,
-      status:          ch.status,
-      deliveredFileUrl: ch.deliveredFileUrl,
-      deliveredAt:     ch.deliveredAt,
-    })),
-    // Counts
-    totalChapters:     o.chapters.length,
-    deliveredChapters: o.chapters.filter(ch => ch.status === "DELIVERED").length,
-  }));
+    const formatted = orders.map(o => {
+      const raw = o as any;
+      return {
+        id:               o.id,
+        topic:            o.topic,
+        department:       o.department,
+        degreeGroup:      o.degreeGroup,
+        status:           o.status,
+        planName:         o.plan.planName,
+        paidAt:           o.paidAt,
+        createdAt:        o.createdAt,
+        paymentMethod:    raw.paymentMethod || "PAYSTACK",
+        bankTransferReference: raw.bankTransferReference || null,
+        chapters:         o.chapters.map(ch => ({
+          id:               ch.id,
+          chapterNumber:    ch.chapterNumber,
+          chapterLabel:     ch.chapterLabel,
+          status:           ch.status,
+          deliveredFileUrl: ch.deliveredFileUrl,
+          deliveredAt:      ch.deliveredAt,
+        })),
+        totalChapters:     o.chapters.length,
+        deliveredChapters: o.chapters.filter(ch => ch.status === "DELIVERED").length,
+      };
+    });
 
-  return NextResponse.json({ success: true, data: formatted });
+    return NextResponse.json({ success: true, data: formatted });
+  } catch (err: any) {
+    console.error("[ORDERS] Error:", err?.message);
+    return NextResponse.json({ error: err?.message }, { status: 500 });
+  }
 }
