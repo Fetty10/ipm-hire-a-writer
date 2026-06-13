@@ -363,6 +363,8 @@ model OrderChapter {
   // Notes/feedback
   writerNotes           String?  @db.Text
   adminNotes            String?  @db.Text
+  plagiarismScore       Int?
+  aiScore               Int?
   correctionNotes       String?  @db.Text
 
   createdAt       DateTime @default(now())
