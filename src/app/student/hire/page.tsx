@@ -58,7 +58,11 @@ export default function HireAWriter() {
   const router = useRouter();
   const [plans,      setPlans]      = useState<Plan[]>([]);
   const [otherSvcs,  setOtherSvcs]  = useState<any[]>([]);
-  const [loading,    setLoading]    = useState(false);
+  const [loading,      setLoading]      = useState(false);
+  const [bankAccount,  setBankAccount]  = useState<any>(null);
+  const [showBankModal,setShowBankModal]= useState(false);
+  const [bankPending,  setBankPending]  = useState(false);
+  const [bankDone,     setBankDone]     = useState<any>(null); // {reference, amountNaira}
 
   // Build full services list: project first, then dynamic others
   const SERVICES = [
@@ -74,14 +78,18 @@ export default function HireAWriter() {
   const [topic,        setTopic]        = useState("");
   const [department,   setDepartment]   = useState("");
   const [instructions, setInstructions] = useState("");
-  const [guidelineUrl, setGuidelineUrl] = useState("");
+  const [guidelineUrls, setGuidelineUrls] = useState<{url:string,name:string}[]>([]);
+  const [uploadingGuide, setUploadingGuide] = useState(false);
   const [errors,       setErrors]       = useState<Record<string,string>>({});
 
-  // Fetch other services on mount
+  // Fetch other services and bank account on mount
   useEffect(() => {
     fetch("/api/admin/other-services")
       .then(r => r.json())
       .then(d => { if (d.success) setOtherSvcs(d.data); });
+    fetch("/api/orders/bank-transfer")
+      .then(r => r.json())
+      .then(d => { if (d.success) setBankAccount(d.data); });
   }, []);
 
   // Fetch plans when degree group changes
@@ -135,6 +143,32 @@ export default function HireAWriter() {
     return Object.keys(e).length === 0;
   }
 
+  async function handleBankTransfer() {
+    if (!validate()) return;
+    setBankPending(true);
+    try {
+      const payload = {
+        planId:            isProject ? planId : "flat",
+        topic:             topic.trim(),
+        department:        department.trim(),
+        degreeGroup,
+        specialInstructions: instructions.trim() || undefined,
+        guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
+        chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
+        serviceType:       service.toUpperCase(),
+      };
+      const res  = await fetch("/api/orders/bank-transfer", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error); return; }
+      setBankDone({ reference: data.reference, amountNaira: data.amountNaira });
+      setShowBankModal(true);
+    } catch { toast.error("Something went wrong. Please try again."); }
+    finally { setBankPending(false); }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
@@ -147,7 +181,7 @@ export default function HireAWriter() {
         department:        department.trim(),
         degreeGroup,
         specialInstructions: instructions.trim() || undefined,
-        guidelineFileUrl:  guidelineUrl || undefined,
+        guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       service.toUpperCase(),
       };
@@ -307,11 +341,47 @@ export default function HireAWriter() {
             <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
               Upload School Format/Guideline <span className="font-400 normal-case text-navy-muted">(optional)</span>
             </label>
-            <FileUpload
-              folder="orders/guidelines"
-              label="Tap to upload your format guide"
-              onUpload={(url) => setGuidelineUrl(url)}
-            />
+            {/* Multi-file guideline upload — up to 5 files */}
+            <div className="flex flex-col gap-2">
+              {guidelineUrls.map((f,i) => (
+                <div key={i} className="flex items-center gap-2 bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-sm">
+                  <span className="text-sky-500">📎</span>
+                  <span className="flex-1 text-navy-DEFAULT font-600 truncate">{f.name}</span>
+                  <button type="button" className="text-red-400 hover:text-red-600 text-xs font-700"
+                    onClick={()=>setGuidelineUrls(prev=>prev.filter((_,j)=>j!==i))}>✕</button>
+                </div>
+              ))}
+              {guidelineUrls.length < 5 && (
+                <div
+                  onClick={()=>{
+                    if(uploadingGuide) return;
+                    const inp=document.createElement("input");
+                    inp.type="file"; inp.accept=".pdf,.doc,.docx";
+                    inp.onchange=async(e)=>{
+                      const file=(e.target as HTMLInputElement).files?.[0];
+                      if(!file) return;
+                      if(file.size>20*1024*1024){toast.error("Max 20MB per file");return;}
+                      setUploadingGuide(true);
+                      const fd=new FormData(); fd.append("file",file); fd.append("folder","orders/guidelines");
+                      const res=await fetch("/api/upload",{method:"POST",body:fd});
+                      const data=await res.json();
+                      if(res.ok) setGuidelineUrls(prev=>[...prev,{url:data.url,name:file.name}]);
+                      else toast.error(data.error||"Upload failed");
+                      setUploadingGuide(false);
+                    };
+                    inp.click();
+                  }}
+                  className="border-2 border-dashed border-sky-200 rounded-xl p-4 text-center cursor-pointer hover:border-sky-400 hover:bg-sky-50 transition-all">
+                  {uploadingGuide
+                    ? <p className="text-sm text-navy-muted">Uploading...</p>
+                    : <><p className="text-sm font-600 text-navy-DEFAULT">📎 {guidelineUrls.length===0?"Upload Format/Guideline":"Add Another File"}</p>
+                       <p className="text-xs text-navy-muted mt-1">PDF or Word · Max 20MB · Up to 5 files</p></>}
+                </div>
+              )}
+              {guidelineUrls.length > 0 && (
+                <p className="text-xs text-sky-600 font-600">{guidelineUrls.length} file{guidelineUrls.length>1?"s":""} selected</p>
+              )}
+            </div>
           </div>
 
           {/* Payment Summary */}
@@ -334,6 +404,7 @@ export default function HireAWriter() {
             </div>
           )}
 
+          {/* Pay with Paystack */}
           <button type="submit" disabled={loading || !showSummary}
             className={`w-full py-4 rounded-xl font-700 text-sm transition-all flex items-center justify-center gap-2 ${
               showSummary && !loading
@@ -343,7 +414,68 @@ export default function HireAWriter() {
             {loading ? <><Spinner size="sm" /> Processing...</> : `💳 Pay ₦${total.toLocaleString()} with Paystack →`}
           </button>
 
-          <p className="text-xs text-navy-muted text-center">🔒 Secure payment powered by Paystack</p>
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-sky-100"/>
+            <span className="text-xs text-navy-muted font-600">OR</span>
+            <div className="flex-1 h-px bg-sky-100"/>
+          </div>
+
+          {/* Pay via Bank Transfer */}
+          <button type="button" disabled={bankPending || !showSummary}
+            onClick={handleBankTransfer}
+            className={`w-full py-4 rounded-xl font-700 text-sm border-2 transition-all flex items-center justify-center gap-2 ${
+              showSummary && !bankPending
+                ? "border-sky-400 text-sky-600 hover:bg-sky-50"
+                : "border-sky-100 text-navy-muted cursor-not-allowed"
+            }`}>
+            {bankPending ? <><Spinner size="sm" /> Please wait...</> : `🏦 Pay ₦${total.toLocaleString()} via Bank Transfer`}
+          </button>
+
+          <p className="text-xs text-navy-muted text-center">🔒 Secure payment · Pay online or via bank transfer</p>
+
+          {/* Bank Transfer Modal */}
+          {showBankModal && bankDone && bankAccount && (
+            <div className="fixed inset-0 bg-navy-DEFAULT/60 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+                <div className="text-center mb-4">
+                  <div className="text-3xl mb-2">🏦</div>
+                  <h3 className="font-clash text-lg font-800 text-navy-DEFAULT">Transfer Payment Details</h3>
+                  <p className="text-xs text-navy-muted mt-1">Transfer the exact amount and use the reference below</p>
+                </div>
+
+                <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 mb-4 flex flex-col gap-2">
+                  {[
+                    { label:"Bank",           val: bankAccount.bankName },
+                    { label:"Account Name",   val: bankAccount.accountName },
+                    { label:"Account Number", val: bankAccount.accountNumber },
+                    { label:"Amount",         val: `₦${bankDone.amountNaira.toLocaleString()}` },
+                    { label:"Reference",      val: bankDone.reference },
+                  ].map(r => (
+                    <div key={r.label} className="flex justify-between text-sm">
+                      <span className="text-navy-muted">{r.label}</span>
+                      <span className="font-700 text-navy-DEFAULT">{r.val}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-xs text-amber-800 leading-relaxed">
+                  ⚠️ <strong>Important:</strong> Use <strong>{bankDone.reference}</strong> as your payment narration/description so we can identify your transfer. Your order will be activated within 30 minutes of payment confirmation during business hours.
+                </div>
+
+                <button
+                  onClick={() => { setShowBankModal(false); window.location.href = "/student/dashboard"; }}
+                  className="w-full py-3 rounded-xl bg-sky-400 text-navy-DEFAULT font-700 text-sm">
+                  I Have Made the Transfer →
+                </button>
+                <button
+                  onClick={() => setShowBankModal(false)}
+                  className="w-full py-2 mt-2 text-xs text-navy-muted">
+                  Go Back
+                </button>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </StudentLayout>
