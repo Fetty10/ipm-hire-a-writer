@@ -243,6 +243,7 @@ model OtherService {
   priceOND    Int      @default(0)
   priceBSC    Int      @default(0)
   pricePGD    Int      @default(0)
+  pricePHD    Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
