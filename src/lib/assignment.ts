@@ -24,25 +24,29 @@ const PRELIM_REQUIRED_CHAPTER = 1;
 
 async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
   // Get all approved, non-suspended staff of this role
+  // Order by createdAt so older staff get priority when counts are tied
   const staffList = await prisma.user.findMany({
     where: {
       role,
       isApproved:  true,
       isSuspended: false,
     },
-    select: { id: true },
+    select:  { id: true },
+    orderBy: { createdAt: "asc" }, // older staff first as tiebreaker
   });
 
   if (staffList.length === 0) return null;
 
-  // Count active chapters per staff member
+  // Count active chapters per staff member (NOT_STARTED + IN_PROGRESS + SUBMITTED + QC_IN_PROGRESS)
   const activeCounts = await Promise.all(
     staffList.map(async (staff) => {
       const count = await prisma.orderChapter.count({
         where: {
           assignedToId: staff.id,
           status: {
-            notIn: [ChapterStatus.DELIVERED, ChapterStatus.QC_DONE],
+            // Only count chapters the staff member is still responsible for
+            // QC_IN_PROGRESS, SUBMITTED, QC_DONE, DELIVERED = staff done their part
+            in: [ChapterStatus.NOT_STARTED, ChapterStatus.IN_PROGRESS, ChapterStatus.PRELIM_SUBMITTED],
           },
         },
       });
@@ -50,7 +54,7 @@ async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
     })
   );
 
-  // Sort ascending — pick the one with the least active jobs
+  // Sort ascending by count — stable sort preserves createdAt order for ties
   activeCounts.sort((a, b) => a.count - b.count);
   return activeCounts[0].id;
 }
