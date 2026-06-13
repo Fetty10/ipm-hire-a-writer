@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 // src/components/student/AddChaptersModal.tsx
 // Reusable modal for adding chapters to an existing order
 
@@ -64,13 +65,13 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
   }
 
   async function handleUpload(file: File) {
-    if (file.size > 20*1024*1024) { alert("Max 20MB"); return; }
+    if (file.size > 20*1024*1024) { toast.error("Max 20MB"); return; }
     setUploading(true);
     const fd = new FormData(); fd.append("file", file); fd.append("folder", "orders/guidelines");
     const res  = await fetch("/api/upload", { method:"POST", body:fd });
     const data = await res.json();
     if (res.ok) { setGuideUrl(data.url); setGuideName(data.fileName||file.name); }
-    else alert(data.error||"Upload failed");
+    else toast.error(data.error||"Upload failed" || "Something went wrong");
     setUploading(false);
   }
 
@@ -83,7 +84,7 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
     });
     const data = await res.json();
     if (res.ok) window.location.href = data.paymentUrl;
-    else { alert(data.error); setSubmitting(false); }
+    else { toast.error(data.error || "Something went wrong"); setSubmitting(false); }
   }
 
   const total = info ? (info.pricingType === "PER_CHAPTER" ? info.pricePerChapter * selected.length : info.pricePerChapter) : 0;
