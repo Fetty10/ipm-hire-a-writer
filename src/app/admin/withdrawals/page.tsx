@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -41,8 +42,8 @@ export default function AdminWithdrawals() {
     setActing(withdrawalId+action);
     const res  = await fetch("/api/withdrawals",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({withdrawalId,action})});
     const data = await res.json();
-    if(res.ok){ alert(data.message); setPending(prev=>prev.filter(w=>w.id!==withdrawalId)); }
-    else alert(data.error);
+    if(res.ok){ toast.success(data.message); setPending(prev=>prev.filter(w=>w.id!==withdrawalId)); }
+    else toast.error(data.error || "Something went wrong");
     setActing(null);
   }
 
