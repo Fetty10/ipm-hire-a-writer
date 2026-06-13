@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     : plan.priceKobo;
 
   // Generate unique reference
-  const reference = `IPM-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+  const reference = `IPM-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
 
   // Create order
   const order = await prisma.order.create({
