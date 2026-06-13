@@ -232,6 +232,20 @@ model JournalPricing {
   updatedAt   DateTime    @updatedAt
 }
 
+model OtherService {
+  id          String   @id @default(cuid())
+  label       String
+  value       String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  priceOND    Int      @default(0)
+  priceBSC    Int      @default(0)
+  pricePGD    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // ─────────────────────────────────────────
 // PAY RATES (Admin-editable per role/chapter)
 // ─────────────────────────────────────────
