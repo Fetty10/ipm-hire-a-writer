@@ -1,7 +1,6 @@
 // src/app/api/student/downloads/route.ts
 // Returns all delivered chapters for the logged-in student
 
-export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -41,6 +40,8 @@ export async function GET() {
     fileUrl:         ch.deliveredFileUrl,
     deliveredAt:     ch.deliveredAt,
     isQcCleared:     !!ch.qcFileUrl,
+    plagiarismScore: (ch as any).plagiarismScore ?? null,
+    aiScore:         (ch as any).aiScore ?? null,
   }));
 
   return NextResponse.json({ success: true, data: downloads });
