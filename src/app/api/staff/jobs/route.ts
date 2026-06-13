@@ -29,43 +29,54 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const filter = (searchParams.get("status") || "all") as keyof typeof STATUS_GROUPS;
-  const search = searchParams.get("search") || "";
+  const filter  = (searchParams.get("status") || "all") as keyof typeof STATUS_GROUPS;
+  const search  = searchParams.get("search") || "";
+  const page    = parseInt(searchParams.get("page") || "1");
+  const perPage = filter === "delivered" ? 15 : 50; // paginate delivered tab
 
   const statuses = STATUS_GROUPS[filter] || STATUS_GROUPS.all;
 
-  const chapters = await prisma.orderChapter.findMany({
-    where: {
-      assignedToId: session.user.id,
-      status:       { in: statuses },
-      ...(search
-        ? { order: { topic: { contains: search, mode: "insensitive" } } }
-        : {}),
-    },
-    include: {
-      order: {
-        select: {
-          id:                  true,
-          topic:               true,
-          department:          true,
-          degreeGroup:         true,
-          specialInstructions: true,
-          guidelineFileUrl:    true,
-          requiresPlagiarismCheck: true,
-          requiresAiCheck:     true,
-          isExceptionDept:     true,
-          plan: {
-            select: {
-              planName:    true,
-              degreeGroup: true,
-              // NOTE: do NOT include priceKobo — staff must not see what student paid
+  const where = {
+    assignedToId: session.user.id,
+    status:       { in: statuses },
+    ...(search ? { order: { topic: { contains: search, mode: "insensitive" } } } : {}),
+  };
+
+  // Sort delivered by most recent deliveredAt, others by createdAt
+  const orderBy = filter === "delivered"
+    ? { deliveredAt: "desc" as const }
+    : { createdAt:   "desc" as const };
+
+  const [chapters, total] = await Promise.all([
+    prisma.orderChapter.findMany({
+      where,
+      include: {
+        order: {
+          select: {
+            id:                  true,
+            topic:               true,
+            department:          true,
+            degreeGroup:         true,
+            specialInstructions: true,
+            guidelineFileUrl:    true,
+            requiresPlagiarismCheck: true,
+            requiresAiCheck:     true,
+            isExceptionDept:     true,
+            plan: {
+              select: {
+                planName:    true,
+                degreeGroup: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy,
+      skip:  (page - 1) * perPage,
+      take:  perPage,
+    }),
+    prisma.orderChapter.count({ where }),
+  ]);
 
   // For Chapter 3 & 4 (analyst jobs), also fetch the writer's prelim notes
   // from Chapter 1 of the same order — so analyst has context
@@ -122,5 +133,5 @@ export async function GET(req: NextRequest) {
     })
   );
 
-  return NextResponse.json({ success: true, data: enriched });
+  return NextResponse.json({ success: true, data: enriched, total, page, pages: Math.ceil(total / perPage) });
 }
