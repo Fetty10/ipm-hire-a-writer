@@ -1,80 +1,83 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
+import DeadlineTimer from "@/components/staff/DeadlineTimer";
 
-const QC_NAV = [
-  { label:"Dashboard",             icon:"📊", href:"/qc/dashboard"           },
-  { label:"Pending Checks",        icon:"🔍", href:"/qc/checks/pending"       },
-  { label:"Active Checks",         icon:"⚙️", href:"/qc/checks/active"        },
-  { label:"Cleared & Sent",        icon:"✅", href:"/qc/checks/cleared"       },
-  { label:"Pending Corrections",   icon:"🔧", href:"/qc/corrections/pending"  },
-  { label:"Working on Corrections",icon:"✏️", href:"/qc/corrections/active"   },
-  { label:"Corrections Sent",      icon:"📨", href:"/qc/corrections/done"     },
-  { label:"Earnings",              icon:"💰", href:"/qc/earnings"             },
-  { label:"Withdraw",              icon:"🏦", href:"/qc/withdraw"             },
-  { label:"Notifications",         icon:"🔔", href:"/qc/notifications"        },
-  { label:"Profile",               icon:"👤", href:"/qc/profile"              },
+const NAV = [
+  { label:"Dashboard",      icon:"📊", href:"/qc/dashboard" },
+  { label:"Pending Checks", icon:"📋", href:"/qc/checks/pending" },
+  { label:"Active Checks",  icon:"🔍", href:"/qc/checks/active" },
+  { label:"Cleared",        icon:"✅", href:"/qc/checks/cleared" },
+  { label:"Corrections",    icon:"🔧", href:"/qc/corrections/pending" },
+  { label:"Earnings",       icon:"💰", href:"/qc/earnings" },
+  { label:"Withdraw",       icon:"🏦", href:"/qc/withdraw" },
+  { label:"Notifications",  icon:"🔔", href:"/qc/notifications" },
+  { label:"Profile",        icon:"👤", href:"/qc/profile" },
 ];
 
 const C = {
-  page:  { maxWidth:"640px", margin:"0 auto" },
-  h1:    { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
-  sub:   { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.5rem" },
-  card:  { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", boxShadow:"0 2px 12px rgba(14,165,233,.06)", padding:"1.25rem", marginBottom:"1rem" },
-  head:  { display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"1rem", marginBottom:"1rem" },
-  title: { fontFamily:"'Syne',sans-serif", fontSize:".9rem", fontWeight:700, color:"#0C1A2E" },
-  meta:  { fontSize:".75rem", color:"#5B7EA6", marginTop:".25rem" },
-  badge: { display:"inline-flex", padding:"3px 10px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, background:"#FEF9C3", color:"#854D0E", flexShrink:0 as const },
-  tags:  { display:"flex", gap:".4rem", flexWrap:"wrap" as const, marginBottom:"1rem" },
-  tag:   { padding:"2px 8px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, background:"#FEF9C3", color:"#854D0E" },
-  files: { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem" },
-  filest:{ fontSize:".65rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0369A1", marginBottom:".5rem" },
-  flink: { display:"block", fontSize:".78rem", fontWeight:600, color:"#0369A1", textDecoration:"none", marginBottom:".3rem" },
-  fg:    { marginBottom:"1rem" },
-  lbl:   { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0C1A2E", display:"block", marginBottom:".4rem" },
-  ta:    { width:"100%", padding:".65rem 1rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"vertical" as const, minHeight:"70px", boxSizing:"border-box" as const },
-  inp:   { width:"100%", padding:".65rem 1rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" as const },
-  upzone:{ border:"2px dashed #BAE6FD", borderRadius:"12px", padding:"1.5rem", textAlign:"center" as const, cursor:"pointer", background:"#F0F9FF", marginBottom:".9rem" },
-  upzoneOk:{ border:"2px dashed #4ADE80", borderRadius:"12px", padding:"1.5rem", textAlign:"center" as const, cursor:"pointer", background:"rgba(74,222,128,.04)", marginBottom:".9rem" },
-  upi:   { fontSize:"1.5rem", marginBottom:".4rem" },
-  uplbl: { fontSize:".82rem", fontWeight:600, color:"#0C1A2E" },
-  upok:  { fontSize:".82rem", fontWeight:600, color:"#16A34A" },
-  upsub: { fontSize:".72rem", color:"#5B7EA6", marginTop:".2rem" },
-  btnP:  { padding:".65rem 1.25rem", borderRadius:"10px", background:"#38BDF8", color:"#0C1A2E", fontSize:".85rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", width:"100%", marginBottom:".75rem" },
-  btnPd: { opacity:.4, cursor:"not-allowed" as const },
-  escBox:{ background:"#FFF7ED", border:"1px solid #FED7AA", borderRadius:"12px", padding:"1rem", marginTop:".5rem" },
-  esct:  { fontSize:".82rem", fontWeight:700, color:"#9A3412", display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" },
-  escsub:{ fontSize:".72rem", color:"#CA8A04", marginTop:".3rem", marginBottom:".75rem" },
-  escTa: { width:"100%", padding:".65rem 1rem", borderRadius:"10px", border:"1px solid #FED7AA", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"vertical" as const, minHeight:"70px", boxSizing:"border-box" as const, background:"#fff", marginBottom:".75rem" },
-  escBtn:{ padding:".6rem 1.25rem", borderRadius:"10px", background:"#FEF9C3", color:"#854D0E", fontSize:".82rem", fontWeight:700, border:"1px solid #FDE68A", cursor:"pointer" },
-  empty: { textAlign:"center" as const, padding:"4rem 1rem" },
-  eicon: { fontSize:"2.5rem", marginBottom:".75rem" },
-  etitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
+  page:   { maxWidth:"640px", margin:"0 auto" },
+  h1:     { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", letterSpacing:"-.02em", marginBottom:".25rem" },
+  sub:    { fontSize:".85rem", color:"#5B7EA6", marginBottom:"1.5rem" },
+  card:   { background:"#fff", borderRadius:"16px", border:"1.5px solid #E0F2FE", boxShadow:"0 2px 12px rgba(14,165,233,.06)", padding:"1.25rem", marginBottom:"1rem" },
+  chead:  { display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"1rem", marginBottom:".75rem" },
+  ctitle: { fontFamily:"'Syne',sans-serif", fontSize:".9rem", fontWeight:700, color:"#0C1A2E" },
+  cmeta:  { fontSize:".75rem", color:"#5B7EA6", marginTop:".25rem" },
+  badges: { display:"flex", gap:".4rem", flexWrap:"wrap" as const, marginBottom:"1rem" },
+  badge:  { display:"inline-flex", padding:"3px 10px", borderRadius:"999px", fontSize:".68rem", fontWeight:700, background:"#EDE9FE", color:"#5B21B6", flexShrink:0 as const },
+  info:   { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem" },
+  infot:  { fontSize:".65rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0369A1", marginBottom:".3rem" },
+  infov:  { fontSize:".82rem", color:"#0C1A2E", lineHeight:1.5 },
+  chk:    { display:"flex", gap:"1rem", marginBottom:"1rem", flexWrap:"wrap" as const },
+  chkItem:{ display:"flex", alignItems:"center", gap:".4rem", fontSize:".82rem", color:"#0C1A2E", fontWeight:600 },
+  chkBox: { width:"18px", height:"18px", borderRadius:"4px", border:"2px solid #BAE6FD", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
+  chkBoxC:{ width:"18px", height:"18px", borderRadius:"4px", background:"#38BDF8", border:"2px solid #38BDF8", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
+  fg:     { marginBottom:".9rem" },
+  lbl:    { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0C1A2E", display:"block", marginBottom:".4rem" },
+  ta:     { width:"100%", padding:".65rem 1rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".82rem", fontFamily:"'DM Sans',sans-serif", outline:"none", resize:"vertical" as const, minHeight:"70px", boxSizing:"border-box" as const },
+  btnP:   { padding:".65rem 1.25rem", borderRadius:"10px", background:"#38BDF8", color:"#0C1A2E", fontSize:".85rem", fontWeight:700, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", width:"100%" },
+  btnPd:  { opacity:.4, cursor:"not-allowed" as const },
+  dlBtn:  { display:"inline-flex", alignItems:"center", gap:".3rem", fontSize:".78rem", fontWeight:600, color:"#0369A1", textDecoration:"none", marginBottom:"1rem" },
+  empty:  { textAlign:"center" as const, padding:"4rem 1rem" },
+  eicon:  { fontSize:"2.5rem", marginBottom:".75rem" },
+  etitle: { fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:700, color:"#0C1A2E" },
+  esub:   { fontSize:".83rem", color:"#5B7EA6", marginTop:".3rem" },
 };
 
-const DEG:Record<string,string> = {OND_HND_NCE:"HND/OND",BSC_BED_BA:"BSc/BEd",PGD_MSC_PHD:"PGD/MSc"};
+const DEG:Record<string,string>  = {OND_HND_NCE:"HND/OND",BSC_BED_BA:"BSc/BEd",PGD_MSC_PHD:"PGD/MSc"};
+const PLAN:Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Pro"};
 
 export default function QCChecksActive() {
   const { data: session } = useSession();
   const [jobs,    setJobs]    = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search,  setSearch]  = useState("");
   const [state,   setState]   = useState<Record<string,any>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res  = await fetch(`/api/qc/jobs?flow=checks&status=active&search=${encodeURIComponent(search)}`);
+    const res  = await fetch("/api/qc/jobs?flow=checks&status=active");
     const data = await res.json();
     if (data.success) {
       setJobs(data.data);
       const init:any = {};
-      data.data.forEach((j:any) => { init[j.id] = { fileUrl:"", notes:"", uploading:false, submitting:false, score:"", escalateOpen:false, escNotes:"", escalating:false }; });
+      data.data.forEach((j:any) => {
+        init[j.id] = {
+          plagOk:   false,
+          aiOk:     false,
+          fileUrl:  "",
+          fileName: "",
+          notes:    "",
+          uploading:false,
+          submitting:false,
+        };
+      });
       setState(init);
     }
     setLoading(false);
-  }, [search]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -83,142 +86,116 @@ export default function QCChecksActive() {
   }
 
   async function handleUpload(jobId:string, file:File) {
-    if (file.size > 20*1024*1024) { alert("Max 20MB"); return; }
+    if (file.size > 20*1024*1024) { toast.error("Max 20MB"); return; }
     upd(jobId,"uploading",true);
     const fd = new FormData(); fd.append("file",file); fd.append("folder","chapters/qc-cleared");
     const res  = await fetch("/api/upload",{method:"POST",body:fd});
     const data = await res.json();
     if (res.ok) { upd(jobId,"fileUrl",data.url); upd(jobId,"fileName",data.fileName); }
-    else alert(data.error||"Upload failed");
+    else toast.error(data.error||"Upload failed" || "Something went wrong");
     upd(jobId,"uploading",false);
   }
 
-  async function handleClear(jobId:string) {
-    const s = state[jobId];
-    if (!s?.fileUrl) { alert("Please upload the cleared file first."); return; }
-    upd(jobId,"submitting",true);
-    const res  = await fetch("/api/chapters/qc-clear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      chapterId:jobId, clearedFileUrl:s.fileUrl, qcNotes:s.notes||undefined, plagiarismScore:s.score||undefined,
-    })});
+  async function handleClear(job:any) {
+    const s = state[job.id];
+    if (!s?.fileUrl) { toast.success("Upload the cleared chapter file first."); return; }
+    upd(job.id,"submitting",true);
+    const res = await fetch("/api/chapters/qc-clear",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ chapterId:job.id, fileUrl:s.fileUrl, qcNotes:s.notes||undefined,
+        plagiarismCleared:s.plagOk, aiCleared:s.aiOk }),
+    });
     const data = await res.json();
-    if (res.ok) { alert("Chapter cleared and delivered to student!"); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
-    else alert(data.error);
-    upd(jobId,"submitting",false);
-  }
-
-  async function handleEscalate(jobId:string) {
-    const s = state[jobId];
-    if (!s.escNotes.trim()) { alert("Please provide instructions for the writer."); return; }
-    upd(jobId,"escalating",true);
-    const res  = await fetch("/api/chapters/qc-escalate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      chapterId:jobId, escalationType:"corrections", instructionsForWriter:s.escNotes,
-    })});
-    const data = await res.json();
-    if (res.ok) { alert(data.message); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
-    else alert(data.error);
-    upd(jobId,"escalating",false);
-  }
-
-  function getGuideUrls(url:string|null) {
-    if (!url) return [];
-    return url.split(",").map(u=>u.trim()).filter(Boolean);
+    if (res.ok) { toast.success("Chapter cleared and delivered to student!"); setJobs(prev=>prev.filter(j=>j.id!==job.id)); }
+    else toast.error(data.error || "Something went wrong");
+    upd(job.id,"submitting",false);
   }
 
   const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
-  const nav = QC_NAV.map(item => item.href==="/qc/checks/active" ? {...item,badge:jobs.length} : item);
+  const nav = NAV.map(item=>item.href==="/qc/checks/active"?{...item,badge:jobs.length}:item);
 
   return (
-    <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={nav} role="QC" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>Active Checks</h1>
-        <p style={C.sub}>Run your checks, upload the cleared file and send to student.</p>
-
-        <div style={{position:"relative",marginBottom:"1.25rem"}}>
-          <span style={{position:"absolute",left:".75rem",top:"50%",transform:"translateY(-50%)",fontSize:".85rem"}}>🔍</span>
-          <input style={{width:"100%",padding:".65rem 1rem .65rem 2.2rem",borderRadius:"10px",border:"1.5px solid #BAE6FD",fontSize:".85rem",fontFamily:"'DM Sans',sans-serif",outline:"none",boxSizing:"border-box" as const}}
-            placeholder="Search by topic..." value={search} onChange={e=>setSearch(e.target.value)} />
-        </div>
+        <p style={C.sub}>You have 24 hours to clear each chapter after starting a check.</p>
 
         {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
         : jobs.length===0 ? (
           <div style={C.empty}>
-            <div style={C.eicon}>⚙️</div>
+            <div style={C.eicon}>🔍</div>
             <div style={C.etitle}>No active checks.</div>
+            <div style={C.esub}>Claim a chapter from Pending Checks to start.</div>
           </div>
         ) : jobs.map((job:any) => {
           const s = state[job.id]||{};
-          const guideUrls = getGuideUrls(job.guidelineFileUrl);
+          const checksRequired = (job.requiresPlagiarism ? s.plagOk : true) && (job.requiresAI ? s.aiOk : true);
+          const canSubmit = s.fileUrl && checksRequired;
           return (
             <div key={job.id} style={C.card}>
-              <div style={C.head}>
+              <div style={C.chead}>
                 <div>
-                  <div style={C.title}>{job.chapterLabel}</div>
-                  <div style={C.meta}>{job.topic}</div>
-                  <div style={C.meta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup} · {job.planName}</div>
+                  <div style={C.ctitle}>{job.chapterLabel}</div>
+                  <div style={C.cmeta}>{job.topic}</div>
+                  <div style={C.cmeta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup} · {PLAN[job.planName]||job.planName}</div>
                 </div>
-                <span style={C.badge}>Active</span>
               </div>
 
-              <div style={C.tags}>
-                {job.requiresPlagiarism && <span style={C.tag}>🔍 Plagiarism Check</span>}
-                {job.requiresAI && <span style={{...C.tag,background:"#EDE9FE",color:"#5B21B6"}}>🤖 AI Check</span>}
-              </div>
-
-              <div style={C.files}>
-                <div style={C.filest}>Files</div>
-                {job.submittedFileUrl && (
-                  <a href={job.submittedFileUrl} target="_blank" rel="noreferrer" style={C.flink}>⬇ Download Submitted Chapter</a>
-                )}
-                {guideUrls.map((url:string,i:number) => (
-                  <a key={i} href={url} target="_blank" rel="noreferrer" style={C.flink}>
-                    📎 Guideline {guideUrls.length>1?`File ${i+1}`:"File"}
-                  </a>
-                ))}
+              {/* Status + 24h Timer */}
+              <div style={C.badges}>
+                <span style={C.badge}>QC Active</span>
+                {job.deadlineAt && <DeadlineTimer deadlineAt={job.deadlineAt} />}
               </div>
 
               {job.specialInstructions && (
-                <div style={{background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:"10px",padding:".75rem 1rem",marginBottom:"1rem",fontSize:".78rem",color:"#0369A1"}}>
-                  <div style={{fontSize:".65rem",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:".08em",marginBottom:".3rem"}}>Student Instructions</div>
-                  {job.specialInstructions}
+                <div style={C.info}>
+                  <div style={C.infot}>Student Instructions</div>
+                  <div style={C.infov}>{job.specialInstructions}</div>
                 </div>
               )}
 
-              <div style={C.fg}>
-                <label style={C.lbl}>Plagiarism Score % <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0,color:"#5B7EA6"}}>(optional)</span></label>
-                <input style={C.inp} type="number" min="0" max="100" placeholder="e.g. 12" value={s.score||""} onChange={e=>upd(job.id,"score",e.target.value)} />
-              </div>
+              {job.submittedFileUrl && (
+                <a href={job.submittedFileUrl} target="_blank" rel="noreferrer" style={C.dlBtn}>
+                  📄 Download Chapter to Review
+                </a>
+              )}
 
-              <div style={C.fg}>
-                <label style={C.lbl}>QC Notes <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0,color:"#5B7EA6"}}>(optional)</span></label>
-                <textarea style={C.ta} rows={3} placeholder="Any notes about this check..." value={s.notes||""} onChange={e=>upd(job.id,"notes",e.target.value)} />
-              </div>
-
-              <div style={s.fileUrl?C.upzoneOk:C.upzone}
-                onClick={()=>{ const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};inp.click(); }}>
-                {s.uploading ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
-                : s.fileUrl  ? <div><div style={C.upi}>✅</div><div style={C.upok}>{s.fileName||"File uploaded"}</div><div style={C.upsub}>Tap to replace</div></div>
-                : <div><div style={C.upi}>📄</div><div style={C.uplbl}>Upload Cleared Chapter</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
-              </div>
-
-              <button style={{...C.btnP,...(!s.fileUrl?C.btnPd:{})}} disabled={!s.fileUrl||s.submitting} onClick={()=>handleClear(job.id)}>
-                {s.submitting?"Sending...":"✅ Clear & Send to Student →"}
-              </button>
-
-              <div style={C.escBox}>
-                <div style={C.esct} onClick={()=>upd(job.id,"escalateOpen",!s.escalateOpen)}>
-                  <span>🔧 Send Back to Writer</span>
-                  <span>{s.escalateOpen?"▲":"▼"}</span>
+              {/* QC Checklist */}
+              {(job.requiresPlagiarism || job.requiresAI) && (
+                <div style={C.chk}>
+                  {job.requiresPlagiarism && (
+                    <div style={C.chkItem} onClick={()=>upd(job.id,"plagOk",!s.plagOk)}>
+                      <div style={s.plagOk?C.chkBoxC:C.chkBox}>{s.plagOk&&<span style={{color:"#fff",fontSize:".7rem"}}>✓</span>}</div>
+                      Plagiarism check passed
+                    </div>
+                  )}
+                  {job.requiresAI && (
+                    <div style={C.chkItem} onClick={()=>upd(job.id,"aiOk",!s.aiOk)}>
+                      <div style={s.aiOk?C.chkBoxC:C.chkBox}>{s.aiOk&&<span style={{color:"#fff",fontSize:".7rem"}}>✓</span>}</div>
+                      AI detection check passed
+                    </div>
+                  )}
                 </div>
-                <div style={C.escsub}>Use if the chapter needs content corrections before it can be cleared.</div>
-                {s.escalateOpen && (
-                  <>
-                    <textarea style={C.escTa} rows={3} placeholder="Be specific about what the writer needs to fix..." value={s.escNotes||""} onChange={e=>upd(job.id,"escNotes",e.target.value)} />
-                    <button style={C.escBtn} disabled={s.escalating} onClick={()=>handleEscalate(job.id)}>
-                      {s.escalating?"Sending...":"🔧 Send Back to Writer →"}
-                    </button>
-                  </>
-                )}
+              )}
+
+              {/* Upload cleared file */}
+              <div style={{border:"2px dashed "+(s.fileUrl?"#4ADE80":"#BAE6FD"),borderRadius:"12px",padding:"1.25rem",textAlign:"center" as const,cursor:"pointer",background:s.fileUrl?"rgba(74,222,128,.04)":"#F0F9FF",marginBottom:".9rem"}}
+                onClick={()=>{const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};inp.click();}}>
+                {s.uploading
+                  ? <div><div style={{fontSize:"1.5rem",marginBottom:".4rem"}}>⏳</div><div style={{fontSize:".82rem",fontWeight:600,color:"#0C1A2E"}}>Uploading...</div></div>
+                  : s.fileUrl
+                  ? <div><div style={{fontSize:"1.5rem",marginBottom:".4rem"}}>✅</div><div style={{fontSize:".82rem",fontWeight:600,color:"#16A34A"}}>{s.fileName||"File uploaded"}</div><div style={{fontSize:".72rem",color:"#5B7EA6",marginTop:".2rem"}}>Tap to replace</div></div>
+                  : <div><div style={{fontSize:"1.5rem",marginBottom:".4rem"}}>📄</div><div style={{fontSize:".82rem",fontWeight:600,color:"#0C1A2E"}}>Upload Cleared Chapter</div><div style={{fontSize:".72rem",color:"#5B7EA6",marginTop:".2rem"}}>PDF or Word · Max 20MB</div></div>}
               </div>
+
+              <div style={C.fg}>
+                <label style={C.lbl}>QC Notes (optional)</label>
+                <textarea style={C.ta} rows={2} placeholder="Any notes on this chapter..." value={s.notes||""} onChange={e=>upd(job.id,"notes",e.target.value)} />
+              </div>
+
+              <button style={{...C.btnP,...(!canSubmit?C.btnPd:{})}} disabled={!canSubmit||s.submitting} onClick={()=>handleClear(job)}>
+                {s.submitting?"Clearing...":`✅ Clear & Deliver ${job.chapterLabel} →`}
+              </button>
             </div>
           );
         })}
