@@ -1,146 +1,128 @@
 export const dynamic = "force-dynamic";
 // src/app/api/chapters/reject/route.ts
-// Called when a writer/analyst/QC rejects an assigned job
-// Reassigns to the next available staff with fewest active jobs
-// If nobody available, notifies admin
-
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ChapterStatus, Role, AssigneeRole } from "@prisma/client";
-
-// Map Role → AssigneeRole
-const ROLE_MAP: Partial<Record<Role, AssigneeRole>> = {
-  [Role.WRITER]:  AssigneeRole.WRITER,
-  [Role.ANALYST]: AssigneeRole.ANALYST,
-  [Role.QC]:      AssigneeRole.QC,
-};
-
-async function getNextAvailableStaff(
-  role: Role,
-  excludeUserId: string
-): Promise<string | null> {
-  const staff = await prisma.user.findMany({
-    where: {
-      role,
-      isApproved:  true,
-      isSuspended: false,
-      id:          { not: excludeUserId },
-    },
-    select: { id: true },
-  });
-
-  if (staff.length === 0) return null;
-
-  const counts = await Promise.all(
-    staff.map(async (s) => ({
-      id: s.id,
-      count: await prisma.orderChapter.count({
-        where: {
-          assignedToId: s.id,
-          status: {
-            notIn: [ChapterStatus.DELIVERED, ChapterStatus.QC_DONE],
-          },
-        },
-      }),
-    }))
-  );
-
-  counts.sort((a, b) => a.count - b.count);
-  return counts[0]?.id ?? null;
-}
+import { ChapterStatus, Role } from "@prisma/client";
+import { sendJobAssignedEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  if (!session?.user || ![Role.WRITER, Role.ANALYST].includes(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const role = session.user.role;
-  if (![Role.WRITER, Role.ANALYST, Role.QC].includes(role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   const { chapterId } = await req.json();
-  if (!chapterId) {
-    return NextResponse.json({ error: "chapterId is required." }, { status: 400 });
-  }
+  if (!chapterId) return NextResponse.json({ error: "chapterId required." }, { status: 400 });
 
-  const chapter = await prisma.orderChapter.findFirst({
-    where: {
-      id:           chapterId,
-      assignedToId: session.user.id,
-      status:       { in: [ChapterStatus.NOT_STARTED, ChapterStatus.IN_PROGRESS] },
-    },
-    include: {
-      order: { select: { topic: true, clientId: true } },
-    },
+  const chapter = await prisma.orderChapter.findUnique({
+    where:   { id: chapterId },
+    include: { order: { select: { id: true, topic: true, department: true, degreeGroup: true } } },
   });
 
-  if (!chapter) {
-    return NextResponse.json(
-      { error: "Chapter not found or cannot be rejected at this stage." },
-      { status: 404 }
-    );
+  if (!chapter) return NextResponse.json({ error: "Chapter not found." }, { status: 404 });
+  if (chapter.assignedToId !== session.user.id) {
+    return NextResponse.json({ error: "This chapter is not assigned to you." }, { status: 403 });
+  }
+  if (chapter.status !== ChapterStatus.NOT_STARTED) {
+    return NextResponse.json({ error: "You can only reject jobs you haven't started yet." }, { status: 409 });
   }
 
-  // Find next available staff
-  const nextStaffId = await getNextAvailableStaff(role, session.user.id);
+  const rejecterRole = session.user.role; // WRITER or ANALYST
 
-  if (nextStaffId) {
-    // Reassign to next staff
+  // ── Find next available staff of same role ───────────────────
+  // Get all approved, non-suspended staff of same role except the rejecter
+  const candidates = await prisma.user.findMany({
+    where: {
+      role:        rejecterRole,
+      isApproved:  true,
+      isSuspended: false,
+      id:          { not: session.user.id }, // exclude rejecter
+    },
+    select: { id: true, name: true, email: true },
+  });
+
+  // Count active workload for each candidate
+  const withCounts = await Promise.all(
+    candidates.map(async (staff) => {
+      const count = await prisma.orderChapter.count({
+        where: {
+          assignedToId: staff.id,
+          status: { in: [ChapterStatus.NOT_STARTED, ChapterStatus.IN_PROGRESS, ChapterStatus.PRELIM_SUBMITTED] },
+        },
+      });
+      return { ...staff, count };
+    })
+  );
+
+  // Sort by workload ascending, oldest staff first on tie
+  withCounts.sort((a, b) => a.count - b.count);
+  const next = withCounts[0] || null;
+
+  if (next) {
+    // Reassign to next staff member
     await prisma.orderChapter.update({
       where: { id: chapterId },
       data: {
-        assignedToId: nextStaffId,
-        assigneeRole: ROLE_MAP[role],
+        assignedToId: next.id,
+        assigneeRole: rejecterRole as any,
         status:       ChapterStatus.NOT_STARTED,
+        writerNotes:  `Reassigned from ${session.user.name} (rejected)`,
       },
     });
 
-    // Notify new staff
+    // Notify the new assignee
     await prisma.notification.create({
       data: {
-        userId:  nextStaffId,
+        userId:  next.id,
         orderId: chapter.orderId,
         title:   "New Job Assigned",
-        message: `A ${chapter.chapterLabel} for "${chapter.order.topic}" has been assigned to you.`,
+        message: `${chapter.chapterLabel} for "${chapter.order.topic}" has been assigned to you.`,
         type:    "ACTION_REQUIRED",
       },
     });
-  } else {
-    // No staff available — notify all admins
-    await prisma.orderChapter.update({
-      where: { id: chapterId },
-      data: {
-        assignedToId: null,
-        assigneeRole: null,
-        status:       ChapterStatus.NOT_STARTED,
-      },
-    });
 
-    const admins = await prisma.user.findMany({
-      where: { role: { in: [Role.MAIN_ADMIN, Role.SUB_ADMIN] } },
-      select: { id: true },
-    });
+    // Send email
+    try {
+      await sendJobAssignedEmail({
+        to:           next.email,
+        name:         next.name,
+        role:         rejecterRole,
+        topic:        chapter.order.topic,
+        chapterLabel: chapter.chapterLabel,
+        department:   chapter.order.department,
+      });
+    } catch (e) { console.error("[EMAIL] Reassign:", e); }
 
-    await prisma.notification.createMany({
-      data: admins.map((admin) => ({
-        userId:  admin.id,
-        orderId: chapter.orderId,
-        title:   "⚠️ No Staff Available for Assignment",
-        message: `All ${role.toLowerCase()}s have rejected or are unavailable for ${chapter.chapterLabel} on "${chapter.order.topic}". Manual assignment required.`,
-        type:    "ALERT" as const,
-      })),
-    });
+    return NextResponse.json({ success: true, message: "Job rejected and reassigned to next available staff." });
   }
 
-  return NextResponse.json({
-    success: true,
-    reassigned: !!nextStaffId,
-    message: nextStaffId
-      ? "Job rejected and reassigned to next available staff."
-      : "Job rejected. Admin has been notified — manual assignment required.",
+  // ── No one else available — notify admin ─────────────────────
+  await prisma.orderChapter.update({
+    where: { id: chapterId },
+    data: {
+      assignedToId: null,
+      assigneeRole: null,
+      status:       ChapterStatus.NOT_STARTED,
+      writerNotes:  `Rejected by ${session.user.name} — no other staff available`,
+    },
   });
+
+  const admins = await prisma.user.findMany({
+    where:  { role: { in: [Role.MAIN_ADMIN, Role.SUB_ADMIN] } },
+    select: { id: true },
+  });
+
+  await prisma.notification.createMany({
+    data: admins.map(a => ({
+      userId:  a.id,
+      orderId: chapter.orderId,
+      title:   "⚠️ Chapter Unassigned — No Staff Available",
+      message: `${chapter.chapterLabel} for "${chapter.order.topic}" was rejected by all available ${rejecterRole.toLowerCase()}s. Please assign manually in All Orders.`,
+      type:    "ALERT" as const,
+    })),
+  });
+
+  return NextResponse.json({ success: true, message: "Job rejected. No other staff available — admin has been notified." });
 }
