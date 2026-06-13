@@ -28,6 +28,7 @@ enum DegreeGroup {
   OND_HND_NCE
   BSC_BED_BA
   PGD_MSC_PHD
+  PHD
 }
 
 enum PlanName {
