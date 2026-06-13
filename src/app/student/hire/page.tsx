@@ -28,6 +28,32 @@ const PROJECT_SERVICE = { value:"project", label:"Project / Thesis / Dissertatio
 const CHAPTER_LABELS = ["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5"];
 const PLAN_DISPLAY: Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Professional"};
 
+const PLAN_DESC: Record<string,string[]> = {
+  BASIC:            [
+    "One flat price for your COMPLETE project.",
+    "Your supervisor's corrections will NOT be handled by us.",
+    "Your Format/Guideline will NOT be used.",
+  ],
+  STANDARD:         [
+    "You pay for EACH chapter separately.",
+    "Your supervisor's corrections will be handled by us.",
+    "Your Format/Guideline will be used.",
+  ],
+  PROFESSIONAL:     [
+    "You pay for EACH chapter separately.",
+    "Plagiarism will be checked.",
+    "Your supervisor's corrections will be handled by us.",
+    "Your Format/Guideline will be used.",
+  ],
+  PHD_PROFESSIONAL: [
+    "You pay for EACH chapter separately.",
+    "Plagiarism will be checked.",
+    "Your supervisor's corrections will be handled by us.",
+    "Your Format/Guideline will be used.",
+    "Tailored to doctoral/PhD writing standards.",
+  ],
+};
+
 export default function HireAWriter() {
   const router = useRouter();
   const [plans,      setPlans]      = useState<Plan[]>([]);
@@ -197,9 +223,20 @@ export default function HireAWriter() {
                         planId === p.id ? "border-sky-400 bg-sky-400" : "border-sky-200"
                       }`} />
                     </div>
+                    {PLAN_DESC[p.planName] && (
+                      <ul className="mt-2 flex flex-col gap-1">
+                        {(PLAN_DESC[p.planName] as string[]).map((line, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-xs text-navy-muted leading-relaxed">
+                            <span className="mt-0.5 text-sky-400 flex-shrink-0">▸</span>
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     <div className="flex gap-2 mt-1.5 flex-wrap">
                       {p.includesCorrections && <span className="text-[.65rem] font-600 text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">Corrections ✓</span>}
                       {p.includesPlagiarismCheck && <span className="text-[.65rem] font-600 text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">Plagiarism Check ✓</span>}
+                      {p.includesFormat && <span className="text-[.65rem] font-600 text-green-700 bg-green-50 px-2 py-0.5 rounded-full">Format ✓</span>}
                     </div>
                   </div>
                 ))}
