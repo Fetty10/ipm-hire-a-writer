@@ -194,7 +194,7 @@ export default function QCChecksActive() {
                         style={{padding:".5rem .75rem",borderRadius:"8px",border:"1.5px solid #BAE6FD",fontSize:".85rem",fontFamily:"'DM Sans',sans-serif",outline:"none"}}
                         placeholder="e.g. 12"
                         value={s.plagScore||""}
-                        onChange={e=>upd(j.id,"plagScore",e.target.value)} />
+                        onChange={e=>upd(job.id,"plagScore",e.target.value)} />
                       <span style={{fontSize:".65rem",color:"#5B7EA6"}}>Enter 0-100</span>
                     </div>
                   )}
@@ -205,7 +205,7 @@ export default function QCChecksActive() {
                         style={{padding:".5rem .75rem",borderRadius:"8px",border:"1.5px solid #BAE6FD",fontSize:".85rem",fontFamily:"'DM Sans',sans-serif",outline:"none"}}
                         placeholder="e.g. 5"
                         value={s.aiScore||""}
-                        onChange={e=>upd(j.id,"aiScore",e.target.value)} />
+                        onChange={e=>upd(job.id,"aiScore",e.target.value)} />
                       <span style={{fontSize:".65rem",color:"#5B7EA6"}}>Enter 0-100</span>
                     </div>
                   )}
