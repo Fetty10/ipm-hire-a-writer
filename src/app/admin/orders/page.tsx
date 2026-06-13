@@ -280,6 +280,8 @@ function AdminOrdersContent() {
   const [orders,   setOrders]   = useState<any[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [total,    setTotal]    = useState(0);
+  const [page,     setPage]     = useState(1);
+  const [pages,    setPages]    = useState(1);
   const [search,   setSearch]   = useState(searchParams.get("search")||"");
   const [status,   setStatus]   = useState(searchParams.get("status")||"all");
   const [selected, setSelected] = useState<string|null>(null);
@@ -294,9 +296,9 @@ function AdminOrdersContent() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const res  = await fetch(`/api/admin/orders?status=${status}&search=${encodeURIComponent(search)}`);
+      const res  = await fetch(`/api/admin/orders?status=${status}&search=${encodeURIComponent(search)}&page=${page}`);
       const data = await res.json();
-      if (data.success) { setOrders(data.data.orders); setTotal(data.data.total); }
+      if (data.success) { setOrders(data.data.orders); setTotal(data.data.total); setPages(data.data.pages || 1); }
       setLoading(false);
     }
     load();
@@ -326,35 +328,51 @@ function AdminOrdersContent() {
         ) : orders.length === 0 ? (
           <div style={{ textAlign:"center", padding:"4rem", color:"#5B7EA6", fontSize:".85rem" }}>No orders found.</div>
         ) : (
-          orders.map((o: any) => {
-            const writerNames = [...new Set(
-              o.chapters?.map((ch: any) => ch.assignedTo?.name).filter(Boolean)
-            )] as string[];
-            const delivered = o.chapters?.filter((ch: any) => ch.status === "DELIVERED").length || 0;
-            const total     = o.chapters?.length || 0;
-            return (
-              <div key={o.id} style={C.card} onClick={() => setSelected(o.id)}>
-                <div style={C.row}>
-                  <div style={{ minWidth:0 }}>
-                    <div style={C.rtitle}>{o.topic}</div>
-                    <div style={C.rmeta}>{o.client?.name} · {o.client?.phone}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize:".78rem", fontWeight:600, color:"#0C1A2E" }}>{o.plan?.planName}</div>
-                    <div style={C.rmeta}>{DEG[o.degreeGroup]||o.degreeGroup||"—"}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize:".78rem", fontWeight:600, color:"#0C1A2E" }}>
-                      {writerNames.length > 0 ? writerNames.join(", ") : "Unassigned"}
+          <>
+            {orders.map((o: any) => {
+              const writerNames = [...new Set(
+                o.chapters?.map((ch: any) => ch.assignedTo?.name).filter(Boolean)
+              )] as string[];
+              const delivered = o.chapters?.filter((ch: any) => ch.status === "DELIVERED").length || 0;
+              const total     = o.chapters?.length || 0;
+              return (
+                <div key={o.id} style={C.card} onClick={() => setSelected(o.id)}>
+                  <div style={C.row}>
+                    <div style={{ minWidth:0 }}>
+                      <div style={C.rtitle}>{o.topic}</div>
+                      <div style={C.rmeta}>{o.client?.name} · {o.client?.phone}</div>
                     </div>
-                    <div style={C.rmeta}>{delivered}/{total} chapters delivered</div>
+                    <div>
+                      <div style={{ fontSize:".78rem", fontWeight:600, color:"#0C1A2E" }}>{o.plan?.planName}</div>
+                      <div style={C.rmeta}>{DEG[o.degreeGroup]||o.degreeGroup||"—"}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:".78rem", fontWeight:600, color:"#0C1A2E" }}>
+                        {writerNames.length > 0 ? writerNames.join(", ") : "Unassigned"}
+                      </div>
+                      <div style={C.rmeta}>{delivered}/{total} chapters delivered</div>
+                    </div>
+                    <StatusBadge status={(o.status||"")} />
+                    <span style={C.chevron}>›</span>
                   </div>
-                  <StatusBadge status={o.status} />
-                  <span style={C.chevron}>›</span>
                 </div>
+              );
+            })}
+            {/* Pagination */}
+            {pages > 1 && (
+              <div style={{display:"flex",gap:".5rem",justifyContent:"center",marginTop:"1.5rem",flexWrap:"wrap" as const}}>
+                <button style={{padding:".4rem .9rem",borderRadius:"8px",border:"1.5px solid #BAE6FD",fontSize:".8rem",fontWeight:700,cursor:page===1?"not-allowed":"pointer",opacity:page===1?.4:1,background:"#fff",color:"#0C1A2E"}}
+                  disabled={page===1} onClick={()=>setPage((p:number)=>p-1)}>← Prev</button>
+                {Array.from({length:pages},(_,i)=>i+1).map((p:number)=>(
+                  <button key={p} style={{padding:".4rem .9rem",borderRadius:"8px",fontSize:".8rem",fontWeight:700,cursor:"pointer",border:"1.5px solid",
+                    background:p===page?"#0C1A2E":"#fff",color:p===page?"#38BDF8":"#0C1A2E",borderColor:p===page?"#0C1A2E":"#BAE6FD"}}
+                    onClick={()=>setPage(p)}>{p}</button>
+                ))}
+                <button style={{padding:".4rem .9rem",borderRadius:"8px",border:"1.5px solid #BAE6FD",fontSize:".8rem",fontWeight:700,cursor:page===pages?"not-allowed":"pointer",opacity:page===pages?.4:1,background:"#fff",color:"#0C1A2E"}}
+                  disabled={page===pages} onClick={()=>setPage((p:number)=>p+1)}>Next →</button>
               </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
 
