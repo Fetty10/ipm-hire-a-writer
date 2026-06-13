@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       specialInstructions: specialInstructions?.trim() || null,
       guidelineFileUrl:    guidelineFileUrl || null,
       selectedChapters:    chaptersRequested ? chaptersRequested.join(",") : null,
-      serviceType:         serviceType || "HIRE_WRITER",
+      serviceType:         (serviceType === "PROJECT" ? "HIRE_WRITER" : serviceType) || "HIRE_WRITER",
       status:              "PENDING_PAYMENT",
       paymentMethod:       "BANK_TRANSFER",
       bankTransferReference: reference,
