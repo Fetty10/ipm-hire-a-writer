@@ -60,10 +60,13 @@ async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
 // ─────────────────────────────────────────────────────────────
 
 async function isExceptionDepartment(department: string): Promise<boolean> {
-  const match = await prisma.exceptionDepartment.findFirst({
-    where: { name: { equals: department, mode: "insensitive" } },
+  // Fuzzy match — student typing "Faculty of Law" or "law" both match admin entry "Law"
+  const all = await prisma.exceptionDepartment.findMany({ select: { name: true } });
+  const dept = department.toLowerCase().trim();
+  return all.some(e => {
+    const exc = e.name.toLowerCase().trim();
+    return dept.includes(exc) || exc.includes(dept);
   });
-  return !!match;
 }
 
 // ─────────────────────────────────────────────────────────────
