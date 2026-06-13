@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -46,7 +47,7 @@ export default function StaffApprovals() {
       body: JSON.stringify({ staffId, action }),
     });
     const data = await res.json();
-    if (res.ok) load(); else alert(data.error);
+    if (res.ok) load(); else toast.error(data.error || "Something went wrong");
     setActing(null);
   }
 
