@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 400 });
     } else {
       // For flat services — find any plan just to satisfy the foreign key
-      plan = await prisma.plan.findFirst({ orderBy: { createdAt: "asc" } });
+      plan = await prisma.plan.findFirst({ orderBy: { updatedAt: "asc" } });
       if (!plan) return NextResponse.json({ error: "No plans configured. Please contact admin." }, { status: 400 });
     }
 
