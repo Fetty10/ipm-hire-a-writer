@@ -64,12 +64,14 @@ export default function QCChecksActive() {
       const init:any = {};
       data.data.forEach((j:any) => {
         init[j.id] = {
-          plagOk:   false,
-          aiOk:     false,
-          fileUrl:  "",
-          fileName: "",
-          notes:    "",
-          uploading:false,
+          plagOk:    false,
+          aiOk:      false,
+          plagScore: "",
+          aiScore:   "",
+          fileUrl:   "",
+          fileName:  "",
+          notes:     "",
+          uploading: false,
           submitting:false,
         };
       });
@@ -101,8 +103,15 @@ export default function QCChecksActive() {
     upd(job.id,"submitting",true);
     const res = await fetch("/api/chapters/qc-clear",{
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ chapterId:job.id, clearedFileUrl:s.fileUrl, qcNotes:s.notes||undefined,
-        plagiarismCleared:s.plagOk, aiCleared:s.aiOk }),
+      body: JSON.stringify({
+        chapterId:        job.id,
+        clearedFileUrl:   s.fileUrl,
+        qcNotes:          s.notes||undefined,
+        plagiarismCleared:s.plagOk,
+        aiCleared:        s.aiOk,
+        plagiarismScore:  s.plagScore ? parseInt(s.plagScore) : undefined,
+        aiScore:          s.aiScore   ? parseInt(s.aiScore)   : undefined,
+      }),
     });
     const data = await res.json();
     if (res.ok) { toast.success("Chapter cleared and delivered to student!"); setJobs(prev=>prev.filter(j=>j.id!==job.id)); }
@@ -170,6 +179,34 @@ export default function QCChecksActive() {
                     <div style={C.chkItem} onClick={()=>upd(job.id,"aiOk",!s.aiOk)}>
                       <div style={s.aiOk?C.chkBoxC:C.chkBox}>{s.aiOk&&<span style={{color:"#fff",fontSize:".7rem"}}>✓</span>}</div>
                       AI detection check passed
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Plagiarism & AI scores */}
+              {(job.requiresPlagiarism || job.requiresAI) && (
+                <div style={{display:"flex",gap:"1rem",marginBottom:"1rem",flexWrap:"wrap" as const}}>
+                  {job.requiresPlagiarism && (
+                    <div style={{display:"flex",flexDirection:"column" as const,gap:".3rem",flex:1,minWidth:"120px"}}>
+                      <label style={{fontSize:".65rem",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:".08em",color:"#5B7EA6"}}>Plagiarism % Score</label>
+                      <input type="number" min="0" max="100"
+                        style={{padding:".5rem .75rem",borderRadius:"8px",border:"1.5px solid #BAE6FD",fontSize:".85rem",fontFamily:"'DM Sans',sans-serif",outline:"none"}}
+                        placeholder="e.g. 12"
+                        value={s.plagScore||""}
+                        onChange={e=>upd(j.id,"plagScore",e.target.value)} />
+                      <span style={{fontSize:".65rem",color:"#5B7EA6"}}>Enter 0-100</span>
+                    </div>
+                  )}
+                  {job.requiresAI && (
+                    <div style={{display:"flex",flexDirection:"column" as const,gap:".3rem",flex:1,minWidth:"120px"}}>
+                      <label style={{fontSize:".65rem",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:".08em",color:"#5B7EA6"}}>AI Detection % Score</label>
+                      <input type="number" min="0" max="100"
+                        style={{padding:".5rem .75rem",borderRadius:"8px",border:"1.5px solid #BAE6FD",fontSize:".85rem",fontFamily:"'DM Sans',sans-serif",outline:"none"}}
+                        placeholder="e.g. 5"
+                        value={s.aiScore||""}
+                        onChange={e=>upd(j.id,"aiScore",e.target.value)} />
+                      <span style={{fontSize:".65rem",color:"#5B7EA6"}}>Enter 0-100</span>
                     </div>
                   )}
                 </div>
