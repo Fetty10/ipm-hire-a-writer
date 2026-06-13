@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // src/app/api/admin/orders/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -8,151 +7,64 @@ import { Role, OrderStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !["MAIN_ADMIN","SUB_ADMIN"].includes(session.user.role)) {
+  if (!session?.user || ![Role.MAIN_ADMIN, Role.SUB_ADMIN].includes(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { searchParams } = new URL(req.url);
-  const status  = searchParams.get("status") || "all";
+  const status  = searchParams.get("status") as OrderStatus | "all" | null;
   const search  = searchParams.get("search") || "";
-  const orderId = searchParams.get("orderId");
+  const page    = parseInt(searchParams.get("page") || "1");
+  const perPage = 20;
 
-  // ── Single order detail ──────────────────────────────────────
-  if (orderId) {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        client:   { select: { id:true, name:true, email:true, phone:true } },
-        plan:     { select: { planName:true, degreeGroup:true, pricingType:true, priceKobo:true } },
-        chapters: {
-          include: {
-            assignedTo: { select: { id:true, name:true, role:true, email:true } },
-          },
-          orderBy: { chapterNumber: "asc" },
-        },
-      },
-    });
-    if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    return NextResponse.json({ success: true, data: order });
-  }
-
-  // ── Order list ───────────────────────────────────────────────
   const where: any = {};
-
-  if (status === "DELIVERED") {
-    where.OR = [
-      { status: "DELIVERED" },
-      { chapters: { some: { status: "DELIVERED" } } },
-    ];
-  } else if (status === "FULLY_DELIVERED") {
-    where.status = "DELIVERED";
-  } else if (status !== "all") {
-    where.status = status as OrderStatus;
-  }
-
+  if (status && status !== "all") where.status = status;
   if (search) {
-    const searchConds = [
+    where.OR = [
       { topic:              { contains: search, mode: "insensitive" } },
-      { client: { name:     { contains: search, mode: "insensitive" } } },
-      { client: { phone:    { contains: search, mode: "insensitive" } } },
-      { client: { email:    { contains: search, mode: "insensitive" } } },
+      { client: { name:    { contains: search, mode: "insensitive" } } },
+      { client: { phone:   { contains: search, mode: "insensitive" } } },
+      { client: { email:   { contains: search, mode: "insensitive" } } },
     ];
-    if (where.OR) {
-      where.AND = [{ OR: where.OR }, { OR: searchConds }];
-      delete where.OR;
-    } else {
-      where.OR = searchConds;
-    }
   }
 
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
-      where,
+      where, skip: (page - 1) * perPage, take: perPage,
+      orderBy: { createdAt: "desc" },
       include: {
-        client:   { select: { name:true, phone:true, email:true } },
-        plan:     { select: { planName:true } },
+        client: { select: { id: true, name: true, phone: true, email: true } },
+        plan:   { select: { planName: true, degreeGroup: true } },
         chapters: {
-          include: { assignedTo: { select: { name:true, role:true } } },
+          select: {
+            id: true, chapterLabel: true, chapterNumber: true, status: true,
+            assignedToId: true, assigneeRole: true,
+            assignedTo: { select: { id: true, role: true } },
+          },
           orderBy: { chapterNumber: "asc" },
         },
       },
-      orderBy: { createdAt: "desc" },
-      take: 50,
     }),
     prisma.order.count({ where }),
   ]);
 
-  return NextResponse.json({ success: true, data: { orders, total } });
-}
-
-export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || !["MAIN_ADMIN","SUB_ADMIN"].includes(session.user.role)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const body = await req.json();
-  const { action, orderId, chapterId, staffId, notes } = body;
-
-  if (action === "reassign_chapter") {
-    if (!chapterId || !staffId) return NextResponse.json({ error: "chapterId and staffId required" }, { status: 400 });
-    const staff = await prisma.user.findUnique({ where: { id: staffId }, select: { role:true } });
-    if (!staff) return NextResponse.json({ error: "Staff not found" }, { status: 404 });
-    await prisma.orderChapter.update({
-      where: { id: chapterId },
-      data: {
-        assignedToId: staffId,
-        assigneeRole: staff.role as any,
-        status:       "NOT_STARTED",
-      },
-    });
-    await prisma.notification.create({
-      data: {
-        userId:  staffId,
-        title:   "Chapter Reassigned to You",
-        message: "Admin has reassigned a chapter to you. Please check your Pending Jobs.",
-        type:    "ACTION_REQUIRED",
-      },
-    });
-    return NextResponse.json({ success: true, message: "Chapter reassigned." });
-  }
-
-  if (action === "add_note") {
-    if (!orderId) return NextResponse.json({ error: "orderId required" }, { status: 400 });
-    // Save to adminNote — separate from student's specialInstructions
-    await prisma.order.update({
-      where: { id: orderId },
-      data:  { adminNote: notes || null } as any,
-    });
-    return NextResponse.json({ success: true, message: "Admin note saved." });
-  }
-
-  if (action === "mark_delivered") {
-    if (!orderId) return NextResponse.json({ error: "orderId required" }, { status: 400 });
-    await prisma.order.update({
-      where: { id: orderId },
-      data:  { status: "DELIVERED" },
-    });
-    return NextResponse.json({ success: true, message: "Order marked as delivered." });
-  }
-
-  if (action === "cancel") {
-    if (!orderId) return NextResponse.json({ error: "orderId required" }, { status: 400 });
-    await prisma.order.update({
-      where: { id: orderId },
-      data:  { status: "CANCELLED" },
-    });
-    return NextResponse.json({ success: true, message: "Order cancelled." });
-  }
-
-  if (action === "reset_chapter") {
-    if (!chapterId) return NextResponse.json({ error: "chapterId required" }, { status: 400 });
-    await prisma.orderChapter.update({
-      where: { id: chapterId },
-      data:  { status: "NOT_STARTED", submittedAt: null, submittedFileUrl: null },
-    });
-    return NextResponse.json({ success: true, message: "Chapter reset to pending." });
-  }
-
-  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  return NextResponse.json({
+    success: true,
+    data: {
+      orders: orders.map(o => ({
+        id: o.id, topic: o.topic, department: o.department,
+        degreeGroup: o.degreeGroup, status: o.status,
+        planName: o.plan.planName, amountPaid: (o.amountPaidKobo || 0) / 100,
+        requiresPlagiarismCheck: o.requiresPlagiarismCheck,
+        requiresAiCheck: o.requiresAiCheck,
+        student: o.client,
+        client: o.client,
+        chapters: o.chapters,
+        createdAt: o.createdAt, paidAt: o.paidAt,
+        paymentMethod:         (o as any).paymentMethod || "PAYSTACK",
+        bankTransferReference: (o as any).bankTransferReference || null,
+      })),
+      total, page, pages: Math.ceil(total / perPage),
+    },
+  });
 }
