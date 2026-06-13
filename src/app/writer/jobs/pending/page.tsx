@@ -37,7 +37,6 @@ const C = {
 };
 
 const DEG:Record<string,string>  = {OND_HND_NCE:"HND/OND",BSC_BED_BA:"BSc/BEd",PGD_MSC_PHD:"PGD/MSc"};
-const PLAN:Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Pro"};
 
 export default function WriterPendingJobs() {
   const { data: session } = useSession();
@@ -110,7 +109,7 @@ export default function WriterPendingJobs() {
               <div>
                 <div style={C.ctitle}>{job.chapterLabel}</div>
                 <div style={C.cmeta}>{job.topic}</div>
-                <div style={C.cmeta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup} · {PLAN[job.planName]||job.planName}</div>
+                <div style={C.cmeta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup}</div>
               </div>
             </div>
 
