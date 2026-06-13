@@ -32,27 +32,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Topic and degree group are required." }, { status: 400 });
   }
 
-  // Resolve plan — for flat/non-project services find any active plan for this degree group
-  let plan = null;
-  if (planId && planId !== "flat") {
+  const isProjectService = planId && planId !== "flat";
+
+  // Resolve plan
+  let plan: any = null;
+  if (isProjectService) {
     plan = await prisma.plan.findUnique({ where: { id: planId } });
-  }
-
-  // If no plan found (flat service), find the BASIC plan for this degree group as a placeholder
-  if (!plan) {
-    plan = await prisma.plan.findFirst({
-      where: { degreeGroup, planName: "BASIC", isActive: true },
-    });
-  }
-
-  if (!plan) {
-    return NextResponse.json({ error: "No pricing plan found for this level." }, { status: 400 });
+    if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 400 });
+  } else {
+    // For flat services (seminar, proposal etc.) find any plan as a foreign key placeholder
+    // Price is calculated from OtherService table not Plan
+    plan = await prisma.plan.findFirst({ orderBy: { createdAt: "asc" } });
+    if (!plan) return NextResponse.json({ error: "No plans configured yet." }, { status: 400 });
   }
 
   // Calculate amount
-  const amountKobo = plan.pricingType === "PER_CHAPTER"
-    ? plan.priceKobo * (chaptersRequested?.length || 1)
-    : plan.priceKobo;
+  let amountKobo = 0;
+  if (isProjectService) {
+    amountKobo = plan.pricingType === "PER_CHAPTER"
+      ? plan.priceKobo * (chaptersRequested?.length || 1)
+      : plan.priceKobo;
+  } else {
+    // Fetch price from OtherService
+    const svc = await (prisma as any).otherService.findFirst({
+      where: { value: (serviceType || "").toLowerCase().replace("hire_writer","project"), isActive: true },
+    });
+    const priceMap: Record<string,number> = {
+      OND_HND_NCE: svc?.priceOND || 0,
+      BSC_BED_BA:  svc?.priceBSC || 0,
+      PGD_MSC_PHD: svc?.pricePGD || 0,
+      PHD:         svc?.pricePHD || svc?.pricePGD || 0,
+    };
+    amountKobo = priceMap[degreeGroup] || 0;
+  }
 
   // Generate unique reference
   const reference = `IPM-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
