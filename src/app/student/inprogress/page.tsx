@@ -76,8 +76,7 @@ export default function StudentInProgress() {
                   <div style={C.ometa}>
                     {order.serviceType && order.serviceType !== "HIRE_WRITER"
                       ? order.serviceTypeLabel || order.serviceType.replace(/_/g," ")
-                      : `${order.planName} Plan`}
-                    {" · "}{order.deliveredChapters}/{order.totalChapters} chapters delivered
+                      : `${order.planName} Plan · ${order.deliveredChapters}/${order.totalChapters} chapters delivered`}
                   </div>
                 </div>
                 {isBankPending(order) ? (
