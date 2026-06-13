@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -53,7 +54,7 @@ export default function StaffList() {
     const res  = await fetch("/api/admin/staff",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({staffId,action,reason})});
     const data = await res.json();
     if(res.ok){ setModal(null); setReason(""); load(); }
-    else alert(data.error);
+    else toast.error(data.error || "Something went wrong");
     setActing(null);
   }
 
