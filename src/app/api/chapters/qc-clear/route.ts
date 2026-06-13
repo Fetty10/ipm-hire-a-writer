@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // src/app/api/chapters/qc-clear/route.ts
 // QC clears a chapter after plagiarism/AI checks → delivers to student
 // Also handles correction clearances (student correction flow)
@@ -61,11 +60,13 @@ export async function POST(req: NextRequest) {
   await prisma.orderChapter.update({
     where: { id: chapterId },
     data: {
-      status:      ChapterStatus.QC_DONE,
-      qcFileUrl:   clearedFileUrl,
-      qcClearedAt: new Date(),
-      adminNotes:  qcNotes || null,
-    },
+      status:          ChapterStatus.QC_DONE,
+      qcFileUrl:       clearedFileUrl,
+      qcClearedAt:     new Date(),
+      adminNotes:      qcNotes || null,
+      plagiarismScore: plagiarismScore != null ? parseInt(plagiarismScore) : null,
+      aiScore:         aiScore != null ? parseInt(aiScore) : null,
+    } as any,
   });
 
   // ── Create QC earning ─────────────────────────────────────
