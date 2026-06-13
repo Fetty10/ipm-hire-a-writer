@@ -49,6 +49,7 @@ export interface JobCardProps {
   researchQuestions?:  string | null;
   hypotheses?:         string | null;
   scopeOfStudy?:       string | null;
+  qcStarted?:   boolean;
   onStarted?:   () => void;
   onRejected?:  () => void;
   onSubmitted?: () => void;
@@ -159,7 +160,7 @@ export function JobCard(props: JobCardProps) {
             {props.department} · {DEG_LABELS[props.degreeGroup]} · {PLAN_LABELS[props.planName]}
           </p>
         </div>
-        <StatusBadge status={props.status} />
+        <StatusBadge status={props.status} qcStarted={props.qcStarted} />
       </div>
 
       {/* Student Instructions */}
