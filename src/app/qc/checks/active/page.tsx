@@ -97,11 +97,11 @@ export default function QCChecksActive() {
 
   async function handleClear(job:any) {
     const s = state[job.id];
-    if (!s?.fileUrl) { toast.success("Upload the cleared chapter file first."); return; }
+    if (!s?.fileUrl) { toast.error("Please upload the cleared chapter file first."); return; }
     upd(job.id,"submitting",true);
     const res = await fetch("/api/chapters/qc-clear",{
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ chapterId:job.id, fileUrl:s.fileUrl, qcNotes:s.notes||undefined,
+      body: JSON.stringify({ chapterId:job.id, clearedFileUrl:s.fileUrl, qcNotes:s.notes||undefined,
         plagiarismCleared:s.plagOk, aiCleared:s.aiOk }),
     });
     const data = await res.json();
