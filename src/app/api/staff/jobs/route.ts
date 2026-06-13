@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
             isExceptionDept:     true,
             plan: {
               select: {
-                planName:    true,
+                // planName excluded
                 degreeGroup: true,
               },
             },
@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
         degreeGroup:         ch.order.degreeGroup,
         specialInstructions: ch.order.specialInstructions,
         guidelineFileUrl:    ch.order.guidelineFileUrl,
-        planName:            ch.order.plan.planName,
+        // planName intentionally excluded — staff must not see plan
         // Analyst gets writer's prelim notes for context
         writerPrelimNotes,
       };
