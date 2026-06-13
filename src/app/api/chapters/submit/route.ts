@@ -1,4 +1,3 @@
-export const dynamic = "force-dynamic";
 // src/app/api/chapters/submit/route.ts
 // Called when a writer/analyst submits a completed chapter
 // Flow:
@@ -11,7 +10,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ChapterStatus, PlanName, Role } from "@prisma/client";
 import { routeChapterToQC, deliverChapterToClient } from "@/lib/assignment";
-import { sendChapterDeliveredEmail } from "@/lib/email";
+import { sendChapterDeliveredEmail, sendPrelimReadyEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -103,6 +102,35 @@ export async function POST(req: NextRequest) {
       ...(researchObjectives ? { prelimSubmittedAt: new Date() } : {}),
     },
   });
+
+  // ── Notify analysts if Chapter 1 prelim fields just submitted ──
+  if (chapter.chapterNumber === 1 && researchObjectives && !chapter.prelimSubmittedAt) {
+    const analysts = await prisma.orderChapter.findMany({
+      where: {
+        orderId:      chapter.orderId,
+        chapterNumber: { in: [3, 4] },
+        assignedTo:   { role: Role.ANALYST },
+      },
+      include: { assignedTo: { select: { email: true, name: true } } },
+    });
+    const notifiedAnalysts = new Set<string>();
+    for (const ch of analysts) {
+      if (ch.assignedTo && !notifiedAnalysts.has(ch.assignedTo.email)) {
+        notifiedAnalysts.add(ch.assignedTo.email);
+        try {
+          await sendPrelimReadyEmail({
+            to:                 ch.assignedTo.email,
+            name:               ch.assignedTo.name,
+            topic:              chapter.order.topic,
+            researchObjectives: researchObjectives!,
+            researchQuestions:  researchQuestions!,
+            hypotheses:         hypotheses!,
+            scopeOfStudy:       scopeOfStudy!,
+          });
+        } catch (e) { console.error("[EMAIL] Prelim ready:", e); }
+      }
+    }
+  }
 
   // ── Calculate staff earning for this chapter ─────────────
   const payRate = await prisma.payRate.findFirst({
