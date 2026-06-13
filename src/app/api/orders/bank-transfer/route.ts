@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 // src/app/api/orders/bank-transfer/route.ts
-// Handles bank transfer order creation and admin confirmation
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -33,27 +32,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Topic and degree group are required." }, { status: 400 });
   }
 
-  // Validate plan
-  const plan = planId && planId !== "flat"
-    ? await prisma.plan.findUnique({ where: { id: planId } })
-    : null;
+  // Resolve plan — for flat/non-project services find any active plan for this degree group
+  let plan = null;
+  if (planId && planId !== "flat") {
+    plan = await prisma.plan.findUnique({ where: { id: planId } });
+  }
+
+  // If no plan found (flat service), find the BASIC plan for this degree group as a placeholder
+  if (!plan) {
+    plan = await prisma.plan.findFirst({
+      where: { degreeGroup, planName: "BASIC", isActive: true },
+    });
+  }
+
+  if (!plan) {
+    return NextResponse.json({ error: "No pricing plan found for this level." }, { status: 400 });
+  }
 
   // Calculate amount
-  let amountKobo = 0;
-  if (plan) {
-    amountKobo = plan.pricingType === "PER_CHAPTER"
-      ? plan.priceKobo * (chaptersRequested?.length || 1)
-      : plan.priceKobo;
-  }
+  const amountKobo = plan.pricingType === "PER_CHAPTER"
+    ? plan.priceKobo * (chaptersRequested?.length || 1)
+    : plan.priceKobo;
 
   // Generate unique reference
   const reference = `IPM-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
 
-  // Create order with PENDING_PAYMENT status
+  // Create order
   const order = await prisma.order.create({
     data: {
       clientId:            session.user.id,
-      planId:              plan?.id || planId,
+      planId:              plan.id,
       topic:               topic.trim(),
       department:          department?.trim() || "",
       degreeGroup,
@@ -67,24 +75,26 @@ export async function POST(req: NextRequest) {
     } as any,
   });
 
-  // Notify admin
+  // Notify all admins
   const admins = await prisma.user.findMany({
     where: { role: { in: [Role.MAIN_ADMIN, Role.SUB_ADMIN] } },
     select: { id: true },
   });
-  await prisma.notification.createMany({
-    data: admins.map(a => ({
-      userId:  a.id,
-      orderId: order.id,
-      title:   "New Bank Transfer Order",
-      message: `${topic.trim()} — Ref: ${reference}. Amount: ₦${(amountKobo/100).toLocaleString()}. Confirm payment when received.`,
-      type:    "ACTION_REQUIRED" as const,
-    })),
-  });
+  if (admins.length > 0) {
+    await prisma.notification.createMany({
+      data: admins.map(a => ({
+        userId:  a.id,
+        orderId: order.id,
+        title:   "🏦 New Bank Transfer Order",
+        message: `"${topic.trim()}" — Ref: ${reference}. Amount: ₦${(amountKobo/100).toLocaleString()}. Confirm when payment is received.`,
+        type:    "ACTION_REQUIRED" as const,
+      })),
+    });
+  }
 
   return NextResponse.json({
-    success:   true,
-    orderId:   order.id,
+    success:    true,
+    orderId:    order.id,
     reference,
     amountKobo,
     amountNaira: amountKobo / 100,
@@ -115,19 +125,20 @@ export async function PATCH(req: NextRequest) {
   await prisma.order.update({
     where: { id: orderId },
     data: {
-      status:                   "PAYMENT_CONFIRMED",
-      paidAt:                   new Date(),
-      bankTransferConfirmedAt:  new Date(),
+      status:                    "PAYMENT_CONFIRMED",
+      paidAt:                    new Date(),
+      amountPaidKobo:            order.amountPaidKobo || 0,
+      bankTransferConfirmedAt:   new Date(),
       bankTransferConfirmedById: session.user.id,
     } as any,
   });
 
-  // Assign chapters
+  // Assign chapters and move to IN_PROGRESS
   await assignChaptersForOrder(orderId);
 
   await prisma.order.update({
     where: { id: orderId },
-    data: { status: "IN_PROGRESS" },
+    data:  { status: "IN_PROGRESS" },
   });
 
   // Notify student
@@ -135,9 +146,9 @@ export async function PATCH(req: NextRequest) {
     data: {
       userId:  order.clientId,
       orderId: order.id,
-      title:   "Payment Confirmed — Work Started",
+      title:   "✅ Payment Confirmed — Work Started",
       message: `Your bank transfer payment for "${order.topic}" has been confirmed. Your order is now in progress!`,
-      type:    "SUCCESS" as any,
+      type:    "INFO",
     },
   });
 
