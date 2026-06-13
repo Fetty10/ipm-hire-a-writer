@@ -2,12 +2,13 @@
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { StudentLayout } from "@/components/student/StudentLayout";
-import NextDynamic from "next/dynamic";
+import dynamic from "next/dynamic";
 
-const AddChaptersModal = NextDynamic(() => import("@/components/student/AddChaptersModal"), { ssr: false });
+const AddChaptersModal = dynamic(() => import("@/components/student/AddChaptersModal"), { ssr: false });
 
 const STEPS=["Paid","Assigned","Writing","QC","Done"];
 const STATUS_STEPS:Record<string,number>={PENDING_PAYMENT:0,PAYMENT_CONFIRMED:1,IN_PROGRESS:2,QC_REVIEW:3,DELIVERED:4};
+const isBankPending = (o:any) => o.status === 'PENDING_PAYMENT' && (o as any).paymentMethod === 'BANK_TRANSFER';
 
 const C = {
   page:  { maxWidth:"640px", margin:"0 auto" },
@@ -74,10 +75,24 @@ export default function StudentInProgress() {
                   <div style={C.otitle}>{order.topic}</div>
                   <div style={C.ometa}>{order.planName} Plan · {order.deliveredChapters}/{order.totalChapters} chapters delivered</div>
                 </div>
-                <span style={{...C.badge,...(order.status==="QC_REVIEW"?C.bS:C.bY)}}>
-                  {order.status==="QC_REVIEW"?"QC Review":"In Progress"}
-                </span>
+                {isBankPending(order) ? (
+                  <span style={{...C.badge, background:"#FEF9C3", color:"#854D0E"}}>⏳ Awaiting Payment Confirmation</span>
+                ) : (
+                  <span style={{...C.badge,...(order.status==="QC_REVIEW"?C.bS:C.bY)}}>
+                    {order.status==="QC_REVIEW"?"QC Review":"In Progress"}
+                  </span>
+                )}
               </div>
+
+              {/* Bank transfer notice */}
+              {isBankPending(order) && (
+                <div style={{background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:"10px",padding:".75rem 1rem",marginBottom:"1rem",fontSize:".78rem",color:"#9A3412",lineHeight:1.5}}>
+                  🏦 <strong>Payment Pending:</strong> Your bank transfer order has been received. Once we confirm your payment, your chapters will be assigned and work will begin. This usually takes within 30 minutes during business hours.
+                  {(order as any).bankTransferReference && (
+                    <div style={{marginTop:".4rem"}}>Reference: <strong style={{fontFamily:"monospace"}}>{(order as any).bankTransferReference}</strong></div>
+                  )}
+                </div>
+              )}
 
               {/* Progress tracker */}
               <div style={C.tracker}>
