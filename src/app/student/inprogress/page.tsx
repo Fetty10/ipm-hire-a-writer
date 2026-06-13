@@ -73,7 +73,12 @@ export default function StudentInProgress() {
               <div style={C.ohead}>
                 <div>
                   <div style={C.otitle}>{order.topic}</div>
-                  <div style={C.ometa}>{order.planName} Plan · {order.deliveredChapters}/{order.totalChapters} chapters delivered</div>
+                  <div style={C.ometa}>
+                    {order.serviceType && order.serviceType !== "HIRE_WRITER"
+                      ? order.serviceTypeLabel || order.serviceType.replace(/_/g," ")
+                      : `${order.planName} Plan`}
+                    {" · "}{order.deliveredChapters}/{order.totalChapters} chapters delivered
+                  </div>
                 </div>
                 {isBankPending(order) ? (
                   <span style={{...C.badge, background:"#FEF9C3", color:"#854D0E"}}>⏳ Awaiting Payment Confirmation</span>
@@ -121,8 +126,8 @@ export default function StudentInProgress() {
                 </div>
               ))}
 
-              {/* Add more chapters button */}
-              {!hasAllChapters && (
+              {/* Add more chapters button — only for project/thesis orders */}
+              {!hasAllChapters && (!order.serviceType || order.serviceType === "HIRE_WRITER") && (
                 <button style={C.addBtn} onClick={()=>setAddModal(order.id)}>
                   ➕ Add More Chapters
                 </button>
