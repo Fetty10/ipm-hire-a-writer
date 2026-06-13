@@ -10,7 +10,7 @@ const resend = new Resend(process.env.RESEND_API_KEY!);
 import crypto from "crypto";
 
 const APP = process.env.NEXTAUTH_URL || "https://hire.iprojectmaster.com";
-const FROM = "iProjectMaster <noreply@iprojectmaster.com>";
+const FROM = "iProjectMaster <noreply@hire.iprojectmaster.com>";
 
 // POST: request reset link
 export async function POST(req: NextRequest) {
