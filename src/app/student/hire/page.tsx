@@ -145,6 +145,11 @@ export default function HireAWriter() {
 
   async function handleBankTransfer() {
     if (!validate()) return;
+    // Just show the modal with bank details — order is created only after student confirms transfer
+    setShowBankModal(true);
+  }
+
+  async function handleConfirmTransfer() {
     setBankPending(true);
     try {
       const payload = {
@@ -164,7 +169,6 @@ export default function HireAWriter() {
       const data = await res.json();
       if (!res.ok) { toast.error(data.error); return; }
       setBankDone({ reference: data.reference, amountNaira: data.amountNaira });
-      setShowBankModal(true);
     } catch { toast.error("Something went wrong. Please try again."); }
     finally { setBankPending(false); }
   }
@@ -435,7 +439,7 @@ export default function HireAWriter() {
           <p className="text-xs text-navy-muted text-center">🔒 Secure payment · Pay online or via bank transfer</p>
 
           {/* Bank Transfer Modal */}
-          {showBankModal && bankDone && bankAccount && (
+          {showBankModal && bankAccount && (
             <div className="fixed inset-0 bg-navy-DEFAULT/60 z-50 flex items-center justify-center p-4">
               <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
                 <div className="text-center mb-4">
@@ -449,8 +453,8 @@ export default function HireAWriter() {
                     { label:"Bank",           val: bankAccount.bankName },
                     { label:"Account Name",   val: bankAccount.accountName },
                     { label:"Account Number", val: bankAccount.accountNumber },
-                    { label:"Amount",         val: `₦${bankDone.amountNaira.toLocaleString()}` },
-                    { label:"Reference",      val: bankDone.reference },
+                    { label:"Amount",         val: `₦${total.toLocaleString()}` },
+                    { label:"Reference",      val: bankDone?.reference || "Will be generated after you confirm" },
                   ].map(r => (
                     <div key={r.label} className="flex justify-between text-sm">
                       <span className="text-navy-muted">{r.label}</span>
@@ -460,19 +464,35 @@ export default function HireAWriter() {
                 </div>
 
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-xs text-amber-800 leading-relaxed">
-                  ⚠️ <strong>Important:</strong> Use <strong>{bankDone.reference}</strong> as your payment narration/description so we can identify your transfer. Your order will be activated within 30 minutes of payment confirmation during business hours.
+                  ⚠️ <strong>Important:</strong> Transfer the exact amount shown above to the account details. Click <strong>"I Have Made the Transfer"</strong> after sending the money. Your order will be activated within 30 minutes during business hours.
                 </div>
 
-                <button
-                  onClick={() => { setShowBankModal(false); window.location.href = "/student/dashboard"; }}
-                  className="w-full py-3 rounded-xl bg-sky-400 text-navy-DEFAULT font-700 text-sm">
-                  I Have Made the Transfer →
-                </button>
-                <button
-                  onClick={() => setShowBankModal(false)}
-                  className="w-full py-2 mt-2 text-xs text-navy-muted">
-                  Go Back
-                </button>
+                {!bankDone ? (
+                  <>
+                    <button
+                      disabled={bankPending}
+                      onClick={handleConfirmTransfer}
+                      className="w-full py-3 rounded-xl bg-sky-400 text-navy-DEFAULT font-700 text-sm flex items-center justify-center gap-2">
+                      {bankPending ? <><Spinner size="sm" /> Processing...</> : "I Have Made the Transfer →"}
+                    </button>
+                    <button
+                      onClick={() => setShowBankModal(false)}
+                      className="w-full py-2 mt-2 text-xs text-navy-muted">
+                      Go Back
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-3 text-sm text-green-800 text-center font-600">
+                      ✅ Order submitted! We'll confirm your payment within 30 minutes.
+                    </div>
+                    <button
+                      onClick={() => { setShowBankModal(false); window.location.href = "/student/dashboard"; }}
+                      className="w-full py-3 rounded-xl bg-sky-400 text-navy-DEFAULT font-700 text-sm">
+                      Go to Dashboard →
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
