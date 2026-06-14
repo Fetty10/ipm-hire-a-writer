@@ -62,9 +62,18 @@ export default function AdminPlans() {
       // Init edits with current values
       const init:any = {};
       data.data.plans.forEach((p:any) => {
-        init[p.id] = { priceKobo: p.priceKobo/100, pricingType: p.pricingType,
-          includesCorrections: p.includesCorrections, includesPlagiarismCheck: p.includesPlagiarismCheck,
-          includesFormat: p.includesFormat, isActive: p.isActive };
+        init[p.id] = {
+          priceKobo:               p.priceKobo/100,
+          pricingType:             p.pricingType,
+          priceGHS:                (p as any).priceGHS ? (p as any).priceGHS/100 : "",
+          priceKES:                (p as any).priceKES ? (p as any).priceKES/100 : "",
+          priceUSD:                (p as any).priceUSD ? (p as any).priceUSD/100 : "",
+          priceGBP:                (p as any).priceGBP ? (p as any).priceGBP/100 : "",
+          includesCorrections:     p.includesCorrections,
+          includesPlagiarismCheck: p.includesPlagiarismCheck,
+          includesFormat:          p.includesFormat,
+          isActive:                p.isActive,
+        };
       });
       setEdits(init);
     }
