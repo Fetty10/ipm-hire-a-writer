@@ -5,7 +5,17 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ChapterStatus, Role } from "@prisma/client";
-import { getStaffDeadline } from "@/lib/workingDays";
+
+function addWorkingDays(from: Date, days: number): Date {
+  const result = new Date(from);
+  let added = 0;
+  while (added < days) {
+    result.setDate(result.getDate() + 1);
+    const day = result.getDay();
+    if (day !== 0 && day !== 6) added++;
+  }
+  return result;
+}
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -35,12 +45,11 @@ export async function POST(req: NextRequest) {
   }
 
   const now        = new Date();
-  const planName   = chapter.order.plan.planName;
-  const deadlineAt = getStaffDeadline(now, "QC", planName);
+  const deadlineAt = addWorkingDays(now, 1); // QC always 1 working day
 
   await prisma.orderChapter.update({
     where: { id: chapterId },
-    data: {
+    data:  {
       routedToQcId: session.user.id,
       startedAt:    now,
       deadlineAt,
