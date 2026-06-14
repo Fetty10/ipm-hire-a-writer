@@ -52,10 +52,14 @@ export async function POST(req: NextRequest) {
       label:       label.trim(),
       value:       value.trim().toLowerCase().replace(/\s+/g, "_"),
       description: description?.trim() || null,
-      priceOND:    Math.round((priceOND || 0) * 100),
-      priceBSC:    Math.round((priceBSC || 0) * 100),
-      pricePGD:    Math.round((pricePGD || 0) * 100),
-      pricePHD:    Math.round((pricePHD || 0) * 100),
+      priceOND:     Math.round((priceOND || 0) * 100),
+      priceBSC:     Math.round((priceBSC || 0) * 100),
+      pricePGD:     Math.round((pricePGD || 0) * 100),
+      pricePHD:     Math.round((pricePHD || 0) * 100),
+      priceGHSIntl: Math.round((body.priceGHSIntl || 0) * 100),
+      priceKESIntl: Math.round((body.priceKESIntl || 0) * 100),
+      priceUSDIntl: Math.round((body.priceUSDIntl || 0) * 100),
+      priceGBPIntl: Math.round((body.priceGBPIntl || 0) * 100),
       sortOrder:   sortOrder || 0,
       isActive:    true,
     },
@@ -76,10 +80,15 @@ export async function PATCH(req: NextRequest) {
   const data: any = { updatedAt: new Date() };
   if (label       !== undefined) data.label       = label.trim();
   if (description !== undefined) data.description = description?.trim() || null;
-  if (priceOND    !== undefined) data.priceOND    = Math.round(priceOND * 100);
-  if (priceBSC    !== undefined) data.priceBSC    = Math.round(priceBSC * 100);
-  if (pricePGD    !== undefined) data.pricePGD    = Math.round(pricePGD * 100);
-  if (pricePHD    !== undefined) data.pricePHD    = Math.round(pricePHD * 100);
+  if (priceOND         !== undefined) data.priceOND         = Math.round(priceOND * 100);
+  if (priceBSC         !== undefined) data.priceBSC         = Math.round(priceBSC * 100);
+  if (pricePGD         !== undefined) data.pricePGD         = Math.round(pricePGD * 100);
+  if (pricePHD         !== undefined) data.pricePHD         = Math.round(pricePHD * 100);
+  const { priceGHSIntl, priceKESIntl, priceUSDIntl, priceGBPIntl } = body;
+  if (priceGHSIntl !== undefined) data.priceGHSIntl = Math.round(priceGHSIntl * 100);
+  if (priceKESIntl !== undefined) data.priceKESIntl = Math.round(priceKESIntl * 100);
+  if (priceUSDIntl !== undefined) data.priceUSDIntl = Math.round(priceUSDIntl * 100);
+  if (priceGBPIntl !== undefined) data.priceGBPIntl = Math.round(priceGBPIntl * 100);
   if (sortOrder   !== undefined) data.sortOrder   = sortOrder;
   if (isActive    !== undefined) data.isActive    = isActive;
 
