@@ -73,6 +73,7 @@ export default function HireAWriter() {
   const [otherSvcs,  setOtherSvcs]  = useState<any[]>([]);
   const [loading,      setLoading]      = useState(false);
   const [bankAccount,  setBankAccount]  = useState<any>(null);
+  const [geoInfo,      setGeoInfo]      = useState<{currency:string;symbol:string;flw:string;isNigeria:boolean}>({currency:"NGN",symbol:"₦",flw:"NGN",isNigeria:true});
   const [showBankModal,setShowBankModal]= useState(false);
   const [bankPending,  setBankPending]  = useState(false);
   const [bankDone,     setBankDone]     = useState<any>(null); // {reference, amountNaira}
@@ -95,7 +96,7 @@ export default function HireAWriter() {
   const [uploadingGuide, setUploadingGuide] = useState(false);
   const [errors,       setErrors]       = useState<Record<string,string>>({});
 
-  // Fetch other services and bank account on mount
+  // Fetch other services, bank account and detect country on mount
   useEffect(() => {
     fetch("/api/admin/other-services")
       .then(r => r.json())
@@ -103,6 +104,9 @@ export default function HireAWriter() {
     fetch("/api/orders/bank-transfer")
       .then(r => r.json())
       .then(d => { if (d.success) setBankAccount(d.data); });
+    fetch("/api/detect-country")
+      .then(r => r.json())
+      .then(d => { setGeoInfo({ currency: d.currency, symbol: d.symbol, flw: d.flw, isNigeria: d.isNigeria }); });
   }, []);
 
   // Fetch plans when degree group changes
@@ -124,6 +128,17 @@ export default function HireAWriter() {
     if (!isProject) {
       const svc = SERVICES.find(s => s.value === service) as any;
       if (!svc || !degreeGroup) return 0;
+      if (!geoInfo.isNigeria) {
+        // Use international price if available
+        const intlMap: Record<string,Record<string,number>> = {
+          GHS: { OND_HND_NCE: svc.priceGHSIntl||0, BSC_BED_BA: svc.priceGHSIntl||0, PGD_MSC_PHD: svc.priceGHSIntl||0, PHD: svc.priceGHSIntl||0 },
+          KES: { OND_HND_NCE: svc.priceKESIntl||0, BSC_BED_BA: svc.priceKESIntl||0, PGD_MSC_PHD: svc.priceKESIntl||0, PHD: svc.priceKESIntl||0 },
+          USD: { OND_HND_NCE: svc.priceUSDIntl||0, BSC_BED_BA: svc.priceUSDIntl||0, PGD_MSC_PHD: svc.priceUSDIntl||0, PHD: svc.priceUSDIntl||0 },
+          GBP: { OND_HND_NCE: svc.priceGBPIntl||0, BSC_BED_BA: svc.priceGBPIntl||0, PGD_MSC_PHD: svc.priceGBPIntl||0, PHD: svc.priceGBPIntl||0 },
+        };
+        const intlPrice = intlMap[geoInfo.currency]?.[degreeGroup] || 0;
+        if (intlPrice > 0) return intlPrice / 100;
+      }
       const priceMap: Record<string,number> = {
         OND_HND_NCE: svc.priceOND || 0,
         BSC_BED_BA:  svc.priceBSC || 0,
@@ -154,6 +169,34 @@ export default function HireAWriter() {
     if (!department.trim() && service !== "topic") e.department = "Please enter your department.";
     setErrors(e);
     return Object.keys(e).length === 0;
+  }
+
+  async function handleFlutterwave() {
+    if (!validate()) return;
+    setLoading(true);
+    try {
+      const payload = {
+        planId:            isProject ? planId : "flat",
+        topic:             topic.trim(),
+        department:        department.trim(),
+        degreeGroup,
+        specialInstructions: instructions.trim() || undefined,
+        guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map((f:any)=>f.url).join(",") : undefined,
+        chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
+        serviceType:       toServiceType(service),
+        currency:          geoInfo.currency,
+        amount:            total,
+      };
+      const res  = await fetch("/api/payments/flutterwave", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Payment initialization failed."); return; }
+      // Redirect to Flutterwave payment page
+      window.location.href = data.paymentLink;
+    } catch { toast.error("Something went wrong. Please try again."); }
+    finally { setLoading(false); }
   }
 
   async function handleBankTransfer() {
@@ -277,7 +320,7 @@ export default function HireAWriter() {
                       <div>
                         <span className="text-sm font-700 text-navy-DEFAULT">{PLAN_DISPLAY[p.planName]}</span>
                         <span className="text-sm text-navy-muted ml-2">
-                          — ₦{(p.priceKobo/100).toLocaleString()} {p.pricingType==="PER_CHAPTER" ? "per chapter" : "(complete project)"}
+                          — {geoInfo.symbol}{((!geoInfo.isNigeria && p[`price${geoInfo.currency}`]) ? p[`price${geoInfo.currency}`]/100 : p.priceKobo/100).toLocaleString()} {p.pricingType==="PER_CHAPTER" ? "per chapter" : "(complete project)"}
                         </span>
                       </div>
                       <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 transition-all ${
@@ -425,7 +468,7 @@ export default function HireAWriter() {
                 )}
                 <div className="flex justify-between pt-2 border-t border-sky-200 mt-1">
                   <span className="font-700">Total</span>
-                  <span className="font-clash text-lg font-800 text-sky-600">₦{total.toLocaleString()}</span>
+                  <span className="font-clash text-lg font-800 text-sky-600">{geoInfo.symbol}{total.toLocaleString()}</span>
                 </div>
                 {showSummary && (
                   <div className="mt-3 p-3 bg-green-50 rounded-xl border border-green-200">
@@ -438,24 +481,32 @@ export default function HireAWriter() {
             </div>
           )}
 
-          {/* Pay with Paystack */}
-          <button type="submit" disabled={loading || !showSummary}
-            className={`w-full py-4 rounded-xl font-700 text-sm transition-all flex items-center justify-center gap-2 ${
-              showSummary && !loading
-                ? "bg-sky-400 text-navy-DEFAULT hover:bg-sky-500"
-                : "bg-sky-100 text-navy-muted cursor-not-allowed"
-            }`}>
-            {loading ? <><Spinner size="sm" /> Processing...</> : `💳 Pay ₦${total.toLocaleString()} with Paystack →`}
-          </button>
+          {/* Pay with Paystack (Nigeria) or Flutterwave (International) */}
+          {geoInfo.isNigeria ? (
+            <button type="submit" disabled={loading || !showSummary}
+              className={`w-full py-4 rounded-xl font-700 text-sm transition-all flex items-center justify-center gap-2 ${
+                showSummary && !loading ? "bg-sky-400 text-navy-DEFAULT hover:bg-sky-500" : "bg-sky-100 text-navy-muted cursor-not-allowed"
+              }`}>
+              {loading ? <><Spinner size="sm" /> Processing...</> : `💳 Pay ₦${total.toLocaleString()} with Paystack →`}
+            </button>
+          ) : (
+            <button type="button" disabled={loading || !showSummary}
+              onClick={handleFlutterwave}
+              className={`w-full py-4 rounded-xl font-700 text-sm transition-all flex items-center justify-center gap-2 ${
+                showSummary && !loading ? "bg-sky-400 text-navy-DEFAULT hover:bg-sky-500" : "bg-sky-100 text-navy-muted cursor-not-allowed"
+              }`}>
+              {loading ? <><Spinner size="sm" /> Processing...</> : `💳 Pay ${geoInfo.symbol}${total.toLocaleString()} →`}
+            </button>
+          )}
 
-          {/* Divider */}
+          {/* Divider + Bank Transfer — Nigeria only */}
+          {geoInfo.isNigeria && <>
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-sky-100"/>
             <span className="text-xs text-navy-muted font-600">OR</span>
             <div className="flex-1 h-px bg-sky-100"/>
           </div>
 
-          {/* Pay via Bank Transfer */}
           <button type="button" disabled={bankPending || !showSummary}
             onClick={handleBankTransfer}
             className={`w-full py-4 rounded-xl font-700 text-sm border-2 transition-all flex items-center justify-center gap-2 ${
@@ -468,7 +519,9 @@ export default function HireAWriter() {
 
           <p className="text-xs text-navy-muted text-center">🔒 Secure payment · Pay online or via bank transfer</p>
 
-          {/* Bank Transfer Modal */}
+          </>}
+
+        {/* Bank Transfer Modal */}
           {showBankModal && bankAccount && (
             <div className="fixed inset-0 bg-navy-DEFAULT/60 z-50 flex items-center justify-center p-4">
               <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
