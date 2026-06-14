@@ -417,6 +417,13 @@ export default function HireAWriter() {
                   <span className="font-700">Total</span>
                   <span className="font-clash text-lg font-800 text-sky-600">₦{total.toLocaleString()}</span>
                 </div>
+                {showSummary && (
+                  <div className="mt-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                    <div className="text-[.62rem] font-700 uppercase tracking-wider text-green-700 mb-0.5">📅 Expected Delivery</div>
+                    <div className="text-sm font-700 text-green-800">{getExpectedDelivery()}</div>
+                    <div className="text-[.7rem] text-green-600 mt-0.5">3 working days from tomorrow (weekdays only)</div>
+                  </div>
+                )}
               </div>
             </div>
           )}
