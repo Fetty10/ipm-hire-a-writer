@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/chapters/submit/route.ts
 // Called when a writer/analyst submits a completed chapter
 // Flow:
@@ -82,9 +83,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const isProfessional =
+  // Other services (non-project) never go to QC — always deliver directly
+  const isOtherService = chapter.order.serviceType !== "HIRE_WRITER" && !!chapter.order.serviceType;
+  const isProfessional = !isOtherService && (
     chapter.order.plan.planName === PlanName.PROFESSIONAL ||
-    chapter.order.plan.planName === PlanName.PHD_PROFESSIONAL;
+    chapter.order.plan.planName === PlanName.PHD_PROFESSIONAL
+  );
 
   // ── Update chapter with submitted file + prelim data ─────
   await prisma.orderChapter.update({
