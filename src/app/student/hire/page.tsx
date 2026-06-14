@@ -191,7 +191,7 @@ export default function HireAWriter() {
     if (isProject && !planId)  e.planId      = "Please choose a plan.";
     if (isProject && isPerChapter && selChapters.length === 0)
                                e.chapters    = "Please select at least one chapter.";
-    if (!topic.trim())         e.topic       = "Please enter your project topic.";
+    if (!topic.trim() && service !== "topic") e.topic = "Please enter your project topic.";
     if (!department.trim() && service !== "topic") e.department = "Please enter your department.";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -203,7 +203,7 @@ export default function HireAWriter() {
     try {
       const payload = {
         planId:            isProject ? planId : "flat",
-        topic:             topic.trim(),
+        topic:             service === "topic" ? `Topic Coining — ${department.trim()}` : topic.trim(),
         department:        department.trim(),
         degreeGroup,
         specialInstructions: service === "topic"
@@ -239,7 +239,7 @@ export default function HireAWriter() {
     try {
       const payload = {
         planId:            isProject ? planId : "flat",
-        topic:             topic.trim(),
+        topic:             service === "topic" ? `Topic Coining — ${department.trim()}` : topic.trim(),
         department:        department.trim(),
         degreeGroup,
         specialInstructions: service === "topic"
@@ -269,7 +269,7 @@ export default function HireAWriter() {
       // If non-project service, use a fixed plan ID or handle differently
       const payload = {
         planId:            isProject ? planId : "flat",
-        topic:             topic.trim(),
+        topic:             service === "topic" ? `Topic Coining — ${department.trim()}` : topic.trim(),
         department:        department.trim(),
         degreeGroup,
         specialInstructions: service === "topic"
@@ -411,17 +411,19 @@ export default function HireAWriter() {
             </div>
           )}
 
-          {/* Topic */}
-          <div>
-            <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Your Topic</label>
-            <input value={topic} onChange={e => setTopic(e.target.value)}
-              placeholder="e.g. Impact of Digital Marketing on Consumer Behaviour in Nigeria"
-              className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-            {errors.topic && <p className="text-xs text-red-500 mt-1">{errors.topic}</p>}
-          </div>
-
-          {/* Department */}
+          {/* Topic — hidden for topic coining */}
           {service !== "topic" && (
+            <div>
+              <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Your Topic</label>
+              <input value={topic} onChange={e => setTopic(e.target.value)}
+                placeholder="e.g. Impact of Digital Marketing on Consumer Behaviour in Nigeria"
+                className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+              {errors.topic && <p className="text-xs text-red-500 mt-1">{errors.topic}</p>}
+            </div>
+          )}
+
+          {/* Department — hidden for topic coining and journal (each has its own) */}
+          {service !== "topic" && service !== "journal" && (
             <div>
               <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Department / Course</label>
               <input value={department} onChange={e => setDepartment(e.target.value)}
@@ -431,15 +433,17 @@ export default function HireAWriter() {
             </div>
           )}
 
-          {/* Special Instructions */}
-          <div>
-            <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
-              Special Instructions <span className="font-400 normal-case text-navy-muted">(optional)</span>
-            </label>
-            <textarea value={instructions} onChange={e => setInstructions(e.target.value)} rows={3}
-              placeholder="e.g. Use APA 7th edition. Minimum 15 pages for each chapter. Focus on Nigerian context."
-              className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none" />
-          </div>
+          {/* Special Instructions — hidden for topic coining and journal (each has its own) */}
+          {service !== "topic" && service !== "journal" && (
+            <div>
+              <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
+                Special Instructions <span className="font-400 normal-case text-navy-muted">(optional)</span>
+              </label>
+              <textarea value={instructions} onChange={e => setInstructions(e.target.value)} rows={3}
+                placeholder="e.g. Use APA 7th edition. Minimum 15 pages for each chapter. Focus on Nigerian context."
+                className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none" />
+            </div>
+          )}
 
           {/* Topic Coining — special fields */}
           {service === "topic" && (
