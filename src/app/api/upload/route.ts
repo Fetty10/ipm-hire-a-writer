@@ -12,18 +12,27 @@ import {
 } from "@/lib/upload";
 import { Role } from "@prisma/client";
 
-// Folders that don't require authentication (staff application uploads)
 const PUBLIC_FOLDERS: UploadFolder[] = ["staff/cv", "staff/samples"];
 
-// Map role → allowed folders (for authenticated users)
 const ROLE_FOLDERS: Record<Role, UploadFolder[]> = {
-  [Role.CLIENT]:     ["orders/guidelines", "orders/supervisor-notes"],
+  [Role.CLIENT]:     ["orders/guidelines", "orders/supervisor-notes", "orders/corrections"],
   [Role.WRITER]:     ["chapters/submitted", "staff/cv", "staff/samples"],
   [Role.ANALYST]:    ["chapters/submitted", "staff/cv", "staff/samples"],
   [Role.QC]:         ["chapters/qc-cleared", "chapters/corrections", "staff/cv", "staff/samples"],
   [Role.SUB_ADMIN]:  ["chapters/delivered"],
   [Role.MAIN_ADMIN]: ["chapters/delivered"],
 };
+
+// Folders where images and audio are also allowed (corrections evidence)
+const RICH_MEDIA_FOLDERS = ["orders/corrections", "orders/supervisor-notes"];
+
+const RICH_MEDIA_MIME_TYPES = [
+  // Images
+  "image/jpeg", "image/png", "image/gif", "image/webp",
+  // Audio / voice notes
+  "audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg",
+  "audio/aac", "audio/webm", "video/webm",
+];
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -34,16 +43,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "File and folder are required." }, { status: 400 });
   }
 
-  // ── Public folders don't require login (staff applicants) ──
   const isPublicFolder = PUBLIC_FOLDERS.includes(folder);
 
   if (!isPublicFolder) {
-    // Require authentication for all other folders
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    // Validate folder access for logged-in users
     const allowed = ROLE_FOLDERS[session.user.role] || [];
     if (!allowed.includes(folder)) {
       return NextResponse.json(
@@ -53,15 +59,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Validate MIME type ────────────────────────────────────
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+  // Allow images + audio for rich media folders, else PDF/Word only
+  const isRichFolder   = RICH_MEDIA_FOLDERS.includes(folder);
+  const allowedTypes   = isRichFolder
+    ? [...ALLOWED_MIME_TYPES, ...RICH_MEDIA_MIME_TYPES]
+    : ALLOWED_MIME_TYPES;
+
+  if (!allowedTypes.includes(file.type)) {
     return NextResponse.json(
-      { error: "Only PDF and Word (.docx) files are allowed." },
+      { error: isRichFolder
+          ? "Allowed: PDF, Word, images (JPG/PNG/GIF/WebP) and voice notes (MP3/M4A/WAV/OGG)."
+          : "Only PDF and Word (.docx) files are allowed." },
       { status: 400 }
     );
   }
 
-  // ── Validate file size ────────────────────────────────────
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return NextResponse.json(
       { error: "File size must not exceed 20MB." },
