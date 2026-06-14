@@ -149,22 +149,21 @@ export default function HireAWriter() {
     if (!isProject) {
       const svc = SERVICES.find(s => s.value === service) as any;
       if (!svc || !degreeGroup) return 0;
+      const degKey: Record<string,string> = { OND_HND_NCE:"OND", BSC_BED_BA:"BSC", PGD_MSC_PHD:"PGD", PHD:"PHD" };
+      let unitPrice = 0;
       if (!geoInfo.isNigeria) {
-        // Degree key map: DB uses OND/BSC/PGD/PHD suffix
-        const degKey: Record<string,string> = {
-          OND_HND_NCE:"OND", BSC_BED_BA:"BSC", PGD_MSC_PHD:"PGD", PHD:"PHD",
-        };
         const field = `price${geoInfo.currency}${degKey[degreeGroup]||"BSC"}`;
-        const intlPrice = svc[field] || 0;
-        if (intlPrice > 0) return intlPrice / 100;
+        unitPrice = (svc[field] || 0) / 100;
       }
-      const priceMap: Record<string,number> = {
-        OND_HND_NCE: svc.priceOND || 0,
-        BSC_BED_BA:  svc.priceBSC || 0,
-        PGD_MSC_PHD: svc.pricePGD || 0,
-        PHD:         svc.pricePHD || svc.pricePGD || 0,
-      };
-      const unitPrice = (priceMap[degreeGroup] || 0) / 100;
+      if (!unitPrice) {
+        const priceMap: Record<string,number> = {
+          OND_HND_NCE: svc.priceOND || 0,
+          BSC_BED_BA:  svc.priceBSC || 0,
+          PGD_MSC_PHD: svc.pricePGD || 0,
+          PHD:         svc.pricePHD || svc.pricePGD || 0,
+        };
+        unitPrice = (priceMap[degreeGroup] || 0) / 100;
+      }
       const qty = (service === "topic" || service === "journal") ? quantity : 1;
       return unitPrice * qty;
     }
