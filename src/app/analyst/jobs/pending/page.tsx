@@ -132,14 +132,13 @@ export default function AnalystPendingJobs() {
             ))}
 
             {/* Writer's Chapter 1 Prelim Fields */}
-            {job.writerPrelimNotes && (job.writerPrelimNotes.researchObjectives || job.writerPrelimNotes.researchQuestions || job.writerPrelimNotes.hypotheses || job.writerPrelimNotes.scopeOfStudy) ? (
+            {job.writerPrelimNotes && (job.writerPrelimNotes.researchObjectives || job.writerPrelimNotes.hypotheses || job.writerPrelimNotes.scopeOfStudy) ? (
               <div style={{background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:"12px",padding:"1rem",marginBottom:"1rem"}}>
                 <div style={{fontSize:".65rem",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:".08em",color:"#0369A1",marginBottom:".75rem"}}>
                   📝 Writer&apos;s Chapter 1 Preliminary Notes
                 </div>
                 {[
                   { label:"Research Objectives", val:job.writerPrelimNotes.researchObjectives },
-                  { label:"Research Questions",  val:job.writerPrelimNotes.researchQuestions  },
                   { label:"Hypotheses",          val:job.writerPrelimNotes.hypotheses         },
                   { label:"Scope of Study",      val:job.writerPrelimNotes.scopeOfStudy      },
                 ].filter(f => f.val).map(f => (
