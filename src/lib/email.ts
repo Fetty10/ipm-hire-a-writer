@@ -119,7 +119,7 @@ export async function sendJobAssignedEmail(opts: {
 /** Analyst: writer has submitted Chapter 1 prelim fields */
 export async function sendPrelimReadyEmail(opts: {
   to: string; name: string; topic: string;
-  researchObjectives: string; researchQuestions: string;
+  researchObjectives: string;
   hypotheses: string; scopeOfStudy: string;
 }) {
   await resend.emails.send({
@@ -131,7 +131,6 @@ export async function sendPrelimReadyEmail(opts: {
       <div class="highlight">${opts.topic}</div>
       <p class="text">Here are the details you need to work on Chapters 3 & 4:</p>
       <p class="text"><strong>Research Objectives:</strong><br>${opts.researchObjectives}</p>
-      <p class="text"><strong>Research Questions:</strong><br>${opts.researchQuestions}</p>
       <p class="text"><strong>Hypotheses:</strong><br>${opts.hypotheses}</p>
       <p class="text"><strong>Scope of Study:</strong><br>${opts.scopeOfStudy}</p>
       <a href="${APP}/analyst/jobs/active" class="btn">View My Active Jobs →</a>
