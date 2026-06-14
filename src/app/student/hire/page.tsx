@@ -73,6 +73,8 @@ export default function HireAWriter() {
   const [otherSvcs,  setOtherSvcs]  = useState<any[]>([]);
   const [loading,      setLoading]      = useState(false);
   const [bankAccount,  setBankAccount]  = useState<any>(null);
+  const [quantity,     setQuantity]     = useState<number>(1);
+  const [areaOfInterest, setAreaOfInterest] = useState("");
   const [geoInfo,      setGeoInfo]      = useState<{currency:string;symbol:string;flw:string;isNigeria:boolean}>({currency:"NGN",symbol:"₦",flw:"NGN",isNigeria:true});
   const [showBankModal,setShowBankModal]= useState(false);
   const [bankPending,  setBankPending]  = useState(false);
@@ -123,6 +125,25 @@ export default function HireAWriter() {
   const isProject       = service === "project";
 
   // Calculate total
+  function calcUnitPrice(): number {
+    if (!isProject) {
+      const svc = SERVICES.find(s => s.value === service) as any;
+      if (!svc || !degreeGroup) return 0;
+      if (!geoInfo.isNigeria) {
+        const degKey: Record<string,string> = { OND_HND_NCE:"OND", BSC_BED_BA:"BSC", PGD_MSC_PHD:"PGD", PHD:"PHD" };
+        const field = `price${geoInfo.currency}${degKey[degreeGroup]||"BSC"}`;
+        const intlPrice = svc[field] || 0;
+        if (intlPrice > 0) return intlPrice / 100;
+      }
+      const priceMap: Record<string,number> = {
+        OND_HND_NCE: svc.priceOND || 0, BSC_BED_BA: svc.priceBSC || 0,
+        PGD_MSC_PHD: svc.pricePGD || 0, PHD: svc.pricePHD || svc.pricePGD || 0,
+      };
+      return (priceMap[degreeGroup] || 0) / 100;
+    }
+    return 0;
+  }
+
   function calcTotal(): number {
     if (!degreeGroup) return 0;
     if (!isProject) {
@@ -143,7 +164,9 @@ export default function HireAWriter() {
         PGD_MSC_PHD: svc.pricePGD || 0,
         PHD:         svc.pricePHD || svc.pricePGD || 0,
       };
-      return (priceMap[degreeGroup] || 0) / 100;
+      const unitPrice = (priceMap[degreeGroup] || 0) / 100;
+      const qty = (service === "topic" || service === "journal") ? quantity : 1;
+      return unitPrice * qty;
     }
     if (!selectedPlan) return 0;
     // Use international price if available
@@ -183,7 +206,10 @@ export default function HireAWriter() {
         topic:             topic.trim(),
         department:        department.trim(),
         degreeGroup,
-        specialInstructions: instructions.trim() || undefined,
+        specialInstructions: service === "topic"
+          ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
+          : instructions.trim() || undefined,
+        quantity:    (service === "topic" || service === "journal") ? quantity : undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map((f:any)=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       toServiceType(service),
@@ -216,7 +242,10 @@ export default function HireAWriter() {
         topic:             topic.trim(),
         department:        department.trim(),
         degreeGroup,
-        specialInstructions: instructions.trim() || undefined,
+        specialInstructions: service === "topic"
+          ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
+          : instructions.trim() || undefined,
+        quantity:    (service === "topic" || service === "journal") ? quantity : undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       toServiceType(service),
@@ -243,7 +272,10 @@ export default function HireAWriter() {
         topic:             topic.trim(),
         department:        department.trim(),
         degreeGroup,
-        specialInstructions: instructions.trim() || undefined,
+        specialInstructions: service === "topic"
+          ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
+          : instructions.trim() || undefined,
+        quantity:    (service === "topic" || service === "journal") ? quantity : undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       toServiceType(service),
@@ -301,7 +333,7 @@ export default function HireAWriter() {
           {/* Service Type */}
           <div>
             <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">What Do You Need?</label>
-            <select value={service} onChange={e => { setService(e.target.value); setPlanId(""); setSelChapters([]); }}
+            <select value={service} onChange={e => { setService(e.target.value); setPlanId(""); setSelChapters([]); setQuantity(1); setAreaOfInterest(""); }}
               className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
               <option value="">-- Select service type --</option>
               {SERVICES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
