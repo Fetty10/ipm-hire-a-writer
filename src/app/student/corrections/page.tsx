@@ -56,7 +56,7 @@ function getStatusInfo(status: string) {
 }
 
 export default function StudentCorrections() {
-  const [tab,       setTab]       = useState<"request"|"status">("status");
+  const [tab,       setTab]       = useState<"request"|"status">("request");
   const [orders,    setOrders]    = useState<any[]>([]);
   const [corrs,     setCorrs]     = useState<any[]>([]);
   const [loading,   setLoading]   = useState(true);
