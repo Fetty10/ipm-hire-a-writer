@@ -504,7 +504,8 @@ export default function HireAWriter() {
             </div>
           )}
 
-          {/* Guideline upload */}
+          {/* Guideline upload — hidden for topic coining and journal sourcing */}
+          {service !== "topic" && service !== "journal_sourcing" && (
           <div>
             <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
               Upload School Format/Guideline <span className="font-400 normal-case text-navy-muted">(optional)</span>
@@ -551,6 +552,7 @@ export default function HireAWriter() {
               )}
             </div>
           </div>
+          )}
 
           {/* Payment Summary */}
           {showSummary && (
