@@ -200,6 +200,10 @@ model Plan {
   planName                PlanName
   pricingType             PricingType
   priceKobo               Int         // price in kobo (₦ × 100) for Paystack
+  priceGHS   Int?
+  priceKES   Int?
+  priceUSD   Int?
+  priceGBP   Int?
   includesCorrections     Boolean     @default(false)
   includesFormat          Boolean     @default(false)
   includesPlagiarismCheck Boolean     @default(false)
@@ -246,6 +250,10 @@ model OtherService {
   pricePHD    Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  priceGHSIntl  Int  @default(0)
+  priceKESIntl  Int  @default(0)
+  priceUSDIntl  Int  @default(0)
+  priceGBPIntl  Int  @default(0)
 }
 
 // ─────────────────────────────────────────
@@ -313,6 +321,9 @@ model Order {
   bankTransferConfirmedById String?
   amountPaidKobo      Int?
   paidAt              DateTime?
+  currency              String  @default("NGN")
+  flutterwaveReference  String?
+  flutterwaveStatus     String?
 
   // Status
   status              OrderStatus @default(PENDING_PAYMENT)
