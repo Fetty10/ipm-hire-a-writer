@@ -31,7 +31,6 @@ export async function POST(req: NextRequest) {
     writerNotes,
     // Chapter 1 prelim fields
     researchObjectives,
-    researchQuestions,
     hypotheses,
     scopeOfStudy,
   } = body;
@@ -71,11 +70,11 @@ export async function POST(req: NextRequest) {
   if (chapter.requiresPrelim) {
     // If prelim not yet submitted, require all 4 fields
     if (!chapter.prelimSubmittedAt) {
-      if (!researchObjectives || !researchQuestions || !hypotheses || !scopeOfStudy) {
+      if (!researchObjectives || !hypotheses || !scopeOfStudy) {
         return NextResponse.json(
           {
             error:
-              "Chapter 1 requires Research Objectives, Research Questions, Hypotheses and Scope of Study before submission.",
+              "Chapter 1 requires Research Objectives, Hypotheses and Scope of Study before submission.",
           },
           { status: 400 }
         );
@@ -100,7 +99,6 @@ export async function POST(req: NextRequest) {
       writerNotes:      writerNotes || null,
       // Save prelim fields if provided
       ...(researchObjectives ? { researchObjectives } : {}),
-      ...(researchQuestions  ? { researchQuestions  } : {}),
       ...(hypotheses         ? { hypotheses         } : {}),
       ...(scopeOfStudy       ? { scopeOfStudy       } : {}),
       ...(researchObjectives ? { prelimSubmittedAt: new Date() } : {}),
@@ -127,7 +125,6 @@ export async function POST(req: NextRequest) {
             name:               ch.assignedTo.name,
             topic:              chapter.order.topic,
             researchObjectives: researchObjectives!,
-            researchQuestions:  researchQuestions!,
             hypotheses:         hypotheses!,
             scopeOfStudy:       scopeOfStudy!,
           });
