@@ -42,7 +42,7 @@ const C = {
   acts:   { display:"flex", gap:".35rem", flexWrap:"wrap" as const },
 };
 
-const BLANK = { degreeGroup:"OND_HND_NCE", planName:"BASIC", pricingType:"FLAT", priceKobo:"", includesCorrections:false, includesPlagiarismCheck:false, includesFormat:false };
+const BLANK = { degreeGroup:"OND_HND_NCE", planName:"BASIC", pricingType:"FLAT", priceKobo:"", priceGHS:"", priceKES:"", priceUSD:"", priceGBP:"", includesCorrections:false, includesPlagiarismCheck:false, includesFormat:false };
 
 export default function AdminPlans() {
   const [plans,   setPlans]   = useState<any[]>([]);
@@ -87,6 +87,10 @@ export default function AdminPlans() {
         id,
         priceKobo:              Math.round(parseFloat(e.priceKobo) * 100),
         pricingType:            e.pricingType,
+        priceGHS:               e.priceGHS !== undefined ? (e.priceGHS ? Math.round(parseFloat(e.priceGHS)*100) : null) : undefined,
+        priceKES:               e.priceKES !== undefined ? (e.priceKES ? Math.round(parseFloat(e.priceKES)*100) : null) : undefined,
+        priceUSD:               e.priceUSD !== undefined ? (e.priceUSD ? Math.round(parseFloat(e.priceUSD)*100) : null) : undefined,
+        priceGBP:               e.priceGBP !== undefined ? (e.priceGBP ? Math.round(parseFloat(e.priceGBP)*100) : null) : undefined,
         includesCorrections:    e.includesCorrections,
         includesPlagiarismCheck:e.includesPlagiarismCheck,
         includesFormat:         e.includesFormat,
@@ -123,6 +127,10 @@ export default function AdminPlans() {
         planName:               newPlan.planName,
         pricingType:            newPlan.pricingType,
         priceKobo:              Math.round(parseFloat(newPlan.priceKobo) * 100),
+        priceGHS:               newPlan.priceGHS ? Math.round(parseFloat(newPlan.priceGHS) * 100) : null,
+        priceKES:               newPlan.priceKES ? Math.round(parseFloat(newPlan.priceKES) * 100) : null,
+        priceUSD:               newPlan.priceUSD ? Math.round(parseFloat(newPlan.priceUSD) * 100) : null,
+        priceGBP:               newPlan.priceGBP ? Math.round(parseFloat(newPlan.priceGBP) * 100) : null,
         includesCorrections:    newPlan.includesCorrections,
         includesPlagiarismCheck:newPlan.includesPlagiarismCheck,
         includesFormat:         newPlan.includesFormat,
@@ -164,9 +172,29 @@ export default function AdminPlans() {
               </select>
             </div>
             <div style={C.fg}>
-              <label style={C.lbl}>Price (₦)</label>
+              <label style={C.lbl}>Price NGN (₦)</label>
               <input style={C.inp} type="number" min="0" placeholder="e.g. 12000"
                 value={newPlan.priceKobo} onChange={e=>setNewPlan(p=>({...p,priceKobo:e.target.value}))} />
+            </div>
+            <div style={C.fg}>
+              <label style={C.lbl}>Price GHS (GH₵)</label>
+              <input style={C.inp} type="number" min="0" placeholder="e.g. 85"
+                value={newPlan.priceGHS} onChange={e=>setNewPlan(p=>({...p,priceGHS:e.target.value}))} />
+            </div>
+            <div style={C.fg}>
+              <label style={C.lbl}>Price KES (KSh)</label>
+              <input style={C.inp} type="number" min="0" placeholder="e.g. 1500"
+                value={newPlan.priceKES} onChange={e=>setNewPlan(p=>({...p,priceKES:e.target.value}))} />
+            </div>
+            <div style={C.fg}>
+              <label style={C.lbl}>Price USD ($)</label>
+              <input style={C.inp} type="number" min="0" placeholder="e.g. 10"
+                value={newPlan.priceUSD} onChange={e=>setNewPlan(p=>({...p,priceUSD:e.target.value}))} />
+            </div>
+            <div style={C.fg}>
+              <label style={C.lbl}>Price GBP (£)</label>
+              <input style={C.inp} type="number" min="0" placeholder="e.g. 8"
+                value={newPlan.priceGBP} onChange={e=>setNewPlan(p=>({...p,priceGBP:e.target.value}))} />
             </div>
           </div>
           <div style={C.chkRow}>
@@ -193,7 +221,7 @@ export default function AdminPlans() {
               <table style={C.table}>
                 <thead style={C.thead}>
                   <tr>
-                    {["Level","Plan","Type","Price (₦)","Corrections","Plagiarism","Format","Status","Actions"].map(h=>
+                    {["Level","Plan","Type","₦ Price","GH₵","KSh","$","£","Corr","Plag","Fmt","Status","Actions"].map(h=>
                       <th key={h} style={C.th}>{h}</th>
                     )}
                   </tr>
@@ -218,6 +246,13 @@ export default function AdminPlans() {
                             value={e.priceKobo ?? p.priceKobo/100}
                             onChange={ev=>updEdit(p.id,"priceKobo",ev.target.value)} />
                         </td>
+                        {["priceGHS","priceKES","priceUSD","priceGBP"].map(field => (
+                          <td key={field} style={C.td}>
+                            <input style={C.tdInp} type="number" min="0" placeholder="—"
+                              value={e[field] !== undefined ? e[field] : (p[field] ? p[field]/100 : "")}
+                              onChange={ev=>updEdit(p.id,field,ev.target.value)} />
+                          </td>
+                        ))}
                         <td style={{...C.td,textAlign:"center" as const}}>
                           <input type="checkbox" checked={e.includesCorrections ?? p.includesCorrections}
                             onChange={ev=>updEdit(p.id,"includesCorrections",ev.target.checked)} />
