@@ -64,7 +64,7 @@ export default function WriterActiveJobs() {
     if (data.success) {
       setJobs(data.data);
       const init:any = {};
-      data.data.forEach((j:any) => { init[j.id] = { fileUrl:"", notes:"", obj:j.researchObjectives||"", q:j.researchQuestions||"", hyp:j.hypotheses||"", scope:j.scopeOfStudy||"", submitting:false, uploading:false, fileName:"" }; });
+      data.data.forEach((j:any) => { init[j.id] = { fileUrl:"", notes:"", obj:j.researchObjectives||"", hyp:j.hypotheses||"", scope:j.scopeOfStudy||"", submitting:false, uploading:false, fileName:"" }; });
       setState(init);
     }
     setLoading(false);
@@ -82,7 +82,7 @@ export default function WriterActiveJobs() {
     upd(job.id,"submitting",true);
     const res = await fetch("/api/chapters/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       chapterId:job.id, fileUrl:s.fileUrl, writerNotes:s.notes||undefined,
-      researchObjectives:s.obj||undefined, researchQuestions:s.q||undefined,
+      researchObjectives:s.obj||undefined,
       hypotheses:s.hyp||undefined, scopeOfStudy:s.scope||undefined,
     })});
     const data = await res.json();
@@ -174,7 +174,6 @@ export default function WriterActiveJobs() {
                   <div style={{fontSize:".72rem",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:".08em",color:"#0369A1",marginBottom:"1rem"}}>Required Before Uploading Chapter 1</div>
                   {[
                     {label:"Research Objectives",field:"obj",ph:"State the research objectives..."},
-                    {label:"Research Questions", field:"q",  ph:"List your research questions..."},
                     {label:"Hypotheses",          field:"hyp",ph:"State your hypotheses..."},
                     {label:"Scope of Study",      field:"scope",ph:"Describe scope and limitations..."},
                   ].map(f=>(
