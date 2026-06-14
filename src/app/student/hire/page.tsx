@@ -129,14 +129,12 @@ export default function HireAWriter() {
       const svc = SERVICES.find(s => s.value === service) as any;
       if (!svc || !degreeGroup) return 0;
       if (!geoInfo.isNigeria) {
-        // Use international price if available
-        const intlMap: Record<string,Record<string,number>> = {
-          GHS: { OND_HND_NCE: svc.priceGHSIntl||0, BSC_BED_BA: svc.priceGHSIntl||0, PGD_MSC_PHD: svc.priceGHSIntl||0, PHD: svc.priceGHSIntl||0 },
-          KES: { OND_HND_NCE: svc.priceKESIntl||0, BSC_BED_BA: svc.priceKESIntl||0, PGD_MSC_PHD: svc.priceKESIntl||0, PHD: svc.priceKESIntl||0 },
-          USD: { OND_HND_NCE: svc.priceUSDIntl||0, BSC_BED_BA: svc.priceUSDIntl||0, PGD_MSC_PHD: svc.priceUSDIntl||0, PHD: svc.priceUSDIntl||0 },
-          GBP: { OND_HND_NCE: svc.priceGBPIntl||0, BSC_BED_BA: svc.priceGBPIntl||0, PGD_MSC_PHD: svc.priceGBPIntl||0, PHD: svc.priceGBPIntl||0 },
+        // Degree key map: DB uses OND/BSC/PGD/PHD suffix
+        const degKey: Record<string,string> = {
+          OND_HND_NCE:"OND", BSC_BED_BA:"BSC", PGD_MSC_PHD:"PGD", PHD:"PHD",
         };
-        const intlPrice = intlMap[geoInfo.currency]?.[degreeGroup] || 0;
+        const field = `price${geoInfo.currency}${degKey[degreeGroup]||"BSC"}`;
+        const intlPrice = svc[field] || 0;
         if (intlPrice > 0) return intlPrice / 100;
       }
       const priceMap: Record<string,number> = {
