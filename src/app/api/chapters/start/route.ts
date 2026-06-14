@@ -5,7 +5,17 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ChapterStatus, Role } from "@prisma/client";
-import { getStaffDeadline } from "@/lib/workingDays";
+
+function addWorkingDays(from: Date, days: number): Date {
+  const result = new Date(from);
+  let added = 0;
+  while (added < days) {
+    result.setDate(result.getDate() + 1);
+    const day = result.getDay();
+    if (day !== 0 && day !== 6) added++;
+  }
+  return result;
+}
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -23,9 +33,7 @@ export async function POST(req: NextRequest) {
       status:       ChapterStatus.NOT_STARTED,
     },
     include: {
-      order: {
-        select: { topic: true, plan: { select: { planName: true } } },
-      },
+      order: { select: { topic: true, plan: { select: { planName: true } } } },
     },
   });
 
@@ -33,16 +41,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Chapter not found or not available to start." }, { status: 404 });
   }
 
-  const now        = new Date();
-  const planName   = chapter.order.plan.planName;
-  const role       = session.user.role as "WRITER" | "ANALYST";
-  const deadlineAt = getStaffDeadline(now, role, planName);
+  const now      = new Date();
+  const planName = chapter.order.plan.planName;
+  const role     = session.user.role as "WRITER" | "ANALYST";
+
+  // Deadline: Professional = 2 working days, others = 3
+  const isPro    = planName === "PROFESSIONAL" || planName === "PHD_PROFESSIONAL";
+  const deadlineAt = addWorkingDays(now, isPro ? 2 : 3);
 
   await prisma.orderChapter.update({
     where: { id: chapterId },
-    data: {
-      status:    ChapterStatus.IN_PROGRESS,
-      startedAt: now,
+    data:  {
+      status:     ChapterStatus.IN_PROGRESS,
+      startedAt:  now,
       deadlineAt,
     } as any,
   });
