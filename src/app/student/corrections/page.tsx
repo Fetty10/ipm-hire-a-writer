@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { StudentLayout } from "@/components/student/StudentLayout";
@@ -64,9 +65,9 @@ export default function StudentCorrections() {
   const [orderId,   setOrderId]   = useState("");
   const [chapterId, setChapterId] = useState("");
   const [request,   setRequest]   = useState("");
-  const [supUrl,    setSupUrl]    = useState("");
-  const [supName,   setSupName]   = useState("");
-  const [uploading, setUploading] = useState(false);
+  const [attachments, setAttachments] = useState<{url:string,name:string,type:string}[]>([]);
+  const [uploading,   setUploading]   = useState(false);
+  const [attachments, setAttachments] = useState<{url:string,name:string,type:string}[]>([]);
 
   useEffect(()=>{
     Promise.all([
@@ -80,26 +81,40 @@ export default function StudentCorrections() {
 
   const selOrder = orders.find(o=>o.id===orderId);
 
-  async function handleSupUpload(file:File) {
-    if(file.size>20*1024*1024){ alert("Max 20MB"); return; }
+  async function handleAttachFile(file:File) {
+    if(attachments.length>=10){ toast.error("Max 10 files."); return; }
+    if(file.size>20*1024*1024){ toast.error("Max 20MB per file."); return; }
     setUploading(true);
-    const fd=new FormData(); fd.append("file",file); fd.append("folder","orders/supervisor-notes");
+    const fd=new FormData(); fd.append("file",file); fd.append("folder","orders/corrections");
     const res  = await fetch("/api/upload",{method:"POST",body:fd});
     const data = await res.json();
-    if(res.ok){ setSupUrl(data.url); setSupName(data.fileName||file.name); }
-    else alert(data.error||"Upload failed");
+    if(res.ok){
+      const isImg   = file.type.startsWith("image/");
+      const isAudio = file.type.startsWith("audio/") || file.type === "video/webm";
+      const type    = isImg ? "image" : isAudio ? "audio" : "doc";
+      setAttachments(prev=>[...prev,{url:data.url,name:file.name,type}]);
+    } else toast.error(data.error||"Upload failed");
     setUploading(false);
+  }
+  function openPicker(){
+    const inp=document.createElement("input"); inp.type="file"; inp.multiple=true;
+    inp.accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.mp3,.m4a,.wav,.ogg,.webm,.aac";
+    inp.onchange=async(e)=>{
+      const files=Array.from((e.target as HTMLInputElement).files||[]);
+      for(const f of files) await handleAttachFile(f);
+    };
+    inp.click();
   }
 
   async function submit(e:React.FormEvent) {
     e.preventDefault();
-    if(!chapterId){ alert("Select a chapter."); return; }
-    if(!request.trim()){ alert("Describe what needs to be corrected."); return; }
+    if(!chapterId){ toast.error("Select a chapter."); return; }
+    if(!request.trim()){ toast.error("Describe what needs to be corrected."); return; }
     setSubmitting(true);
-    const res  = await fetch("/api/chapters/corrections",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId,correctionRequest:request,supervisorNotesUrl:supUrl||undefined})});
+    const res  = await fetch("/api/chapters/corrections",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId,correctionRequest:request,supervisorNotesUrl:attachments.length>0?attachments.map(a=>a.url).join(","):undefined})});
     const data = await res.json();
     if(res.ok){ setSuccess(true); }
-    else alert(data.error);
+    else toast.error(data.error || "Something went wrong");
     setSubmitting(false);
   }
 
@@ -193,13 +208,30 @@ export default function StudentCorrections() {
                       placeholder="Be specific. e.g. The introduction doesn't mention Nigeria. Please add context in section 1.2. References should be APA 7th edition." />
                   </div>
                   <div style={C.fg}>
-                    <label style={C.lbl}>Upload Supervisor's Notes <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0}}>(optional)</span></label>
-                    <div style={supUrl?C.upzoneOk:C.upzone}
-                      onClick={()=>{const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleSupUpload(f);};inp.click();}}>
-                      {uploading ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
-                      : supUrl   ? <div><div style={C.upi}>✅</div><div style={C.upok}>{supName}</div><div style={C.upsub}>Tap to replace</div></div>
-                      : <div><div style={C.upi}>📎</div><div style={C.uplbl}>Upload supervisor's comments</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
-                    </div>
+                    <label style={C.lbl}>Attachments <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0}}>(optional — screenshots, voice notes, supervisor notes, PDFs)</span></label>
+                    {/* Uploaded files */}
+                    {attachments.length>0 && (
+                      <div style={{display:"flex",flexDirection:"column" as const,gap:".4rem",marginBottom:".6rem"}}>
+                        {attachments.map((a,i)=>(
+                          <div key={i} style={{display:"flex",alignItems:"center",gap:".5rem",background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:"8px",padding:".5rem .75rem"}}>
+                            <span>{a.type==="image"?"🖼️":a.type==="audio"?"🎙️":"📎"}</span>
+                            <span style={{flex:1,fontSize:".78rem",color:"#0C1A2E",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{a.name}</span>
+                            <button type="button" style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontWeight:700}}
+                              onClick={()=>setAttachments(prev=>prev.filter((_,j)=>j!==i))}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {attachments.length<10 && (
+                      <div style={C.upzone} onClick={openPicker}>
+                        {uploading
+                          ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
+                          : <div><div style={C.upi}>📎</div>
+                              <div style={C.uplbl}>{attachments.length>0?"Add More Files":"Add Screenshots or Files"}</div>
+                              <div style={C.upsub}>Images, Voice Notes, PDF, Word · Max 20MB each · Up to 10 files</div>
+                            </div>}
+                      </div>
+                    )}
                   </div>
                   <button type="submit" disabled={submitting||!chapterId||!request.trim()}
                     style={{...C.btnP,...(!chapterId||!request.trim()||submitting?C.btnD:{})}}>
