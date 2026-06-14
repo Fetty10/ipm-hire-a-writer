@@ -10,11 +10,16 @@ function adminOnly(role: Role) {
   return [Role.MAIN_ADMIN, Role.SUB_ADMIN].includes(role);
 }
 
+const INTL_CURRENCIES = ["GHS","KES","USD","GBP"] as const;
+const DEGREES = ["OND","BSC","PGD","PHD"] as const;
+
+// Build all 16 intl price field names: priceGHSOND, priceGHSBSC, etc.
+const INTL_FIELDS = INTL_CURRENCIES.flatMap(c => DEGREES.map(d => `price${c}${d}`));
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const all = searchParams.get("all") === "true";
 
-  // If all=true, require admin auth
   if (all) {
     const session = await getServerSession(authOptions);
     if (!session?.user || !adminOnly(session.user.role)) {
@@ -36,15 +41,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { label, value, description, priceOND, priceBSC, pricePGD, pricePHD, sortOrder } = await req.json();
+  const body = await req.json();
+  const { label, value, description, priceOND, priceBSC, pricePGD, pricePHD, sortOrder } = body;
 
   if (!label?.trim() || !value?.trim()) {
     return NextResponse.json({ error: "Label and value are required." }, { status: 400 });
   }
 
-  const existing = await (prisma as any).otherService.findUnique({ where: { value: value.trim().toLowerCase() } });
+  const existing = await (prisma as any).otherService.findUnique({
+    where: { value: value.trim().toLowerCase() },
+  });
   if (existing) {
     return NextResponse.json({ error: "A service with this identifier already exists." }, { status: 409 });
+  }
+
+  // Build intl price data
+  const intlData: any = {};
+  for (const field of INTL_FIELDS) {
+    intlData[field] = Math.round((body[field] || 0) * 100);
   }
 
   const service = await (prisma as any).otherService.create({
@@ -52,14 +66,11 @@ export async function POST(req: NextRequest) {
       label:       label.trim(),
       value:       value.trim().toLowerCase().replace(/\s+/g, "_"),
       description: description?.trim() || null,
-      priceOND:     Math.round((priceOND || 0) * 100),
-      priceBSC:     Math.round((priceBSC || 0) * 100),
-      pricePGD:     Math.round((pricePGD || 0) * 100),
-      pricePHD:     Math.round((pricePHD || 0) * 100),
-      priceGHSIntl: Math.round((body.priceGHSIntl || 0) * 100),
-      priceKESIntl: Math.round((body.priceKESIntl || 0) * 100),
-      priceUSDIntl: Math.round((body.priceUSDIntl || 0) * 100),
-      priceGBPIntl: Math.round((body.priceGBPIntl || 0) * 100),
+      priceOND:    Math.round((priceOND || 0) * 100),
+      priceBSC:    Math.round((priceBSC || 0) * 100),
+      pricePGD:    Math.round((pricePGD || 0) * 100),
+      pricePHD:    Math.round((pricePHD || 0) * 100),
+      ...intlData,
       sortOrder:   sortOrder || 0,
       isActive:    true,
     },
@@ -74,23 +85,26 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id, label, description, priceOND, priceBSC, pricePGD, pricePHD, sortOrder, isActive } = await req.json();
+  const body = await req.json();
+  const { id, label, description, priceOND, priceBSC, pricePGD, pricePHD, sortOrder, isActive } = body;
   if (!id) return NextResponse.json({ error: "id required." }, { status: 400 });
 
   const data: any = { updatedAt: new Date() };
   if (label       !== undefined) data.label       = label.trim();
   if (description !== undefined) data.description = description?.trim() || null;
-  if (priceOND         !== undefined) data.priceOND         = Math.round(priceOND * 100);
-  if (priceBSC         !== undefined) data.priceBSC         = Math.round(priceBSC * 100);
-  if (pricePGD         !== undefined) data.pricePGD         = Math.round(pricePGD * 100);
-  if (pricePHD         !== undefined) data.pricePHD         = Math.round(pricePHD * 100);
-  const { priceGHSIntl, priceKESIntl, priceUSDIntl, priceGBPIntl } = body;
-  if (priceGHSIntl !== undefined) data.priceGHSIntl = Math.round(priceGHSIntl * 100);
-  if (priceKESIntl !== undefined) data.priceKESIntl = Math.round(priceKESIntl * 100);
-  if (priceUSDIntl !== undefined) data.priceUSDIntl = Math.round(priceUSDIntl * 100);
-  if (priceGBPIntl !== undefined) data.priceGBPIntl = Math.round(priceGBPIntl * 100);
+  if (priceOND    !== undefined) data.priceOND    = Math.round(priceOND * 100);
+  if (priceBSC    !== undefined) data.priceBSC    = Math.round(priceBSC * 100);
+  if (pricePGD    !== undefined) data.pricePGD    = Math.round(pricePGD * 100);
+  if (pricePHD    !== undefined) data.pricePHD    = Math.round(pricePHD * 100);
   if (sortOrder   !== undefined) data.sortOrder   = sortOrder;
   if (isActive    !== undefined) data.isActive    = isActive;
+
+  // Save all intl price fields
+  for (const field of INTL_FIELDS) {
+    if (body[field] !== undefined) {
+      data[field] = Math.round((body[field] || 0) * 100);
+    }
+  }
 
   await (prisma as any).otherService.update({ where: { id }, data });
   return NextResponse.json({ success: true, message: "Service updated." });
