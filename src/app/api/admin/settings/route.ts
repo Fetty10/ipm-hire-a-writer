@@ -53,12 +53,16 @@ export async function PATCH(req: NextRequest) {
   if (type === "plan") {
     if (!id) return NextResponse.json({ error: "id required." }, { status:400 });
     const data: any = { updatedById: session.user.id };
-    if (body.priceKobo              !== undefined) data.priceKobo              = body.priceKobo;
-    if (body.pricingType            !== undefined) data.pricingType            = body.pricingType;
-    if (body.includesCorrections    !== undefined) data.includesCorrections    = body.includesCorrections;
+    if (body.priceKobo               !== undefined) data.priceKobo               = body.priceKobo;
+    if (body.pricingType             !== undefined) data.pricingType             = body.pricingType;
+    if (body.priceGHS                !== undefined) data.priceGHS                = body.priceGHS;
+    if (body.priceKES                !== undefined) data.priceKES                = body.priceKES;
+    if (body.priceUSD                !== undefined) data.priceUSD                = body.priceUSD;
+    if (body.priceGBP                !== undefined) data.priceGBP                = body.priceGBP;
+    if (body.includesCorrections     !== undefined) data.includesCorrections     = body.includesCorrections;
     if (body.includesPlagiarismCheck !== undefined) data.includesPlagiarismCheck = body.includesPlagiarismCheck;
-    if (body.includesFormat         !== undefined) data.includesFormat         = body.includesFormat;
-    if (body.isActive               !== undefined) data.isActive               = body.isActive;
+    if (body.includesFormat          !== undefined) data.includesFormat          = body.includesFormat;
+    if (body.isActive                !== undefined) data.isActive                = body.isActive;
     await prisma.plan.update({ where: { id }, data });
     return NextResponse.json({ success:true, message:"Plan updated." });
   }
@@ -101,15 +105,20 @@ export async function POST(req: NextRequest) {
     if (existing) {
       return NextResponse.json({ error:"A plan for this combination already exists. Edit the existing one." }, { status:409 });
     }
+    const { priceGHS, priceKES, priceUSD, priceGBP } = body;
     const plan = await prisma.plan.create({
       data: {
         degreeGroup, planName, pricingType, priceKobo,
+        priceGHS:                priceGHS || null,
+        priceKES:                priceKES || null,
+        priceUSD:                priceUSD || null,
+        priceGBP:                priceGBP || null,
         includesCorrections:     includesCorrections     || false,
         includesPlagiarismCheck: includesPlagiarismCheck || false,
         includesFormat:          includesFormat          || false,
         isActive:                true,
         updatedById:             session.user.id,
-      },
+      } as any,
     });
     return NextResponse.json({ success:true, data:plan, message:"Plan added." });
   }
