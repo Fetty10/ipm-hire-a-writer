@@ -250,10 +250,22 @@ model OtherService {
   pricePHD    Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  priceGHSIntl  Int  @default(0)
-  priceKESIntl  Int  @default(0)
-  priceUSDIntl  Int  @default(0)
-  priceGBPIntl  Int  @default(0)
+  priceGHSOND  Int  @default(0)
+  priceGHSBSC  Int  @default(0)
+priceGHSPGD  Int  @default(0)
+priceGHSPHD  Int  @default(0)
+priceKESOND  Int  @default(0)
+priceKESBSC  Int  @default(0)
+priceKESPGD  Int  @default(0)
+priceKESPHD  Int  @default(0)
+priceUSDOND  Int  @default(0)
+priceUSDBSC  Int  @default(0)
+priceUSDPGD  Int  @default(0)
+priceUSDPHD  Int  @default(0)
+priceGBPOND  Int  @default(0)
+priceGBPBSC  Int  @default(0)
+priceGBPPGD  Int  @default(0)
+priceGBPPHD  Int  @default(0)
 }
 
 // ─────────────────────────────────────────
