@@ -138,6 +138,18 @@ export default function AnalystActiveJobs() {
                   <div style={C.ctitle}>{job.chapterLabel}</div>
                   <div style={C.cmeta}>{job.topic}</div>
                   <div style={C.cmeta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup}</div>
+                  <div style={{display:"flex",gap:"1rem",marginTop:".3rem",flexWrap:"wrap" as const}}>
+                    <span style={{fontSize:".7rem",color:"#5B7EA6"}}>🟢 Started: <strong>{job.startedAt ? new Date(job.startedAt).toLocaleDateString("en-NG",{day:"numeric",month:"short"}) : "—"}</strong></span>
+                    {job.deadlineAt && (() => {
+                      const dl = new Date(job.deadlineAt);
+                      const days = Math.ceil((dl.getTime()-Date.now())/(1000*60*60*24));
+                      const color = days < 0 ? "#DC2626" : days <= 1 ? "#D97706" : "#065F46";
+                      const bg    = days < 0 ? "#FEF2F2" : days <= 1 ? "#FFF7ED" : "#F0FDF4";
+                      return <span style={{fontSize:".7rem",fontWeight:700,color,background:bg,padding:"1px 6px",borderRadius:"4px"}}>
+                        {days < 0 ? `⚠️ Overdue by ${Math.abs(days)}d` : days === 0 ? "⏰ Due today" : `⏳ Due ${dl.toLocaleDateString("en-NG",{day:"numeric",month:"short"})} (${days}d left)`}
+                      </span>;
+                    })()}
+                  </div>
                 </div>
               </div>
 
