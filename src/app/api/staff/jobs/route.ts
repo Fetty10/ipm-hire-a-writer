@@ -62,9 +62,10 @@ export async function GET(req: NextRequest) {
             requiresPlagiarismCheck: true,
             requiresAiCheck:     true,
             isExceptionDept:     true,
+            createdAt:           true,
             plan: {
               select: {
-                // planName excluded
+                planName:    true, // used for deadline calculation only
                 degreeGroup: true,
               },
             },
@@ -118,6 +119,8 @@ export async function GET(req: NextRequest) {
         createdAt:          ch.createdAt,
         submittedAt:        ch.submittedAt,
         deliveredAt:        ch.deliveredAt,
+        deadlineAt:         (ch as any).deadlineAt || null,
+        orderCreatedAt:     ch.order.createdAt,
         // QC status — helps writer see if QC has started or just received
         qcStarted:          !!ch.routedToQcId,
         // Order info (no student name/price)
@@ -126,7 +129,8 @@ export async function GET(req: NextRequest) {
         degreeGroup:         ch.order.degreeGroup,
         specialInstructions: ch.order.specialInstructions,
         guidelineFileUrl:    ch.order.guidelineFileUrl,
-        // planName intentionally excluded — staff must not see plan
+        planName:           ch.order.plan.planName, // for deadline calc only
+        startedAt:          ch.startedAt || null,
         // Analyst gets writer's prelim notes for context
         writerPrelimNotes,
       };
