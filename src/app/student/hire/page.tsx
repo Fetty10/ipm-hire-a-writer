@@ -81,7 +81,7 @@ export default function HireAWriter() {
   // Build full services list: project first, then dynamic others
   const SERVICES = [
     PROJECT_SERVICE,
-    ...otherSvcs.map(s => ({ value: s.value, label: s.label, hasPlan: false, priceOND: s.priceOND, priceBSC: s.priceBSC, pricePGD: s.pricePGD, pricePHD: s.pricePHD || s.pricePGD })),
+    ...otherSvcs.map(s => ({ ...s, hasPlan: false })),
   ];
 
   // Form state
