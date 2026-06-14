@@ -110,6 +110,10 @@ export default function AnalystPendingJobs() {
                 <div style={C.ctitle}>{job.chapterLabel}</div>
                 <div style={C.cmeta}>{job.topic}</div>
                 <div style={C.cmeta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup}</div>
+                <div style={{display:"flex",gap:"1rem",marginTop:".3rem",flexWrap:"wrap" as const}}>
+                  <span style={{fontSize:".7rem",color:"#5B7EA6"}}>📅 Ordered: <strong>{job.orderCreatedAt ? new Date(job.orderCreatedAt).toLocaleDateString("en-NG",{day:"numeric",month:"short",year:"numeric"}) : "—"}</strong></span>
+                  <span style={{fontSize:".7rem",color:"#5B7EA6"}}>📌 Assigned: <strong>{job.createdAt ? new Date(job.createdAt).toLocaleDateString("en-NG",{day:"numeric",month:"short",year:"numeric"}) : "—"}</strong></span>
+                </div>
               </div>
             </div>
 
