@@ -95,11 +95,22 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   });
 
   // ── Determine what chapters to create ────────────────────
-  // If student selected specific chapters (per-chapter plan), only create those
-  // Otherwise create all 5 chapters
-  const requestedNums: number[] = order.selectedChapters
-    ? order.selectedChapters.split(",").map(Number).filter(Boolean)
-    : [1, 2, 3, 4, 5];
+  // Flat services (seminar, proposal, topic etc.) get 1 chapter → Writer only
+  const isProjectService = order.serviceType === "HIRE_WRITER" || !order.serviceType;
+  const SERVICE_LABELS: Record<string,string> = {
+    PROPOSAL_SEMINAR:      "Seminar / Proposal",
+    JOURNAL_WRITING:       "Journal / Article",
+    JOURNAL_SOURCING:      "Journal Sourcing",
+    TOPIC_SUGGESTION:      "Topic Coining",
+    CASE_STUDY_ADJUSTMENT: "Case Study",
+    COMPLETE_PROJECT:      "Complete Project",
+  };
+
+  const requestedNums: number[] = isProjectService
+    ? (order.selectedChapters
+        ? order.selectedChapters.split(",").map(Number).filter(Boolean)
+        : [1, 2, 3, 4, 5])
+    : [1]; // flat services always just 1 chapter
 
   const chaptersToCreate: Array<{
     chapterNumber: number;
@@ -113,21 +124,30 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
     // All requested chapters → Writer
     for (const num of requestedNums) {
       chaptersToCreate.push({
-        chapterNumber: num,
-        chapterLabel:  `Chapter ${num}`,
-        role:          Role.WRITER,
-        assigneeRole:  AssigneeRole.WRITER,
-        requiresPrelim: num === PRELIM_REQUIRED_CHAPTER,
+        chapterNumber:  num,
+        chapterLabel:   isProjectService ? `Chapter ${num}` : (SERVICE_LABELS[order.serviceType] || `Chapter ${num}`),
+        role:           Role.WRITER,
+        assigneeRole:   AssigneeRole.WRITER,
+        requiresPrelim: isProjectService && num === PRELIM_REQUIRED_CHAPTER,
       });
     }
+  } else if (!isProjectService) {
+    // Flat service — 1 chapter to writer, no prelim needed
+    chaptersToCreate.push({
+      chapterNumber:  1,
+      chapterLabel:   SERVICE_LABELS[order.serviceType] || "Assignment",
+      role:           Role.WRITER,
+      assigneeRole:   AssigneeRole.WRITER,
+      requiresPrelim: false,
+    });
   } else {
     // Writer chapters (1, 2, 5) that were requested
     for (const num of WRITER_CHAPTERS.filter(n => requestedNums.includes(n))) {
       chaptersToCreate.push({
-        chapterNumber: num,
-        chapterLabel:  `Chapter ${num}`,
-        role:          Role.WRITER,
-        assigneeRole:  AssigneeRole.WRITER,
+        chapterNumber:  num,
+        chapterLabel:   `Chapter ${num}`,
+        role:           Role.WRITER,
+        assigneeRole:   AssigneeRole.WRITER,
         requiresPrelim: num === PRELIM_REQUIRED_CHAPTER,
       });
     }
