@@ -8,7 +8,7 @@ import { FileUpload } from "@/components/staff/FileUpload";
 import { Spinner } from "@/components/ui";
 import toast from "react-hot-toast";
 
-interface Plan { id:string; planName:string; degreeGroup:string; pricingType:string; priceKobo:number; includesPlagiarismCheck:boolean; includesCorrections:boolean; }
+interface Plan { id:string; planName:string; degreeGroup:string; pricingType:string; priceKobo:number; priceGHS?:number|null; priceKES?:number|null; priceUSD?:number|null; priceGBP?:number|null; includesPlagiarismCheck:boolean; includesCorrections:boolean; includesFormat:boolean; }
 
 const DEG_GROUPS = [
   { group:"Diploma / Certificate", options:[
@@ -146,8 +146,13 @@ export default function HireAWriter() {
       return (priceMap[degreeGroup] || 0) / 100;
     }
     if (!selectedPlan) return 0;
-    if (!isPerChapter) return selectedPlan.priceKobo / 100;
-    return (selectedPlan.priceKobo / 100) * selChapters.length;
+    // Use international price if available
+    const intlPriceField = `price${geoInfo.currency}` as keyof Plan;
+    const intlUnitPrice  = (!geoInfo.isNigeria && selectedPlan[intlPriceField])
+      ? (selectedPlan[intlPriceField] as number) / 100
+      : selectedPlan.priceKobo / 100;
+    if (!isPerChapter) return intlUnitPrice;
+    return intlUnitPrice * selChapters.length;
   }
 
   function toggleChapter(n: number) {
