@@ -130,7 +130,7 @@ export default function AnalystActiveJobs() {
         ) : jobs.map((job:any) => {
           const s    = state[job.id]||{};
           const prel = job.writerPrelimNotes;
-          const hasPrelim = prel&&(prel.researchObjectives||prel.researchQuestions||prel.hypotheses||prel.scopeOfStudy);
+          const hasPrelim = prel&&(prel.researchObjectives||prel.hypotheses||prel.scopeOfStudy);
           return (
             <div key={job.id} style={C.card}>
               <div style={C.chead}>
@@ -170,7 +170,6 @@ export default function AnalystActiveJobs() {
                   {hasPrelim ? (
                     <>
                       {prel.researchObjectives&&<div style={C.prelimRow}><div style={C.prelimLbl}>Research Objectives</div><div style={C.prelimVal}>{prel.researchObjectives}</div></div>}
-                      {prel.researchQuestions&&<div style={C.prelimRow}><div style={C.prelimLbl}>Research Questions</div><div style={C.prelimVal}>{prel.researchQuestions}</div></div>}
                       {prel.hypotheses&&<div style={C.prelimRow}><div style={C.prelimLbl}>Hypotheses</div><div style={C.prelimVal}>{prel.hypotheses}</div></div>}
                       {prel.scopeOfStudy&&<div style={C.prelimRow}><div style={C.prelimLbl}>Scope of Study</div><div style={C.prelimVal}>{prel.scopeOfStudy}</div></div>}
                     </>
