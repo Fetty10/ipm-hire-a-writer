@@ -219,6 +219,16 @@ export default function HireAWriter() {
   const total  = calcTotal();
   const showSummary = degreeGroup && service && (isProject ? planId && (!isPerChapter || selChapters.length > 0) : true);
 
+  function getExpectedDelivery(): string {
+    const d = new Date();
+    let added = 0;
+    while (added < 3) {
+      d.setDate(d.getDate() + 1);
+      if (d.getDay() !== 0 && d.getDay() !== 6) added++;
+    }
+    return d.toLocaleDateString("en-NG", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+  }
+
   return (
     <StudentLayout>
       <div className="max-w-lg mx-auto">
