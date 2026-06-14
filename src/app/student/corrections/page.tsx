@@ -67,7 +67,6 @@ export default function StudentCorrections() {
   const [request,   setRequest]   = useState("");
   const [attachments, setAttachments] = useState<{url:string,name:string,type:string}[]>([]);
   const [uploading,   setUploading]   = useState(false);
-  const [attachments, setAttachments] = useState<{url:string,name:string,type:string}[]>([]);
 
   useEffect(()=>{
     Promise.all([
