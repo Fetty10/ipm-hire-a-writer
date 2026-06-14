@@ -27,12 +27,13 @@ const PROJECT_SERVICE = { value:"project", label:"Project / Thesis / Dissertatio
 
 // Map service values to valid ServiceType enum values
 const SERVICE_TYPE_MAP: Record<string,string> = {
-  project:    "HIRE_WRITER",
-  seminar:    "PROPOSAL_SEMINAR",
-  proposal:   "PROPOSAL_SEMINAR",
-  journal:    "JOURNAL_WRITING",
-  topic:      "TOPIC_SUGGESTION",
-  assignment: "HIRE_WRITER",
+  project:         "HIRE_WRITER",
+  seminar:         "PROPOSAL_SEMINAR",
+  proposal:        "PROPOSAL_SEMINAR",
+  journal:         "JOURNAL_WRITING",
+  journal_sourcing:"JOURNAL_SOURCING",
+  topic:           "TOPIC_SUGGESTION",
+  assignment:      "HIRE_WRITER",
 };
 function toServiceType(svc: string): string {
   return SERVICE_TYPE_MAP[svc] || "HIRE_WRITER";
@@ -164,7 +165,7 @@ export default function HireAWriter() {
         };
         unitPrice = (priceMap[degreeGroup] || 0) / 100;
       }
-      const qty = (service === "topic" || service === "journal") ? quantity : 1;
+      const qty = (service === "topic" || service === "journal_sourcing") ? quantity : 1;
       return unitPrice * qty;
     }
     if (!selectedPlan) return 0;
@@ -208,7 +209,7 @@ export default function HireAWriter() {
         specialInstructions: service === "topic"
           ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
           : instructions.trim() || undefined,
-        quantity:    (service === "topic" || service === "journal") ? quantity : undefined,
+        quantity:    (service === "topic" || service === "journal_sourcing") ? quantity : undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map((f:any)=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       toServiceType(service),
@@ -244,7 +245,7 @@ export default function HireAWriter() {
         specialInstructions: service === "topic"
           ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
           : instructions.trim() || undefined,
-        quantity:    (service === "topic" || service === "journal") ? quantity : undefined,
+        quantity:    (service === "topic" || service === "journal_sourcing") ? quantity : undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       toServiceType(service),
@@ -274,7 +275,7 @@ export default function HireAWriter() {
         specialInstructions: service === "topic"
           ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
           : instructions.trim() || undefined,
-        quantity:    (service === "topic" || service === "journal") ? quantity : undefined,
+        quantity:    (service === "topic" || service === "journal_sourcing") ? quantity : undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       toServiceType(service),
@@ -422,7 +423,7 @@ export default function HireAWriter() {
           )}
 
           {/* Department — hidden for topic coining and journal (each has its own) */}
-          {service !== "topic" && service !== "journal" && (
+          {service !== "topic" && service !== "journal_sourcing" && (
             <div>
               <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Department / Course</label>
               <input value={department} onChange={e => setDepartment(e.target.value)}
@@ -433,7 +434,7 @@ export default function HireAWriter() {
           )}
 
           {/* Special Instructions — hidden for topic coining and journal (each has its own) */}
-          {service !== "topic" && service !== "journal" && (
+          {service !== "topic" && service !== "journal_sourcing" && (
             <div>
               <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
                 Special Instructions <span className="font-400 normal-case text-navy-muted">(optional)</span>
@@ -473,7 +474,7 @@ export default function HireAWriter() {
           )}
 
           {/* Journal Sourcing — special fields */}
-          {service === "journal" && (
+          {service === "journal_sourcing" && (
             <div className="flex flex-col gap-4 p-4 bg-sky-50 rounded-xl border border-sky-200">
               <div className="text-xs font-700 text-sky-700 uppercase tracking-wider">Journal Sourcing Details</div>
               <div>
