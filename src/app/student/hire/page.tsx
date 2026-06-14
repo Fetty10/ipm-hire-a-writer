@@ -441,6 +441,65 @@ export default function HireAWriter() {
               className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none" />
           </div>
 
+          {/* Topic Coining — special fields */}
+          {service === "topic" && (
+            <div className="flex flex-col gap-4 p-4 bg-sky-50 rounded-xl border border-sky-200">
+              <div className="text-xs font-700 text-sky-700 uppercase tracking-wider">Topic Coining Details</div>
+              <div>
+                <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Course of Study</label>
+                <input value={department} onChange={e=>setDepartment(e.target.value)} placeholder="e.g. Mass Communication"
+                  className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+              </div>
+              <div>
+                <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Area of Interest</label>
+                <input value={areaOfInterest} onChange={e=>setAreaOfInterest(e.target.value)} placeholder="e.g. Social Media, Public Relations"
+                  className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+              </div>
+              <div>
+                <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Number of Topics Needed</label>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={()=>setQuantity(q=>Math.max(1,q-1))}
+                    className="w-10 h-10 rounded-xl border border-sky-200 text-lg font-700 text-sky-600 bg-white hover:bg-sky-50">−</button>
+                  <span className="text-xl font-800 text-navy-DEFAULT w-10 text-center">{quantity}</span>
+                  <button type="button" onClick={()=>setQuantity(q=>Math.min(20,q+1))}
+                    className="w-10 h-10 rounded-xl border border-sky-200 text-lg font-700 text-sky-600 bg-white hover:bg-sky-50">+</button>
+                  <span className="text-xs text-navy-muted ml-2">{geoInfo.symbol}{calcUnitPrice().toLocaleString()} per topic</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Journal Sourcing — special fields */}
+          {service === "journal" && (
+            <div className="flex flex-col gap-4 p-4 bg-sky-50 rounded-xl border border-sky-200">
+              <div className="text-xs font-700 text-sky-700 uppercase tracking-wider">Journal Sourcing Details</div>
+              <div>
+                <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Research Topic / Keywords</label>
+                <input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="e.g. Impact of social media on youth"
+                  className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+              </div>
+              <div>
+                <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
+                  Special Instructions <span className="font-400 normal-case text-navy-muted">(optional)</span>
+                </label>
+                <textarea value={instructions} onChange={e=>setInstructions(e.target.value)} rows={3}
+                  placeholder="e.g. Peer-reviewed only, published after 2015"
+                  className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none" />
+              </div>
+              <div>
+                <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Number of Journals Needed</label>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={()=>setQuantity(q=>Math.max(1,q-1))}
+                    className="w-10 h-10 rounded-xl border border-sky-200 text-lg font-700 text-sky-600 bg-white hover:bg-sky-50">−</button>
+                  <span className="text-xl font-800 text-navy-DEFAULT w-10 text-center">{quantity}</span>
+                  <button type="button" onClick={()=>setQuantity(q=>Math.min(50,q+1))}
+                    className="w-10 h-10 rounded-xl border border-sky-200 text-lg font-700 text-sky-600 bg-white hover:bg-sky-50">+</button>
+                  <span className="text-xs text-navy-muted ml-2">{geoInfo.symbol}{calcUnitPrice().toLocaleString()} per journal</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Guideline upload */}
           <div>
             <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
