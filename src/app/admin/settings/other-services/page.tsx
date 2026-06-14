@@ -32,7 +32,7 @@ const C = {
   empty:  { textAlign:"center" as const, padding:"3rem", color:"#5B7EA6", fontSize:".85rem" },
 };
 
-const BLANK = { label:"", value:"", description:"", priceOND:"", priceBSC:"", pricePGD:"", pricePHD:"", sortOrder:"0" };
+const BLANK = { label:"", value:"", description:"", priceOND:"", priceBSC:"", pricePGD:"", pricePHD:"", priceGHSIntl:"", priceKESIntl:"", priceUSDIntl:"", priceGBPIntl:"", sortOrder:"0" };
 
 export default function AdminOtherServices() {
   const [services, setServices] = useState<any[]>([]);
@@ -52,14 +52,18 @@ export default function AdminOtherServices() {
       const init:any = {};
       data.data.forEach((s:any) => {
         init[s.id] = {
-          label:       s.label,
-          description: s.description || "",
-          priceOND:    s.priceOND/100,
-          priceBSC:    s.priceBSC/100,
-          pricePGD:    s.pricePGD/100,
-          pricePHD:    (s.pricePHD||s.pricePGD)/100,
-          sortOrder:   s.sortOrder,
-          isActive:    s.isActive,
+          label:        s.label,
+          description:  s.description || "",
+          priceOND:     s.priceOND/100,
+          priceBSC:     s.priceBSC/100,
+          pricePGD:     s.pricePGD/100,
+          pricePHD:     (s.pricePHD||s.pricePGD)/100,
+          priceGHSIntl: s.priceGHSIntl ? s.priceGHSIntl/100 : "",
+          priceKESIntl: s.priceKESIntl ? s.priceKESIntl/100 : "",
+          priceUSDIntl: s.priceUSDIntl ? s.priceUSDIntl/100 : "",
+          priceGBPIntl: s.priceGBPIntl ? s.priceGBPIntl/100 : "",
+          sortOrder:    s.sortOrder,
+          isActive:     s.isActive,
         };
       });
       setEdits(init);
@@ -80,14 +84,18 @@ export default function AdminOtherServices() {
       method:"PATCH", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         id,
-        label:       e.label,
-        description: e.description,
-        priceOND:    parseFloat(e.priceOND)||0,
-        priceBSC:    parseFloat(e.priceBSC)||0,
-        pricePGD:    parseFloat(e.pricePGD)||0,
-        pricePHD:    parseFloat(e.pricePHD)||0,
-        sortOrder:   parseInt(e.sortOrder)||0,
-        isActive:    e.isActive,
+        label:        e.label,
+        description:  e.description,
+        priceOND:     parseFloat(e.priceOND)||0,
+        priceBSC:     parseFloat(e.priceBSC)||0,
+        pricePGD:     parseFloat(e.pricePGD)||0,
+        pricePHD:     parseFloat(e.pricePHD)||0,
+        priceGHSIntl: parseFloat(e.priceGHSIntl)||0,
+        priceKESIntl: parseFloat(e.priceKESIntl)||0,
+        priceUSDIntl: parseFloat(e.priceUSDIntl)||0,
+        priceGBPIntl: parseFloat(e.priceGBPIntl)||0,
+        sortOrder:    parseInt(e.sortOrder)||0,
+        isActive:     e.isActive,
       }),
     });
     const data = await res.json();
@@ -116,14 +124,18 @@ export default function AdminOtherServices() {
     const res  = await fetch("/api/admin/other-services", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        label:       newSvc.label.trim(),
-        value:       newSvc.value.trim(),
-        description: newSvc.description.trim(),
-        priceOND:    parseFloat(newSvc.priceOND)||0,
-        priceBSC:    parseFloat(newSvc.priceBSC)||0,
-        pricePGD:    parseFloat(newSvc.pricePGD)||0,
-        pricePHD:    parseFloat(newSvc.pricePHD)||0,
-        sortOrder:   parseInt(newSvc.sortOrder)||0,
+        label:        newSvc.label.trim(),
+        value:        newSvc.value.trim(),
+        description:  newSvc.description.trim(),
+        priceOND:     parseFloat(newSvc.priceOND)||0,
+        priceBSC:     parseFloat(newSvc.priceBSC)||0,
+        pricePGD:     parseFloat(newSvc.pricePGD)||0,
+        pricePHD:     parseFloat(newSvc.pricePHD)||0,
+        priceGHSIntl: parseFloat(newSvc.priceGHSIntl)||0,
+        priceKESIntl: parseFloat(newSvc.priceKESIntl)||0,
+        priceUSDIntl: parseFloat(newSvc.priceUSDIntl)||0,
+        priceGBPIntl: parseFloat(newSvc.priceGBPIntl)||0,
+        sortOrder:    parseInt(newSvc.sortOrder)||0,
       }),
     });
     const data = await res.json();
@@ -174,6 +186,26 @@ export default function AdminOtherServices() {
                 onChange={e=>setNewSvc(p=>({...p,pricePHD:e.target.value}))} />
             </div>
             <div style={C.fg}>
+              <label style={C.lbl}>GH₵ (Ghana)</label>
+              <input style={C.inp} type="number" min="0" placeholder="e.g. 85" value={newSvc.priceGHSIntl}
+                onChange={e=>setNewSvc(p=>({...p,priceGHSIntl:e.target.value}))} />
+            </div>
+            <div style={C.fg}>
+              <label style={C.lbl}>KSh (Kenya)</label>
+              <input style={C.inp} type="number" min="0" placeholder="e.g. 1500" value={newSvc.priceKESIntl}
+                onChange={e=>setNewSvc(p=>({...p,priceKESIntl:e.target.value}))} />
+            </div>
+            <div style={C.fg}>
+              <label style={C.lbl}>USD ($)</label>
+              <input style={C.inp} type="number" min="0" placeholder="e.g. 10" value={newSvc.priceUSDIntl}
+                onChange={e=>setNewSvc(p=>({...p,priceUSDIntl:e.target.value}))} />
+            </div>
+            <div style={C.fg}>
+              <label style={C.lbl}>GBP (£)</label>
+              <input style={C.inp} type="number" min="0" placeholder="e.g. 8" value={newSvc.priceGBPIntl}
+                onChange={e=>setNewSvc(p=>({...p,priceGBPIntl:e.target.value}))} />
+            </div>
+            <div style={C.fg}>
               <label style={C.lbl}>Sort Order</label>
               <input style={C.inp} type="number" min="0" placeholder="0" value={newSvc.sortOrder}
                 onChange={e=>setNewSvc(p=>({...p,sortOrder:e.target.value}))} />
@@ -193,7 +225,7 @@ export default function AdminOtherServices() {
               <table style={C.table}>
                 <thead style={C.thead}>
                   <tr>
-                    {["Service Name","ID","HND/OND","BSc/BEd","PGD/MSc","PhD","Order","Status","Actions"].map(h=>
+                    {["Service Name","ID","HND/OND","BSc/BEd","PGD/MSc","PhD","GH₵","KSh","USD","GBP","Order","Status","Actions"].map(h=>
                       <th key={h} style={C.th}>{h}</th>
                     )}
                   </tr>
@@ -224,6 +256,13 @@ export default function AdminOtherServices() {
                           <input style={C.tdInp} type="number" min="0" value={e.pricePHD??((s.pricePHD||s.pricePGD)/100)}
                             onChange={ev=>upd(s.id,"pricePHD",ev.target.value)} />
                         </td>
+                        {["priceGHSIntl","priceKESIntl","priceUSDIntl","priceGBPIntl"].map(field=>(
+                          <td key={field} style={C.td}>
+                            <input style={C.tdInp} type="number" min="0" placeholder="—"
+                              value={e[field]!==undefined ? e[field] : (s[field] ? s[field]/100 : "")}
+                              onChange={ev=>upd(s.id,field,ev.target.value)} />
+                          </td>
+                        ))}
                         <td style={C.td}>
                           <input style={{...C.tdInp,width:"50px"}} type="number" min="0" value={e.sortOrder??s.sortOrder}
                             onChange={ev=>upd(s.id,"sortOrder",ev.target.value)} />
