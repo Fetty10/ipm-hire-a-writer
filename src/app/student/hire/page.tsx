@@ -191,7 +191,7 @@ export default function HireAWriter() {
     if (isProject && !planId)  e.planId      = "Please choose a plan.";
     if (isProject && isPerChapter && selChapters.length === 0)
                                e.chapters    = "Please select at least one chapter.";
-    if (!topic.trim() && service !== "topic") e.topic = "Please enter your project topic.";
+    if (!topic.trim() && service !== "topic" && service !== "journal_sourcing") e.topic = "Please enter your project topic.";
     if (!department.trim() && service !== "topic") e.department = "Please enter your department.";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -412,7 +412,7 @@ export default function HireAWriter() {
           )}
 
           {/* Topic — hidden for topic coining */}
-          {service !== "topic" && (
+          {service !== "topic" && service !== "journal_sourcing" && (
             <div>
               <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Your Topic</label>
               <input value={topic} onChange={e => setTopic(e.target.value)}
