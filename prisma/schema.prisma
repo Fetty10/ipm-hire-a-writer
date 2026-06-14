@@ -387,6 +387,7 @@ model OrderChapter {
   routedToQcId          String?   // QC user assigned
   routedToQcAt          DateTime?
   startedAt             DateTime?
+  deadlineAt            DateTime?
 
   // Notes/feedback
   writerNotes           String?  @db.Text
