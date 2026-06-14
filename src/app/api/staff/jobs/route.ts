@@ -42,10 +42,14 @@ export async function GET(req: NextRequest) {
     ...(search ? { order: { topic: { contains: search, mode: "insensitive" } } } : {}),
   };
 
-  // Sort delivered by most recent deliveredAt, others by createdAt
-  const orderBy = filter === "delivered"
-    ? { deliveredAt: "desc" as const }
-    : { createdAt:   "desc" as const };
+  // Pending: oldest orders first, chapter number ascending (so Ch1 before Ch5)
+  // Active: createdAt desc (most recently started first)
+  // Delivered: most recently delivered first
+  const orderBy: any = filter === "delivered"
+    ? [{ deliveredAt: "desc" }]
+    : filter === "pending"
+    ? [{ order: { createdAt: "asc" } }, { chapterNumber: "asc" }]
+    : [{ createdAt: "desc" }];
 
   const [chapters, total] = await Promise.all([
     prisma.orderChapter.findMany({
