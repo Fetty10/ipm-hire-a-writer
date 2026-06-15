@@ -113,12 +113,7 @@ function StaffLoginForm() {
           </div>
         </div>
 
-        <div style={C.stuLink}>
-          Not staff?{" "}
-          <button style={{...C.flink2, fontSize:".78rem"}} onClick={()=>router.push("/login")}>
-            Student Login →
-          </button>
-        </div>
+        
       </div>
     </div>
   );
