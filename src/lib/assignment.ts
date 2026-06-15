@@ -80,6 +80,33 @@ async function isExceptionDepartment(department: string): Promise<boolean> {
 }
 
 // ─────────────────────────────────────────────────────────────
+// QC-SPECIFIC WORKLOAD COUNTER
+// QC workload = chapters they have actively started (routedToQcId set, not yet cleared)
+async function getQCWithFewestJobs(): Promise<string | null> {
+  const staffList = await prisma.user.findMany({
+    where:   { role: Role.QC, isApproved: true, isSuspended: false },
+    select:  { id: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (staffList.length === 0) return null;
+
+  const counts = await Promise.all(
+    staffList.map(async (staff) => {
+      const count = await prisma.orderChapter.count({
+        where: {
+          routedToQcId: staff.id,
+          status:       ChapterStatus.QC_IN_PROGRESS,
+        },
+      });
+      return { id: staff.id, count };
+    })
+  );
+
+  counts.sort((a, b) => a.count - b.count);
+  return counts[0].id;
+}
+
+// ─────────────────────────────────────────────────────────────
 // MAIN ASSIGNMENT FUNCTION
 // Called with orderId after payment is confirmed
 // ─────────────────────────────────────────────────────────────
@@ -283,7 +310,7 @@ export async function routeChapterToQC(chapterId: string): Promise<void> {
 
   if (!needsQc) return; // no QC needed — caller handles direct delivery
 
-  const qcUserId = await getStaffWithFewestJobs(Role.QC);
+  const qcUserId = await getQCWithFewestJobs();
 
   // Set status to QC_IN_PROGRESS but leave routedToQcId null
   // so any available QC can pick it up from Pending Checks
