@@ -44,9 +44,15 @@ async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
         where: {
           assignedToId: staff.id,
           status: {
-            // Only count chapters the staff member is still responsible for
-            // QC_IN_PROGRESS, SUBMITTED, QC_DONE, DELIVERED = staff done their part
-            in: [ChapterStatus.NOT_STARTED, ChapterStatus.IN_PROGRESS, ChapterStatus.PRELIM_SUBMITTED],
+            // Count all active work including submitted/QC stages
+            // so writers with many QC_IN_PROGRESS jobs don't appear "free"
+            in: [
+              ChapterStatus.NOT_STARTED,
+              ChapterStatus.IN_PROGRESS,
+              ChapterStatus.PRELIM_SUBMITTED,
+              ChapterStatus.SUBMITTED,
+              ChapterStatus.QC_IN_PROGRESS,
+            ],
           },
         },
       });
