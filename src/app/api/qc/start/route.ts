@@ -28,12 +28,9 @@ export async function POST(req: NextRequest) {
 
   const chapter = await prisma.orderChapter.findFirst({
     where: {
-      id:     chapterId,
-      status: ChapterStatus.QC_IN_PROGRESS,
-      OR: [
-        { routedToQcId: session.user.id },
-        { routedToQcId: null },
-      ],
+      id:           chapterId,
+      status:       ChapterStatus.QC_IN_PROGRESS,
+      routedToQcId: session.user.id, // must be assigned to this QC
     },
     include: {
       order: { select: { topic: true, plan: { select: { planName: true } } } },
