@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-// TEMP: src/app/api/debug/staff-jobs/route.ts — delete after debugging
+// TEMP: src/app/api/debug/staff-jobs/route.ts
 
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -16,35 +16,44 @@ export async function GET() {
 
   for (const role of roles) {
     const staffList = await prisma.user.findMany({
-      where: { role, isApproved: true, isSuspended: false },
-      select: { id: true, name: true, email: true, createdAt: true },
+      where:   { role, isApproved: true, isSuspended: false },
+      select:  { id: true, name: true, email: true, createdAt: true },
       orderBy: { createdAt: "asc" },
     });
 
     result[role] = await Promise.all(staffList.map(async (staff) => {
       const byStatus = await prisma.orderChapter.groupBy({
-        by: ["status"],
+        by:    ["status"],
         where: { assignedToId: staff.id },
         _count: { id: true },
       });
 
-      // What the assignment engine sees
-      const activeCount = await prisma.orderChapter.count({
-        where: {
-          assignedToId: staff.id,
-          status: { in: [ChapterStatus.NOT_STARTED, ChapterStatus.IN_PROGRESS, ChapterStatus.PRELIM_SUBMITTED] },
-        },
-      });
+      // Writer/Analyst: what engine NOW counts
+      const engineCount = role !== Role.QC
+        ? await prisma.orderChapter.count({
+            where: {
+              assignedToId: staff.id,
+              status: { in: [
+                ChapterStatus.NOT_STARTED,
+                ChapterStatus.IN_PROGRESS,
+                ChapterStatus.PRELIM_SUBMITTED,
+                ChapterStatus.SUBMITTED,
+                ChapterStatus.QC_IN_PROGRESS,
+              ]},
+            },
+          })
+        // QC: count by routedToQcId
+        : await prisma.orderChapter.count({
+            where: { routedToQcId: staff.id, status: ChapterStatus.QC_IN_PROGRESS },
+          });
 
       return {
         name:        staff.name,
-        email:       staff.email,
-        joinedAt:    staff.createdAt,
-        activeCount, // what engine uses for distribution
+        engineCount, // what assignment engine uses
         byStatus:    Object.fromEntries(byStatus.map(s => [s.status, s._count.id])),
       };
     }));
   }
 
-  return NextResponse.json(result, { status: 200 });
+  return NextResponse.json(result);
 }
