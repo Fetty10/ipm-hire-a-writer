@@ -126,7 +126,7 @@ export default function WriterActiveJobs() {
           </div>
         ) : jobs.map((job:any) => {
           const s = state[job.id]||{};
-          const prelimOk = !job.requiresPrelim || (s.obj&&s.q&&s.hyp&&s.scope);
+          const prelimOk = !job.requiresPrelim || !!job.prelimSubmittedAt || (s.obj&&s.hyp&&s.scope);
           const canSubmit = s.fileUrl && prelimOk;
           return (
             <div key={job.id} style={C.card}>
@@ -193,7 +193,7 @@ export default function WriterActiveJobs() {
                 : <div><div style={C.upi}>📄</div><div style={C.uplbl}>Upload {job.chapterLabel}</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
               </div>
 
-              {job.requiresPrelim && !prelimOk && <p style={C.lock}>🔒 Complete all 4 preliminary fields above to unlock upload</p>}
+              {job.requiresPrelim && !prelimOk && <p style={C.lock}>🔒 Complete all preliminary fields above to unlock upload</p>}
 
               <div style={C.fg}>
                 <label style={C.lbl}>Notes for Admin (optional)</label>
