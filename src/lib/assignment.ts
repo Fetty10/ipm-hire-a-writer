@@ -44,14 +44,11 @@ async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
         where: {
           assignedToId: staff.id,
           status: {
-            // Count all active work including submitted/QC stages
-            // so writers with many QC_IN_PROGRESS jobs don't appear "free"
+            // Only count jobs not yet delivered — once submitted, staff is free
             in: [
               ChapterStatus.NOT_STARTED,
               ChapterStatus.IN_PROGRESS,
               ChapterStatus.PRELIM_SUBMITTED,
-              ChapterStatus.SUBMITTED,
-              ChapterStatus.QC_IN_PROGRESS,
             ],
           },
         },
@@ -60,9 +57,13 @@ async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
     })
   );
 
-  // Sort ascending by count — stable sort preserves createdAt order for ties
+  // Sort ascending by count
   activeCounts.sort((a, b) => a.count - b.count);
-  return activeCounts[0].id;
+
+  // Among tied staff, pick randomly to avoid always picking oldest
+  const minCount = activeCounts[0].count;
+  const tied = activeCounts.filter(s => s.count === minCount);
+  return tied[Math.floor(Math.random() * tied.length)].id;
 }
 
 // ─────────────────────────────────────────────────────────────
