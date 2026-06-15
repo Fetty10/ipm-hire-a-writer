@@ -93,6 +93,8 @@ async function getQCWithFewestJobs(): Promise<string | null> {
 
   const counts = await Promise.all(
     staffList.map(async (staff) => {
+      // Count only jobs not yet cleared — QC_IN_PROGRESS means still working
+      // QC_DONE and DELIVERED mean cleared — don't count those
       const count = await prisma.orderChapter.count({
         where: {
           routedToQcId: staff.id,
@@ -103,8 +105,11 @@ async function getQCWithFewestJobs(): Promise<string | null> {
     })
   );
 
+  // Sort ascending, random tiebreak
   counts.sort((a, b) => a.count - b.count);
-  return counts[0].id;
+  const minCount = counts[0].count;
+  const tied = counts.filter(c => c.count === minCount);
+  return tied[Math.floor(Math.random() * tied.length)].id;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -312,37 +317,36 @@ export async function routeChapterToQC(chapterId: string): Promise<void> {
   if (!needsQc) return; // no QC needed — caller handles direct delivery
 
   const qcUserId = await getQCWithFewestJobs();
-
-  // Set status to QC_IN_PROGRESS but leave routedToQcId null
-  // so any available QC can pick it up from Pending Checks
-  await prisma.orderChapter.update({
-    where: { id: chapterId },
-    data: {
-      status:       ChapterStatus.QC_IN_PROGRESS,
-      routedToQcAt: new Date(),
-    },
-  });
-
-  // Notify all QC staff (or specific one if assigned)
-  const qcToNotify = qcUserId;
-  // Notify ALL available QC staff so anyone can pick it up
-  const allQc = await prisma.user.findMany({
-    where: { role: Role.QC, isApproved: true, isSuspended: false },
-    select: { id: true, email: true, name: true },
-  });
+  if (!qcUserId) return; // no QC available
 
   const checks: string[] = [];
   if (order.requiresPlagiarismCheck) checks.push("Plagiarism Check");
   if (order.requiresAiCheck)         checks.push("AI Detection Check");
   if (checks.length === 0)           checks.push("Quality Review");
 
-  for (const qc of allQc) {
+  // Assign directly to specific QC — they see it in their Pending tab only
+  await prisma.orderChapter.update({
+    where: { id: chapterId },
+    data: {
+      status:       ChapterStatus.QC_IN_PROGRESS,
+      routedToQcId: qcUserId,
+      routedToQcAt: new Date(),
+    },
+  });
+
+  // Notify only the assigned QC
+  const qc = await prisma.user.findUnique({
+    where:  { id: qcUserId },
+    select: { id: true, email: true, name: true },
+  });
+
+  if (qc) {
     await prisma.notification.create({
       data: {
         userId:  qc.id,
         orderId: order.id,
-        title:   "QC Check Required",
-        message: `A chapter from "${order.topic}" needs ${checks.join(" & ")}. Log in to claim it.`,
+        title:   "QC Check Assigned to You",
+        message: `${chapter.chapterLabel} from "${order.topic}" needs ${checks.join(" & ")}. Check your pending tab.`,
         type:    "ACTION_REQUIRED",
       },
     });
