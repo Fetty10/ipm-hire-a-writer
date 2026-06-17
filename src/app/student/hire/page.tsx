@@ -122,6 +122,7 @@ export default function HireAWriter() {
 
   const selectedService = SERVICES.find(s => s.value === service);
   const selectedPlan    = plans.find(p => p.id === planId);
+  const isBasicPlan     = selectedPlan?.planName === "BASIC";
   const isPerChapter    = selectedPlan?.pricingType === "PER_CHAPTER";
   const isProject       = service === "project";
 
@@ -504,8 +505,8 @@ export default function HireAWriter() {
             </div>
           )}
 
-          {/* Guideline upload — hidden for topic coining and journal sourcing */}
-          {service !== "topic" && service !== "journal_sourcing" && (
+          {/* Guideline upload — hidden for topic coining, journal sourcing and Basic plan */}
+          {service !== "topic" && service !== "journal_sourcing" && !isBasicPlan && (
           <div>
             <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
               Upload School Format/Guideline <span className="font-400 normal-case text-navy-muted">(optional)</span>
