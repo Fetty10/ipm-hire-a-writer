@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StudentLayout } from "@/components/student/StudentLayout";
-import { FileUpload } from "@/components/staff/FileUpload";
 import { Spinner } from "@/components/ui";
 import toast from "react-hot-toast";
 
