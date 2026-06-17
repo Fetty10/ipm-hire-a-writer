@@ -500,6 +500,18 @@ export default function HireAWriter() {
           {service !== "topic" && service !== "journal_sourcing" && !isBasicPlan && (
           <div>
             <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
+              Special Instructions <span className="font-400 normal-case text-navy-muted">(optional)</span>
+            </label>
+            <textarea value={instructions} onChange={e => setInstructions(e.target.value)} rows={3}
+              placeholder="e.g. Use APA 7th edition. Minimum 15 pages for each chapter. Focus on Nigerian context."
+              className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none" />
+          </div>
+          )}
+
+          {/* Upload Format/Guideline — hidden for topic coining, journal sourcing and Basic plan */}
+          {service !== "topic" && service !== "journal_sourcing" && !isBasicPlan && (
+          <div>
+            <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">
               Upload School Format/Guideline <span className="font-400 normal-case text-navy-muted">(optional)</span>
             </label>
             {/* Multi-file guideline upload — up to 5 files */}
