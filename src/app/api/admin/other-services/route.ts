@@ -71,8 +71,9 @@ export async function POST(req: NextRequest) {
       pricePGD:    Math.round((pricePGD || 0) * 100),
       pricePHD:    Math.round((pricePHD || 0) * 100),
       ...intlData,
-      sortOrder:   sortOrder || 0,
-      isActive:    true,
+      sortOrder:      sortOrder || 0,
+      writerPayKobo:  Math.round((body.writerPayKobo  || 0) * 100),
+      isActive:       true,
     },
   });
 
@@ -96,8 +97,9 @@ export async function PATCH(req: NextRequest) {
   if (priceBSC    !== undefined) data.priceBSC    = Math.round(priceBSC * 100);
   if (pricePGD    !== undefined) data.pricePGD    = Math.round(pricePGD * 100);
   if (pricePHD    !== undefined) data.pricePHD    = Math.round(pricePHD * 100);
-  if (sortOrder   !== undefined) data.sortOrder   = sortOrder;
-  if (isActive    !== undefined) data.isActive    = isActive;
+  if (sortOrder       !== undefined) data.sortOrder       = sortOrder;
+  if (isActive        !== undefined) data.isActive        = isActive;
+  if (body.writerPayKobo  !== undefined) data.writerPayKobo  = Math.round(body.writerPayKobo  * 100);
 
   // Save all intl price fields
   for (const field of INTL_FIELDS) {
