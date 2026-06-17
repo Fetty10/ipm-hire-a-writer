@@ -41,31 +41,32 @@ function toServiceType(svc: string): string {
 const CHAPTER_LABELS = ["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5"];
 const PLAN_DISPLAY: Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Professional"};
 
-const PLAN_DESC: Record<string,string[]> = {
-  BASIC:            [
+function getPlanDesc(planName: string): string[] {
+  if (planName === "BASIC") return [
     "One flat price for your COMPLETE project.",
     "Your supervisor's corrections will NOT be handled by us.",
     "Your Format/Guideline will NOT be used.",
-  ],
-  STANDARD:         [
+  ];
+  if (planName === "STANDARD") return [
     "You pay for EACH chapter separately.",
     "Your supervisor's corrections will be handled by us.",
     "Your Format/Guideline will be used.",
-  ],
-  PROFESSIONAL:     [
+  ];
+  if (planName === "PROFESSIONAL") return [
     "You pay for EACH chapter separately.",
     "Plagiarism will be checked.",
     "Your supervisor's corrections will be handled by us.",
     "Your Format/Guideline will be used.",
-  ],
-  PHD_PROFESSIONAL: [
+  ];
+  if (planName === "PHD_PROFESSIONAL") return [
     "You pay for EACH chapter separately.",
     "Plagiarism will be checked.",
     "Your supervisor's corrections will be handled by us.",
     "Your Format/Guideline will be used.",
     "Tailored to doctoral/PhD writing standards.",
-  ],
-};
+  ];
+  return [];
+}
 
 export default function HireAWriter() {
   const router = useRouter();
@@ -362,9 +363,9 @@ export default function HireAWriter() {
                         planId === p.id ? "border-sky-400 bg-sky-400" : "border-sky-200"
                       }`} />
                     </div>
-                    {PLAN_DESC[p.planName] && (
+                    {getPlanDesc(p.planName).length > 0 && (
                       <ul className="mt-2 flex flex-col gap-1">
-                        {(PLAN_DESC[p.planName] as string[]).map((line, i) => (
+                        {getPlanDesc(p.planName).map((line, i) => (
                           <li key={i} className="flex items-start gap-1.5 text-xs text-navy-muted leading-relaxed">
                             <span className="mt-0.5 text-sky-400 flex-shrink-0">▸</span>
                             {line}
