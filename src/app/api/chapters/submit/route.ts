@@ -134,15 +134,37 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Calculate staff earning for this chapter ─────────────
-  const payRate = await prisma.payRate.findFirst({
-    where: {
-      role:        role === Role.WRITER ? "WRITER" : "ANALYST",
-      degreeGroup: chapter.order.degreeGroup,
-      planName:    chapter.order.plan.planName,
-    },
-  });
+  let earnAmount = 0;
 
-  const earnAmount = payRate?.amountKobo ?? 0;
+  if (isOtherService) {
+    // For flat services, use pay rate from OtherService table
+    const svcValue = {
+      PROPOSAL_SEMINAR:      "seminar",
+      JOURNAL_WRITING:       "journal",
+      JOURNAL_SOURCING:      "journal_sourcing",
+      TOPIC_SUGGESTION:      "topic",
+      CASE_STUDY_ADJUSTMENT: "case_study",
+      COMPLETE_PROJECT:      "project",
+    }[chapter.order.serviceType] || chapter.order.serviceType?.toLowerCase();
+
+    const svc = await (prisma as any).otherService.findFirst({
+      where: { value: svcValue },
+    });
+
+    if (svc) {
+      earnAmount = svc.writerPayKobo || 0; // other services always go to writer
+    }
+  } else {
+    // For project chapters, use PayRate table
+    const payRate = await prisma.payRate.findFirst({
+      where: {
+        role:        role === Role.WRITER ? "WRITER" : "ANALYST",
+        degreeGroup: chapter.order.degreeGroup,
+        planName:    chapter.order.plan.planName,
+      },
+    });
+    earnAmount = payRate?.amountKobo ?? 0;
+  }
 
   if (earnAmount > 0) {
     await prisma.earning.create({
