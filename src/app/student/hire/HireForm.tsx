@@ -9,66 +9,67 @@ import toast from "react-hot-toast";
 
 interface Plan { id:string; planName:string; degreeGroup:string; pricingType:string; priceKobo:number; priceGHS?:number|null; priceKES?:number|null; priceUSD?:number|null; priceGBP?:number|null; includesPlagiarismCheck:boolean; includesCorrections:boolean; includesFormat:boolean; }
 
-const DEG_GROUPS = [
-  { group:"Diploma / Certificate", options:[
-    { value:"OND_HND_NCE", label:"HND | OND | NCE" },
-  ]},
-  { group:"Undergraduate", options:[
-    { value:"BSC_BED_BA",  label:"BSc | BEd | BA | BTech | BEng | Nursing" },
-  ]},
-  { group:"Postgraduate", options:[
-    { value:"PGD_MSC_PHD", label:"PGD | MSc | MBA | MBBS | LL.B" },
-    { value:"PHD",         label:"PhD" },
-  ]},
-];
-
-const PROJECT_SERVICE = { value:"project", label:"Project / Thesis / Dissertation / Term Paper", hasPlan:true };
-
 // Map service values to valid ServiceType enum values
-const SERVICE_TYPE_MAP: Record<string,string> = {
-  project:         "HIRE_WRITER",
-  seminar:         "PROPOSAL_SEMINAR",
-  proposal:        "PROPOSAL_SEMINAR",
-  journal:         "JOURNAL_WRITING",
-  journal_sourcing:"JOURNAL_SOURCING",
-  topic:           "TOPIC_SUGGESTION",
-  assignment:      "HIRE_WRITER",
-};
-function toServiceType(svc: string): string {
-  return SERVICE_TYPE_MAP[svc] || "HIRE_WRITER";
-}
-
-const CHAPTER_LABELS = ["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5"];
-const PLAN_DISPLAY: Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Professional"};
-
-function getPlanDesc(planName: string): string[] {
-  if (planName === "BASIC") return [
-    "One flat price for your COMPLETE project.",
-    "Your supervisor's corrections will NOT be handled by us.",
-    "Your Format/Guideline will NOT be used.",
-  ];
-  if (planName === "STANDARD") return [
-    "You pay for EACH chapter separately.",
-    "Your supervisor's corrections will be handled by us.",
-    "Your Format/Guideline will be used.",
-  ];
-  if (planName === "PROFESSIONAL") return [
-    "You pay for EACH chapter separately.",
-    "Plagiarism will be checked.",
-    "Your supervisor's corrections will be handled by us.",
-    "Your Format/Guideline will be used.",
-  ];
-  if (planName === "PHD_PROFESSIONAL") return [
-    "You pay for EACH chapter separately.",
-    "Plagiarism will be checked.",
-    "Your supervisor's corrections will be handled by us.",
-    "Your Format/Guideline will be used.",
-    "Tailored to doctoral/PhD writing standards.",
-  ];
-  return [];
-}
-
 export default function HireAWriter() {
+  // ── Constants (defined inside component to avoid minification issues) ──
+  const DEG_GROUPS = [
+    { group:"Diploma / Certificate", options:[
+      { value:"OND_HND_NCE", label:"HND | OND | NCE" },
+    ]},
+    { group:"Undergraduate", options:[
+      { value:"BSC_BED_BA",  label:"BSc | BEd | BA | BTech | BEng | Nursing" },
+    ]},
+    { group:"Postgraduate", options:[
+      { value:"PGD_MSC_PHD", label:"PGD | MSc | MBA | MBBS | LL.B" },
+      { value:"PHD",         label:"PhD" },
+    ]},
+  ];
+  
+  const PROJECT_SERVICE = { value:"project", label:"Project / Thesis / Dissertation / Term Paper", hasPlan:true };
+  
+  const SERVICE_TYPE_MAP: Record<string,string> = {
+    project:         "HIRE_WRITER",
+    seminar:         "PROPOSAL_SEMINAR",
+    proposal:        "PROPOSAL_SEMINAR",
+    journal:         "JOURNAL_WRITING",
+    journal_sourcing:"JOURNAL_SOURCING",
+    topic:           "TOPIC_SUGGESTION",
+    assignment:      "HIRE_WRITER",
+  };
+  const CHAPTER_LABELS = ["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5"];
+  const PLAN_DISPLAY: Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Professional"};
+  
+  function toServiceType(svc: string): string {
+    return SERVICE_TYPE_MAP[svc] || "HIRE_WRITER";
+  }
+  
+  function getPlanDesc(planName: string): string[] {
+    if (planName === "BASIC") return [
+      "One flat price for your COMPLETE project.",
+      "Your supervisor's corrections will NOT be handled by us.",
+      "Your Format/Guideline will NOT be used.",
+    ];
+    if (planName === "STANDARD") return [
+      "You pay for EACH chapter separately.",
+      "Your supervisor's corrections will be handled by us.",
+      "Your Format/Guideline will be used.",
+    ];
+    if (planName === "PROFESSIONAL") return [
+      "You pay for EACH chapter separately.",
+      "Plagiarism will be checked.",
+      "Your supervisor's corrections will be handled by us.",
+      "Your Format/Guideline will be used.",
+    ];
+    if (planName === "PHD_PROFESSIONAL") return [
+      "You pay for EACH chapter separately.",
+      "Plagiarism will be checked.",
+      "Your supervisor's corrections will be handled by us.",
+      "Your Format/Guideline will be used.",
+      "Tailored to doctoral/PhD writing standards.",
+    ];
+    return [];
+  }
+
   const router = useRouter();
   const [plans,      setPlans]      = useState<Plan[]>([]);
   const [otherSvcs,  setOtherSvcs]  = useState<any[]>([]);
