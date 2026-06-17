@@ -122,7 +122,7 @@ export default function HireAWriter() {
 
   const selectedService = SERVICES.find(s => s.value === service);
   const selectedPlan    = plans.find(p => p.id === planId);
-  const isBasicPlan     = selectedPlan?.planName === "BASIC";
+  const isBasicPlan     = isProject && !!planId && selectedPlan?.planName === "BASIC";
   const isPerChapter    = selectedPlan?.pricingType === "PER_CHAPTER";
   const isProject       = service === "project";
 
