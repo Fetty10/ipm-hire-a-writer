@@ -295,6 +295,8 @@ model ExceptionDepartment {
   name      String   @unique // e.g. "Law", "Philosophy", "Microbiology"
   createdAt DateTime @default(now())
   createdBy String?
+  dedicatedQcId   String?
+  footnotePayKobo Int     @default(0)
 }
 
 // ─────────────────────────────────────────
