@@ -316,7 +316,21 @@ export async function routeChapterToQC(chapterId: string): Promise<void> {
 
   if (!needsQc) return; // no QC needed — caller handles direct delivery
 
-  const qcUserId = await getQCWithFewestJobs();
+  // Check if this order's department has a dedicated QC staff
+  const exceptionDept = await prisma.exceptionDepartment.findFirst({
+    where:  { dedicatedQcId: { not: null } },
+    select: { name: true, dedicatedQcId: true },
+  }).then(async (dept) => {
+    if (!dept) return null;
+    // Fuzzy match — same logic as isExceptionDepartment
+    const dept2 = order.department.toLowerCase().trim();
+    const exc   = dept.name.toLowerCase().trim();
+    if (dept2.includes(exc) || exc.includes(dept2)) return dept;
+    return null;
+  });
+
+  // Use dedicated QC for this department, otherwise pick by fewest jobs
+  const qcUserId = (exceptionDept?.dedicatedQcId) || await getQCWithFewestJobs();
   if (!qcUserId) return; // no QC available
 
   const checks: string[] = [];
