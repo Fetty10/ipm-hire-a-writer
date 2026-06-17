@@ -1,89 +1,67 @@
 export const dynamic = "force-dynamic";
 // src/app/api/staff/earnings/route.ts
-// Returns earnings summary + per-job breakdown for logged-in staff
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 
-export async function GET(req: NextRequest) {
+const STAFF_ROLES = [Role.WRITER, Role.ANALYST, Role.QC, Role.SUB_ADMIN, Role.MAIN_ADMIN];
+
+export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  if (!session?.user || !STAFF_ROLES.includes(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const role = session.user.role;
-  if (![Role.WRITER, Role.ANALYST, Role.QC].includes(role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const userId = session.user.id;
-
-  // ── Earnings breakdown ────────────────────────────────────
   const earnings = await prisma.earning.findMany({
-    where:   { userId },
-    orderBy: { createdAt: "desc" },
+    where:   { userId: session.user.id },
     include: {
       orderChapter: {
         select: {
           chapterLabel: true,
+          chapterNumber: true,
+          status:        true,
           order: {
             select: {
               topic:       true,
               degreeGroup: true,
-              plan: {
-                select: { planName: true },
-              },
+              serviceType: true,
             },
           },
         },
       },
     },
+    orderBy: { createdAt: "desc" },
   });
 
-  // ── Summary totals ────────────────────────────────────────
-  const summary = earnings.reduce(
-    (acc, e) => {
-      const naira = e.amountKobo / 100;
-      acc.totalEarned += naira;
-      if (e.status === "AVAILABLE")  acc.available  += naira;
-      if (e.status === "PENDING")    acc.pending    += naira;
-      if (e.status === "WITHDRAWN")  acc.withdrawn  += naira;
-      return acc;
-    },
-    { available: 0, pending: 0, totalEarned: 0, withdrawn: 0 }
-  );
+  const pending   = earnings.filter(e => e.status === "PENDING");
+  const available = earnings.filter(e => e.status === "AVAILABLE");
+  const withdrawn = earnings.filter(e => e.status === "WITHDRAWN");
 
-  // ── Pending withdrawals ───────────────────────────────────
-  const pendingWithdrawals = await prisma.withdrawal.findMany({
-    where:   { userId, status: { in: ["PENDING", "APPROVED"] } },
-    orderBy: { requestedAt: "desc" },
-    select: {
-      id: true, amountKobo: true, status: true,
-      bankName: true, requestedAt: true,
-    },
-  });
+  const summary = {
+    pendingKobo:   pending.reduce((s, e)   => s + e.amountKobo, 0),
+    availableKobo: available.reduce((s, e) => s + e.amountKobo, 0),
+    withdrawnKobo: withdrawn.reduce((s, e) => s + e.amountKobo, 0),
+    totalKobo:     earnings.reduce((s, e)  => s + e.amountKobo, 0),
+  };
 
   return NextResponse.json({
     success: true,
     data: {
-      summary,
-      earnings: earnings.map((e) => ({
+      earnings: earnings.map(e => ({
         id:           e.id,
-        amountNaira:  e.amountKobo / 100,
+        amountKobo:   e.amountKobo,
         status:       e.status,
-        createdAt:    e.createdAt,
         availableAt:  e.availableAt,
-        topic:        e.orderChapter.order.topic,
+        createdAt:    e.createdAt,
         chapterLabel: e.orderChapter.chapterLabel,
+        topic:        e.orderChapter.order.topic,
         degreeGroup:  e.orderChapter.order.degreeGroup,
-        planName:     e.orderChapter.order.plan.planName,
+        serviceType:  e.orderChapter.order.serviceType,
+        chapterStatus:e.orderChapter.status,
       })),
-      pendingWithdrawals: pendingWithdrawals.map((w) => ({
-        ...w,
-        amountNaira: w.amountKobo / 100,
-      })),
+      summary,
     },
   });
 }
