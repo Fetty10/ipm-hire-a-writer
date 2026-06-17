@@ -92,6 +92,38 @@ export async function POST(req: NextRequest) {
   // ── Deliver to student ────────────────────────────────────
   await deliverChapterToClient(chapterId, clearedFileUrl);
 
+  // ── Extra footnote pay for dedicated QC on exception departments ─
+  const exceptionDepts = await (prisma as any).exceptionDepartment.findMany({
+    where: { dedicatedQcId: session.user.id, footnotePayKobo: { gt: 0 } },
+  });
+
+  if (exceptionDepts.length > 0) {
+    const dept = chapter.order.department?.toLowerCase().trim() || "";
+    const hasFootnote = exceptionDepts.some((d: any) => {
+      const exc = d.name.toLowerCase().trim();
+      return dept.includes(exc) || exc.includes(dept);
+    });
+
+    if (hasFootnote) {
+      const footnotePay = exceptionDepts.find((d: any) => {
+        const exc = d.name.toLowerCase().trim();
+        return dept.includes(exc) || exc.includes(dept);
+      })?.footnotePayKobo || 0;
+
+      if (footnotePay > 0) {
+        await prisma.earning.create({
+          data: {
+            userId:         session.user.id,
+            orderChapterId: chapterId,
+            amountKobo:     footnotePay,
+            status:         "AVAILABLE", // paid immediately on clear
+            availableAt:    new Date(),
+          },
+        });
+      }
+    }
+  }
+
   // ── Send email ────────────────────────────────────────────
   if (isCorrection) {
     await sendCorrectionReadyEmail({
