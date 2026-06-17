@@ -121,11 +121,11 @@ export default function HireAWriter() {
       .then(d => { if (d.success) setPlans(d.data); });
   }, [degreeGroup]);
 
+  const isProject       = service === "project";
   const selectedService = SERVICES.find(s => s.value === service);
   const selectedPlan    = plans.find(p => p.id === planId);
   const isBasicPlan     = isProject && !!planId && selectedPlan?.planName === "BASIC";
   const isPerChapter    = selectedPlan?.pricingType === "PER_CHAPTER";
-  const isProject       = service === "project";
 
   // Calculate total
   function calcUnitPrice(): number {
