@@ -284,6 +284,18 @@ export default function AdminOtherServices() {
                     ))}
                   </div>
 
+                  {/* Staff Pay Rates */}
+                  <div style={C.secHdr}>💰 Staff Pay Rates (₦)</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem",marginBottom:"1rem"}}>
+                    <div style={C.fg}>
+                      <label style={C.lbl}>Writer Pay (₦)</label>
+                      <input style={C.tdInp} type="number" min="0" placeholder="e.g. 2000"
+                        value={e.writerPayKobo??( s.writerPayKobo ? s.writerPayKobo/100 : "")}
+                        onChange={ev=>upd(s.id,"writerPayKobo",ev.target.value)} />
+                    </div>
+
+                  </div>
+
                   {/* International prices */}
                   {CURRENCIES.map(c => (
                     <PriceGroup key={c.key} label={`${c.label} Prices`} fields={`price${c.key}`}
