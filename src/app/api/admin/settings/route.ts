@@ -67,6 +67,15 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success:true, message:"Plan updated." });
   }
 
+  if (type === "department") {
+    if (!id) return NextResponse.json({ error: "id required." }, { status:400 });
+    await prisma.exceptionDepartment.update({
+      where: { id },
+      data:  { dedicatedQcId: body.dedicatedQcId || null, ...(body.footnotePayKobo !== undefined ? { footnotePayKobo: body.footnotePayKobo } : {}) } as any,
+    });
+    return NextResponse.json({ success:true, message:"Department updated." });
+  }
+
   return NextResponse.json({ error:"Invalid update payload." }, { status:400 });
 }
 
@@ -124,10 +133,10 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Add exception department ─────────────────────────────────
-  const { name } = body;
+  const { name, dedicatedQcId } = body;
   if (!name?.trim()) return NextResponse.json({ error:"Department name is required." }, { status:400 });
   const dept = await prisma.exceptionDepartment.create({
-    data: { name: name.trim(), createdBy: session.user.id },
+    data: { name: name.trim(), createdBy: session.user.id, dedicatedQcId: dedicatedQcId || null, footnotePayKobo: body.footnotePayKobo || 0 } as any,
   });
   return NextResponse.json({ success:true, data:dept });
 }
