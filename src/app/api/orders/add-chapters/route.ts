@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { orderId, chaptersRequested, guidelineFileUrl } = await req.json();
+  const { orderId, chaptersRequested, guidelineFileUrl, paymentMethod } = await req.json();
 
   if (!orderId || !chaptersRequested?.length) {
     return NextResponse.json({ error: "orderId and chaptersRequested are required." }, { status: 400 });
@@ -88,7 +88,46 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Initialize Paystack payment
+  // ── Bank Transfer flow ──────────────────────────────────────
+  if (paymentMethod === "BANK_TRANSFER") {
+    const reference = `IPM-ADD-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
+
+    // Store a pending add-chapters request so admin can confirm and trigger assignment
+    await prisma.notification.create({
+      data: {
+        userId:  order.clientId,
+        orderId: order.id,
+        title:   "Bank Transfer — Additional Chapters Pending",
+        message: `You requested Chapter(s) ${chaptersRequested.join(", ")} for "${order.topic}" via bank transfer. Reference: ${reference}. We'll confirm once payment is received.`,
+        type:    "INFO",
+      },
+    });
+
+    const admins = await prisma.user.findMany({
+      where: { role: { in: [Role.MAIN_ADMIN, Role.SUB_ADMIN] } },
+      select: { id: true },
+    });
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map(a => ({
+          userId:  a.id,
+          orderId: order.id,
+          title:   "🏦 Add Chapters — Bank Transfer Pending",
+          message: `"${order.topic}" — Ch ${chaptersRequested.join(", ")}. Ref: ${reference}. Amount: ₦${(amountKobo/100).toLocaleString()}. Confirm in Bank Transfers tab once received, then manually assign the chapters in All Orders.`,
+          type:    "ACTION_REQUIRED" as const,
+        })),
+      });
+    }
+
+    return NextResponse.json({
+      success:     true,
+      bankTransfer:true,
+      reference,
+      amountNaira: amountKobo / 100,
+    });
+  }
+
+  // ── Paystack flow (default) ──────────────────────────────────
   const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
     method:  "POST",
     headers: {
