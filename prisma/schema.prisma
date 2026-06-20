@@ -134,6 +134,7 @@ model User {
   bankName        String?
   accountNumber   String?
   accountName     String?
+  bankCode        String?
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
