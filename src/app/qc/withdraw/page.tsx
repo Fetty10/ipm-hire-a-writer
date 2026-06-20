@@ -70,20 +70,27 @@ export default function QcWithdraw() {
   const [saveDetails, setSaveDetails] = useState(true);
   const [savedBank,   setSavedBank]   = useState<any>(null);
   const [useNewBank,  setUseNewBank]  = useState(false);
+  const [wdPage,      setWdPage]      = useState(1);
+  const [wdPages,     setWdPages]     = useState(1);
+  const [wdTotal,      setWdTotal]    = useState(0);
 
   const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
 
   useEffect(()=>{
     Promise.all([
       fetch("/api/staff/earnings").then(r=>r.json()),
-      fetch("/api/staff/withdrawals").then(r=>r.json()),
+      fetch(`/api/staff/withdrawals?page=${wdPage}`).then(r=>r.json()),
       fetch("/api/banks").then(r=>r.json()),
       fetch("/api/staff/bank-details").then(r=>r.json()),
     ]).then(([earningsRes, withdrawalsRes, banksRes, bankDetailsRes]) => {
       if (earningsRes.success) {
         setAvailable((earningsRes.data.summary.availableKobo||0)/100);
       }
-      if (withdrawalsRes.success) setPrevWds(withdrawalsRes.data||[]);
+      if (withdrawalsRes.success) {
+        setPrevWds(withdrawalsRes.data||[]);
+        setWdTotal(withdrawalsRes.total||0);
+        setWdPages(withdrawalsRes.pages||1);
+      }
       if (banksRes.success) setBanks(banksRes.data);
       if (bankDetailsRes.success && bankDetailsRes.data?.accountNumber) {
         setSavedBank(bankDetailsRes.data);
@@ -93,6 +100,13 @@ export default function QcWithdraw() {
       setLoading(false);
     });
   },[]);
+
+  useEffect(() => {
+    if (wdPage === 1) return; // already loaded on mount
+    fetch(`/api/staff/withdrawals?page=${wdPage}`).then(r=>r.json()).then(d=>{
+      if (d.success) { setPrevWds(d.data||[]); setWdTotal(d.total||0); setWdPages(d.pages||1); }
+    });
+  }, [wdPage]);
 
   // Auto-resolve account name when bank + 10-digit account number entered
   useEffect(() => {
@@ -262,6 +276,19 @@ export default function QcWithdraw() {
                     }}>{w.status}</span>
                   </div>
                 ))}
+                {wdPages > 1 && (
+                  <div style={{display:"flex",gap:".4rem",justifyContent:"center",marginTop:"1rem",flexWrap:"wrap" as const}}>
+                    <button style={{padding:".35rem .7rem",borderRadius:"7px",border:"1.5px solid #BAE6FD",fontSize:".75rem",fontWeight:700,cursor:wdPage===1?"not-allowed":"pointer",opacity:wdPage===1?.4:1,background:"#fff",color:"#0C1A2E"}}
+                      disabled={wdPage===1} onClick={()=>setWdPage(p=>p-1)}>← Prev</button>
+                    {Array.from({length:wdPages},(_,i)=>i+1).map(p=>(
+                      <button key={p} style={{padding:".35rem .7rem",borderRadius:"7px",fontSize:".75rem",fontWeight:700,cursor:"pointer",border:"1.5px solid",
+                        background:p===wdPage?"#0C1A2E":"#fff",color:p===wdPage?"#38BDF8":"#0C1A2E",borderColor:p===wdPage?"#0C1A2E":"#BAE6FD"}}
+                        onClick={()=>setWdPage(p)}>{p}</button>
+                    ))}
+                    <button style={{padding:".35rem .7rem",borderRadius:"7px",border:"1.5px solid #BAE6FD",fontSize:".75rem",fontWeight:700,cursor:wdPage===wdPages?"not-allowed":"pointer",opacity:wdPage===wdPages?.4:1,background:"#fff",color:"#0C1A2E"}}
+                      disabled={wdPage===wdPages} onClick={()=>setWdPage(p=>p+1)}>Next →</button>
+                  </div>
+                )}
               </div>
             )}
           </>
