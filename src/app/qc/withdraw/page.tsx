@@ -76,13 +76,14 @@ export default function QcWithdraw() {
   useEffect(()=>{
     Promise.all([
       fetch("/api/staff/earnings").then(r=>r.json()),
+      fetch("/api/staff/withdrawals").then(r=>r.json()),
       fetch("/api/banks").then(r=>r.json()),
       fetch("/api/staff/bank-details").then(r=>r.json()),
-    ]).then(([earningsRes, banksRes, bankDetailsRes]) => {
+    ]).then(([earningsRes, withdrawalsRes, banksRes, bankDetailsRes]) => {
       if (earningsRes.success) {
         setAvailable((earningsRes.data.summary.availableKobo||0)/100);
-        setPrevWds(earningsRes.data.pendingWithdrawals||[]);
       }
+      if (withdrawalsRes.success) setPrevWds(withdrawalsRes.data||[]);
       if (banksRes.success) setBanks(banksRes.data);
       if (bankDetailsRes.success && bankDetailsRes.data?.accountNumber) {
         setSavedBank(bankDetailsRes.data);
@@ -242,12 +243,18 @@ export default function QcWithdraw() {
 
             {prevWds.length > 0 && (
               <div style={C.prevCard}>
-                <div style={C.ctitle}>Recent Withdrawals</div>
+                <div style={C.ctitle}>Withdrawal History</div>
                 {prevWds.map((w:any) => (
                   <div key={w.id} style={C.prevRow}>
                     <div>
                       <div style={C.prevName}>₦{(w.amountKobo/100).toLocaleString()}</div>
-                      <div style={C.prevMeta}>{new Date(w.requestedAt).toLocaleDateString("en-NG")}</div>
+                      <div style={C.prevMeta}>
+                        {w.bankName} · {w.accountNumber}
+                      </div>
+                      <div style={C.prevMeta}>
+                        Requested {new Date(w.requestedAt).toLocaleString("en-NG",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}
+                        {w.processedAt && <> · Processed {new Date(w.processedAt).toLocaleString("en-NG",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</>}
+                      </div>
                     </div>
                     <span style={{...C.badge,
                       background: w.status==="PAID"?"#D1FAE5":w.status==="APPROVED"?"#DBEAFE":w.status==="REJECTED"?"#FEE2E2":"#FEF9C3",
