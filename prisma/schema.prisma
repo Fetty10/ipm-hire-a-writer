@@ -491,3 +491,15 @@ model PasswordResetToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 }
+model PendingChapterRequest {
+  id               String    @id @default(cuid())
+  orderId          String
+  chapterNumbers   String
+  amountKobo       Int
+  reference        String    @unique
+  guidelineFileUrl String?
+  status           String    @default("PENDING_PAYMENT")
+  confirmedAt      DateTime?
+  confirmedById    String?
+  createdAt        DateTime  @default(now())
+}
