@@ -68,22 +68,22 @@ export default function WriterEarnings() {
           <>
             <div style={C.grid4}>
               {[
-                {label:"Available",   val:summary?.available||0,    color:"#0284C7"},
-                {label:"Pending",     val:summary?.pending||0,      color:"#CA8A04"},
-                {label:"Total Earned",val:summary?.totalEarned||0,  color:"#0C1A2E"},
-                {label:"Withdrawn",   val:summary?.withdrawn||0,    color:"#16A34A"},
+                {label:"Available",   val:(summary?.availableKobo||0)/100,    color:"#0284C7"},
+                {label:"Pending",     val:(summary?.pendingKobo||0)/100,      color:"#CA8A04"},
+                {label:"Total Earned",val:(summary?.totalKobo||0)/100,        color:"#0C1A2E"},
+                {label:"Withdrawn",   val:(summary?.withdrawnKobo||0)/100,    color:"#16A34A"},
               ].map(s=>(
                 <div key={s.label} style={C.scard}>
-                  <div style={{...C.sval,color:s.color}}>₦{s.val.toLocaleString()}</div>
+                  <div style={{...C.sval,color:s.color}}>₦{(s.val||0).toLocaleString()}</div>
                   <div style={C.slbl}>{s.label}</div>
                 </div>
               ))}
             </div>
 
-            {(summary?.available||0)>0 && (
+            {(summary?.availableKobo||0)>0 && (
               <div style={C.cta}>
                 <div>
-                  <div style={C.ctaTxt}>₦{(summary?.available||0).toLocaleString()} available to withdraw</div>
+                  <div style={C.ctaTxt}>₦{((summary?.availableKobo||0)/100).toLocaleString()} available to withdraw</div>
                   <div style={C.ctaSub}>Admin approval required · Paystack auto-transfers once approved.</div>
                 </div>
                 <button style={C.btnP} onClick={()=>router.push("/qc/withdraw")}>Withdraw →</button>
@@ -102,9 +102,9 @@ export default function WriterEarnings() {
                       {earnings.map((e:any)=>(
                         <tr key={e.id}>
                           <td style={{...C.td,maxWidth:"140px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.topic}</td>
-                          <td style={{...C.td,whiteSpace:"nowrap" as const,color:"#5B7EA6"}}>{PLAN[e.planName]||e.planName} · {DEG[e.degreeGroup]||e.degreeGroup}</td>
+                          <td style={{...C.td,whiteSpace:"nowrap" as const,color:"#5B7EA6"}}>{DEG[e.degreeGroup]||e.degreeGroup||"—"}</td>
                           <td style={{...C.td,whiteSpace:"nowrap" as const}}>{e.chapterLabel}</td>
-                          <td style={{...C.td,fontWeight:700,color:"#0284C7",whiteSpace:"nowrap" as const}}>₦{e.amountNaira.toLocaleString()}</td>
+                          <td style={{...C.td,fontWeight:700,color:"#0284C7",whiteSpace:"nowrap" as const}}>₦{((e.amountKobo||0)/100).toLocaleString()}</td>
                           <td style={C.td}>
                             <span style={{...C.badge,...(
                               e.status==="AVAILABLE"?{background:"#D1FAE5",color:"#065F46"}:
