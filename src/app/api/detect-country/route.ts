@@ -13,8 +13,11 @@ const COUNTRY_CURRENCY: Record<string, { currency: string; symbol: string; flw: 
 };
 
 export async function GET(req: NextRequest) {
-  // Vercel provides country directly — no external API needed
-  const country = req.headers.get("x-vercel-ip-country") || "NG";
+  const { searchParams } = new URL(req.url);
+  const override = searchParams.get("country");
+
+  // Testing override — e.g. ?country=NG forces Nigeria regardless of real IP
+  const country = override || req.headers.get("x-vercel-ip-country") || "NG";
   const info    = COUNTRY_CURRENCY[country] || { currency: "USD", symbol: "$", flw: "USD" };
 
   return NextResponse.json({
