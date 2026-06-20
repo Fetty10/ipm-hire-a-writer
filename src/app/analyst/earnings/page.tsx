@@ -46,14 +46,23 @@ export default function WriterEarnings() {
   const [earnings, setEarnings] = useState<any[]>([]);
   const [summary,  setSummary]  = useState<any>(null);
   const [loading,  setLoading]  = useState(true);
+  const [page,     setPage]     = useState(1);
+  const [pages,    setPages]    = useState(1);
+  const [total,    setTotal]    = useState(0);
   const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
 
   useEffect(()=>{
-    fetch("/api/staff/earnings").then(r=>r.json()).then(d=>{
-      if(d.success){ setEarnings(d.data.earnings); setSummary(d.data.summary); }
+    setLoading(true);
+    fetch(`/api/staff/earnings?page=${page}`).then(r=>r.json()).then(d=>{
+      if(d.success){
+        setEarnings(d.data.earnings);
+        setSummary(d.data.summary);
+        setTotal(d.data.total||0);
+        setPages(d.data.pages||1);
+      }
       setLoading(false);
     });
-  },[]);
+  },[page]);
 
   return (
     <StaffLayout navItems={WRITER_NAV} role="Analyst" initials={initials}>
@@ -117,7 +126,23 @@ export default function WriterEarnings() {
                   </table>
                 </div>
               )}
+              {total > 0 && <p style={{fontSize:".7rem",color:"#5B7EA6",marginTop:".75rem"}}>{total} earning{total!==1?"s":""} total</p>}
             </div>
+
+            {/* Pagination */}
+            {pages > 1 && (
+              <div style={{display:"flex",gap:".5rem",justifyContent:"center",marginTop:"1.5rem",flexWrap:"wrap" as const}}>
+                <button style={{padding:".4rem .9rem",borderRadius:"8px",border:"1.5px solid #BAE6FD",fontSize:".8rem",fontWeight:700,cursor:page===1?"not-allowed":"pointer",opacity:page===1?.4:1,background:"#fff",color:"#0C1A2E"}}
+                  disabled={page===1} onClick={()=>setPage(p=>p-1)}>← Prev</button>
+                {Array.from({length:pages},(_,i)=>i+1).map(p=>(
+                  <button key={p} style={{padding:".4rem .9rem",borderRadius:"8px",fontSize:".8rem",fontWeight:700,cursor:"pointer",border:"1.5px solid",
+                    background:p===page?"#0C1A2E":"#fff",color:p===page?"#38BDF8":"#0C1A2E",borderColor:p===page?"#0C1A2E":"#BAE6FD"}}
+                    onClick={()=>setPage(p)}>{p}</button>
+                ))}
+                <button style={{padding:".4rem .9rem",borderRadius:"8px",border:"1.5px solid #BAE6FD",fontSize:".8rem",fontWeight:700,cursor:page===pages?"not-allowed":"pointer",opacity:page===pages?.4:1,background:"#fff",color:"#0C1A2E"}}
+                  disabled={page===pages} onClick={()=>setPage(p=>p+1)}>Next →</button>
+              </div>
+            )}
           </>
         )}
       </div>
