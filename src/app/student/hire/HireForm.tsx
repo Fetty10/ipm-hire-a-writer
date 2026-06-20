@@ -109,7 +109,8 @@ export default function HireAWriter() {
     fetch("/api/orders/bank-transfer")
       .then(r => r.json())
       .then(d => { if (d.success) setBankAccount(d.data); });
-    fetch("/api/detect-country")
+    const countryOverride = new URLSearchParams(window.location.search).get("country");
+    fetch(`/api/detect-country${countryOverride ? `?country=${countryOverride}` : ""}`)
       .then(r => r.json())
       .then(d => { setGeoInfo({ currency: d.currency, symbol: d.symbol, flw: d.flw, isNigeria: d.isNigeria }); });
     fetch("/api/exception-courses")
