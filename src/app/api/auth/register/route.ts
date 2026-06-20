@@ -36,6 +36,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
   }
 
+  // Block duplicate phone numbers for students only — staff can have multiple
+  // role accounts (e.g. Analyst + QC) using the same phone number
+  if (!isStaff && phone) {
+    const phoneInUse = await prisma.user.findFirst({
+      where: { phone, role: Role.CLIENT },
+    });
+    if (phoneInUse) {
+      return NextResponse.json(
+        { error: "An account with this phone number already exists. Please log in instead." },
+        { status: 409 }
+      );
+    }
+  }
+
   const hashedPassword = await bcrypt.hash(password, 12);
 
   const user = await prisma.user.create({
