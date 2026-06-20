@@ -52,12 +52,19 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
   const [guideName,  setGuideName]  = useState("");
   const [uploading,  setUploading]  = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [bankAccount,  setBankAccount]  = useState<any>(null);
+  const [showBankModal,setShowBankModal]= useState(false);
+  const [bankPending,  setBankPending]  = useState(false);
+  const [bankDone,     setBankDone]     = useState<any>(null);
 
   useEffect(() => {
     fetch(`/api/orders/add-chapters?orderId=${orderId}`)
       .then(r => r.json())
       .then(d => { if (d.success) setInfo(d.data); })
       .finally(() => setLoading(false));
+    fetch("/api/orders/bank-transfer")
+      .then(r => r.json())
+      .then(d => { if (d.success) setBankAccount(d.data); });
   }, [orderId]);
 
   function toggle(n: number) {
@@ -85,6 +92,23 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
     const data = await res.json();
     if (res.ok) window.location.href = data.paymentUrl;
     else { toast.error(data.error || "Something went wrong"); setSubmitting(false); }
+  }
+
+  function openBankModal() {
+    if (!selected.length) return;
+    setShowBankModal(true);
+  }
+
+  async function confirmBankTransfer() {
+    setBankPending(true);
+    const res  = await fetch("/api/orders/add-chapters", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId, chaptersRequested: selected, guidelineFileUrl: guideUrl||undefined, paymentMethod: "BANK_TRANSFER" }),
+    });
+    const data = await res.json();
+    if (res.ok) setBankDone({ reference: data.reference, amountNaira: data.amountNaira });
+    else toast.error(data.error || "Something went wrong");
+    setBankPending(false);
   }
 
   const total = info ? (info.pricingType === "PER_CHAPTER" ? info.pricePerChapter * selected.length : info.pricePerChapter) : 0;
@@ -157,8 +181,24 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
                   <button style={{...C.btnP,...(!selected.length||submitting?C.btnD:{})}}
                     disabled={!selected.length||submitting||uploading}
                     onClick={handlePay}>
-                    {submitting?"Processing...":selected.length?`💳 Pay ₦${total.toLocaleString()} →`:"Select chapters above"}
+                    {submitting?"Processing...":selected.length?`💳 Pay ₦${total.toLocaleString()} with Paystack →`:"Select chapters above"}
                   </button>
+
+                  {selected.length > 0 && (
+                    <>
+                      <div style={{display:"flex",alignItems:"center",gap:".75rem",margin:".75rem 0"}}>
+                        <div style={{flex:1,height:"1px",background:"#E0F2FE"}}/>
+                        <span style={{fontSize:".7rem",color:"#5B7EA6",fontWeight:600}}>OR</span>
+                        <div style={{flex:1,height:"1px",background:"#E0F2FE"}}/>
+                      </div>
+                      <button type="button"
+                        style={{width:"100%",padding:".75rem",borderRadius:"12px",border:"1.5px solid #38BDF8",background:"transparent",color:"#0369A1",fontSize:".85rem",fontWeight:700,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}
+                        disabled={bankPending}
+                        onClick={openBankModal}>
+                        🏦 Pay ₦{total.toLocaleString()} via Bank Transfer
+                      </button>
+                    </>
+                  )}
                   <button style={C.btnO} onClick={onClose}>Cancel</button>
                 </>
               )}
@@ -166,6 +206,54 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
           )}
         </div>
       </div>
+
+      {/* Bank Transfer Modal */}
+      {showBankModal && bankAccount && (
+        <div style={{...C.overlay, zIndex:60}} onClick={e => { if (e.target === e.currentTarget && !bankDone) setShowBankModal(false); }}>
+          <div style={{...C.modal, maxWidth:"400px"}}>
+            <div style={{padding:"1.5rem"}}>
+              <div style={{textAlign:"center" as const, marginBottom:"1rem"}}>
+                <div style={{fontSize:"2rem",marginBottom:".5rem"}}>🏦</div>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:"1.05rem",fontWeight:800,color:"#0C1A2E"}}>Transfer Payment Details</div>
+              </div>
+
+              {!bankDone ? (
+                <>
+                  <div style={{background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:"12px",padding:"1rem",marginBottom:"1rem"}}>
+                    {[
+                      { label:"Bank", val: bankAccount.bankName },
+                      { label:"Account Name", val: bankAccount.accountName },
+                      { label:"Account Number", val: bankAccount.accountNumber },
+                      { label:"Amount", val: `₦${total.toLocaleString()}` },
+                    ].map(r => (
+                      <div key={r.label} style={{display:"flex",justifyContent:"space-between",fontSize:".82rem",marginBottom:".4rem"}}>
+                        <span style={{color:"#5B7EA6"}}>{r.label}</span>
+                        <span style={{fontWeight:700,color:"#0C1A2E"}}>{r.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:"10px",padding:".75rem",fontSize:".75rem",color:"#9A3412",marginBottom:"1rem",lineHeight:1.5}}>
+                    ⚠️ Transfer the exact amount, then click below. Your chapters will be assigned once we confirm payment.
+                  </div>
+                  <button style={{...C.btnP,...(bankPending?C.btnD:{})}} disabled={bankPending} onClick={confirmBankTransfer}>
+                    {bankPending?"Processing...":"I Have Made the Transfer →"}
+                  </button>
+                  <button style={C.btnO} onClick={()=>setShowBankModal(false)}>Go Back</button>
+                </>
+              ) : (
+                <>
+                  <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:"12px",padding:"1rem",marginBottom:"1rem",textAlign:"center" as const}}>
+                    <div style={{fontSize:".85rem",fontWeight:700,color:"#166534",marginBottom:".3rem"}}>✅ Request Submitted!</div>
+                    <div style={{fontSize:".78rem",color:"#16A34A"}}>Reference: <strong>{bankDone.reference}</strong></div>
+                    <div style={{fontSize:".75rem",color:"#16A34A",marginTop:".4rem"}}>We'll confirm your payment and assign the chapters shortly.</div>
+                  </div>
+                  <button style={C.btnP} onClick={()=>{ setShowBankModal(false); onClose(); }}>Done</button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
