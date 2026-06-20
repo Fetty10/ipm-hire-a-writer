@@ -92,7 +92,18 @@ export async function POST(req: NextRequest) {
   if (paymentMethod === "BANK_TRANSFER") {
     const reference = `IPM-ADD-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
 
-    // Store a pending add-chapters request so admin can confirm and trigger assignment
+    // Create a trackable pending request record for admin confirmation
+    await (prisma as any).pendingChapterRequest.create({
+      data: {
+        orderId:          order.id,
+        chapterNumbers:   chaptersRequested.join(","),
+        amountKobo,
+        reference,
+        guidelineFileUrl: guidelineFileUrl || null,
+        status:           "PENDING_PAYMENT",
+      },
+    });
+
     await prisma.notification.create({
       data: {
         userId:  order.clientId,
@@ -113,7 +124,7 @@ export async function POST(req: NextRequest) {
           userId:  a.id,
           orderId: order.id,
           title:   "🏦 Add Chapters — Bank Transfer Pending",
-          message: `"${order.topic}" — Ch ${chaptersRequested.join(", ")}. Ref: ${reference}. Amount: ₦${(amountKobo/100).toLocaleString()}. Confirm in Bank Transfers tab once received, then manually assign the chapters in All Orders.`,
+          message: `"${order.topic}" — Ch ${chaptersRequested.join(", ")}. Ref: ${reference}. Amount: ₦${(amountKobo/100).toLocaleString()}. Confirm in Bank Transfers tab.`,
           type:    "ACTION_REQUIRED" as const,
         })),
       });
