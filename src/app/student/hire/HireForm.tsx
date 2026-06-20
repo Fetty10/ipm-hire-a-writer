@@ -112,9 +112,9 @@ export default function HireAWriter() {
     fetch("/api/detect-country")
       .then(r => r.json())
       .then(d => { setGeoInfo({ currency: d.currency, symbol: d.symbol, flw: d.flw, isNigeria: d.isNigeria }); });
-    fetch("/api/admin/settings?type=departments")
+    fetch("/api/exception-courses")
       .then(r => r.json())
-      .then(d => { if (d.success) setExceptionCourses((d.data.departments||[]).map((e:any) => e.name.toLowerCase())); });
+      .then(d => { if (d.success) setExceptionCourses((d.data||[]).map((name:string) => name.toLowerCase())); });
   }, []);
 
   // Fetch plans when degree group changes
