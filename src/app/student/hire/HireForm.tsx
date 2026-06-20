@@ -78,6 +78,7 @@ export default function HireAWriter() {
   const [quantity,     setQuantity]     = useState<number>(1);
   const [areaOfInterest, setAreaOfInterest] = useState("");
   const [geoInfo,      setGeoInfo]      = useState<{currency:string;symbol:string;flw:string;isNigeria:boolean}>({currency:"NGN",symbol:"₦",flw:"NGN",isNigeria:true});
+  const [exceptionCourses, setExceptionCourses] = useState<string[]>([]);
   const [showBankModal,setShowBankModal]= useState(false);
   const [bankPending,  setBankPending]  = useState(false);
   const [bankDone,     setBankDone]     = useState<any>(null); // {reference, amountNaira}
@@ -111,6 +112,9 @@ export default function HireAWriter() {
     fetch("/api/detect-country")
       .then(r => r.json())
       .then(d => { setGeoInfo({ currency: d.currency, symbol: d.symbol, flw: d.flw, isNigeria: d.isNigeria }); });
+    fetch("/api/admin/settings?type=departments")
+      .then(r => r.json())
+      .then(d => { if (d.success) setExceptionCourses((d.data.departments||[]).map((e:any) => e.name.toLowerCase())); });
   }, []);
 
   // Fetch plans when degree group changes
@@ -125,6 +129,17 @@ export default function HireAWriter() {
   const selectedService = SERVICES.find(s => s.value === service);
   const selectedPlan    = plans.find(p => p.id === planId);
   const isBasicPlan     = isProject && !!planId && selectedPlan?.planName === "BASIC";
+
+  // Check if typed department matches any exception course (fuzzy)
+  const isExceptionDept = isProject && department.trim().length > 0 && exceptionCourses.some(exc => {
+    const dept = department.toLowerCase().trim();
+    return dept.includes(exc) || exc.includes(dept);
+  });
+
+  // Filter plans — exception departments only show Professional/PhD Professional
+  const visiblePlans = isExceptionDept
+    ? plans.filter(p => p.planName === "PROFESSIONAL" || p.planName === "PHD_PROFESSIONAL")
+    : plans;
   const isPerChapter    = selectedPlan?.pricingType === "PER_CHAPTER";
 
   // Calculate total
@@ -428,7 +443,12 @@ export default function HireAWriter() {
           {service !== "topic" && service !== "journal_sourcing" && (
             <div>
               <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Department / Course</label>
-              <input value={department} onChange={e => setDepartment(e.target.value)}
+              <input value={department} onChange={e => {
+                    setDepartment(e.target.value);
+                    // Reset plan if switching to/from exception dept
+                    setPlanId("");
+                    setSelChapters([]);
+                  }}
                 placeholder="e.g. Business Administration"
                 className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
               {errors.department && <p className="text-xs text-red-500 mt-1">{errors.department}</p>}
