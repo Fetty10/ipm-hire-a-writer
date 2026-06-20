@@ -45,12 +45,16 @@ export default function StudentInProgress() {
   const [orders,  setOrders]  = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [addModal,setAddModal]= useState<string|null>(null);
+  const [chapterReqs, setChapterReqs] = useState<any[]>([]);
 
   useEffect(()=>{
     fetch("/api/student/orders?filter=active")
       .then(r=>r.json())
       .then(d=>{ if(d.success) setOrders(d.data); })
       .finally(()=>setLoading(false));
+    fetch("/api/student/chapter-requests")
+      .then(r=>r.json())
+      .then(d=>{ if(d.success) setChapterReqs(d.data); });
   },[]);
 
   return (
@@ -97,6 +101,23 @@ export default function StudentInProgress() {
                   )}
                 </div>
               )}
+
+              {/* Pending/confirmed add-chapter requests for this order */}
+              {chapterReqs.filter(r => r.orderId === order.id).map(r => (
+                <div key={r.id} style={{
+                  background: r.status === "PENDING_PAYMENT" ? "#FFF7ED" : "#F0FDF4",
+                  border: `1px solid ${r.status === "PENDING_PAYMENT" ? "#FED7AA" : "#BBF7D0"}`,
+                  borderRadius:"10px", padding:".75rem 1rem", marginBottom:"1rem",
+                  fontSize:".78rem", color: r.status === "PENDING_PAYMENT" ? "#9A3412" : "#166534", lineHeight:1.5
+                }}>
+                  {r.status === "PENDING_PAYMENT" ? (
+                    <>📎 <strong>Additional Chapter(s) Pending:</strong> You requested Chapter(s) {r.chapterNumbers.split(",").join(", ")} via bank transfer (₦{(r.amountKobo/100).toLocaleString()}). Awaiting payment confirmation.</>
+                  ) : (
+                    <>✅ <strong>Additional Chapter(s) Confirmed:</strong> Chapter(s) {r.chapterNumbers.split(",").join(", ")} have been assigned and work has begun.</>
+                  )}
+                  <div style={{marginTop:".3rem"}}>Reference: <strong style={{fontFamily:"monospace"}}>{r.reference}</strong></div>
+                </div>
+              ))}
 
               {/* Progress tracker */}
               <div style={C.tracker}>
