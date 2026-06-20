@@ -592,8 +592,8 @@ export default function HireAWriter() {
                   <div className="flex justify-between"><span className="text-navy-muted">Chapters</span><span className="font-600">{selChapters.sort().map(n=>`Ch ${n}`).join(", ")} ({selChapters.length})</span></div>
                 )}
                 <div className="flex justify-between pt-2 border-t border-sky-200 mt-1">
-                  <span className="font-700">Total</span>
-                  <span className="font-clash text-lg font-800 text-sky-600">{geoInfo.symbol}{total.toLocaleString()}</span>
+                  <span className="font-700 text-navy-DEFAULT">Total</span>
+                  <span className="text-xl font-700 text-sky-600 tracking-tight">{geoInfo.symbol}{total.toLocaleString()}</span>
                 </div>
                 {showSummary && (
                   <div className="mt-3 p-3 bg-green-50 rounded-xl border border-green-200">
