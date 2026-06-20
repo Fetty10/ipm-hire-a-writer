@@ -33,13 +33,15 @@ const C = {
 const DEG:Record<string,string> = {OND_HND_NCE:"HND/OND",BSC_BED_BA:"BSc/BEd",PGD_MSC_PHD:"PGD/MSc",PHD:"PhD"};
 
 export default function AdminBankTransfers() {
-  const [tab,      setTab]      = useState<"pending"|"confirmed">("pending");
+  const [tab,      setTab]      = useState<"pending"|"confirmed"|"addchapters">("pending");
   const [orders,   setOrders]   = useState<any[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [acting,   setActing]   = useState<string|null>(null);
   const [account,  setAccount]  = useState<any>(null);
   const [saving,   setSaving]   = useState(false);
   const [acct,     setAcct]     = useState({ accountName:"", accountNumber:"", bankName:"" });
+  const [chapterReqs, setChapterReqs] = useState<any[]>([]);
+  const [chReqLoading, setChReqLoading] = useState(false);
 
   async function loadOrders() {
     setLoading(true);
@@ -52,6 +54,14 @@ export default function AdminBankTransfers() {
     setLoading(false);
   }
 
+  async function loadChapterRequests() {
+    setChReqLoading(true);
+    const res  = await fetch(`/api/admin/pending-chapter-requests?status=${tab==="addchapters"?"PENDING_PAYMENT":"CONFIRMED"}`);
+    const data = await res.json();
+    if (data.success) setChapterReqs(data.data);
+    setChReqLoading(false);
+  }
+
   async function loadAccount() {
     const res  = await fetch("/api/orders/bank-transfer");
     const data = await res.json();
@@ -61,7 +71,24 @@ export default function AdminBankTransfers() {
     }
   }
 
-  useEffect(() => { loadOrders(); loadAccount(); }, [tab]);
+  useEffect(() => {
+    if (tab === "addchapters") loadChapterRequests();
+    else { loadOrders(); loadAccount(); }
+  }, [tab]);
+
+  useEffect(() => { loadAccount(); }, []);
+
+  async function confirmChapterRequest(requestId: string) {
+    setActing(requestId);
+    const res  = await fetch("/api/admin/pending-chapter-requests", {
+      method:"PATCH", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ requestId }),
+    });
+    const data = await res.json();
+    if (res.ok) { toast.success("Payment confirmed! Chapters assigned."); loadChapterRequests(); }
+    else toast.error(data.error || "Something went wrong");
+    setActing(null);
+  }
 
   async function confirm(orderId: string) {
     setActing(orderId);
@@ -121,43 +148,78 @@ export default function AdminBankTransfers() {
         {/* Tabs */}
         <div style={C.tabs}>
           <button style={{...C.tab,...(tab==="pending"?C.tabA:{})}} onClick={()=>setTab("pending")}>
-            ⏳ Pending Confirmation
+            ⏳ New Orders Pending
           </button>
           <button style={{...C.tab,...(tab==="confirmed"?C.tabA:{})}} onClick={()=>setTab("confirmed")}>
             ✅ Confirmed
           </button>
+          <button style={{...C.tab,...(tab==="addchapters"?C.tabA:{})}} onClick={()=>setTab("addchapters")}>
+            📎 Add-Chapter Requests
+          </button>
         </div>
 
-        {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
-        : orders.length===0 ? <div style={C.empty}>No {tab} bank transfer orders.</div>
-        : (
-          <div style={C.card}>
-            {orders.map((o:any) => (
-              <div key={o.id} style={C.row}>
-                <div style={{minWidth:0}}>
-                  <div style={C.title}>{o.topic}</div>
-                  <div style={C.meta}>{o.client?.name} · {o.client?.phone}</div>
-                  <div style={C.meta}>{DEG[o.degreeGroup]||o.degreeGroup} · {o.plan?.planName}</div>
-                  {(o as any).bankTransferReference && (
+        {tab === "addchapters" ? (
+          chReqLoading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
+          : chapterReqs.length===0 ? <div style={C.empty}>No add-chapter requests.</div>
+          : (
+            <div style={C.card}>
+              {chapterReqs.map((r:any) => (
+                <div key={r.id} style={C.row}>
+                  <div style={{minWidth:0}}>
+                    <div style={C.title}>{r.order?.topic}</div>
+                    <div style={C.meta}>{r.order?.client?.name} · {r.order?.client?.phone}</div>
+                    <div style={C.meta}>{DEG[r.order?.degreeGroup]||r.order?.degreeGroup} · Chapter(s) {r.chapterNumbers.split(",").join(", ")}</div>
                     <div style={{marginTop:"4px"}}>
-                      <span style={C.ref}>{(o as any).bankTransferReference}</span>
+                      <span style={C.ref}>{r.reference}</span>
                     </div>
+                  </div>
+                  <div>
+                    <div style={C.amount}>₦{(r.amountKobo/100).toLocaleString()}</div>
+                    <div style={C.meta}>{new Date(r.createdAt).toLocaleDateString("en-NG")}</div>
+                  </div>
+                  {r.status === "PENDING_PAYMENT" ? (
+                    <button style={C.btnG} disabled={acting===r.id} onClick={()=>confirmChapterRequest(r.id)}>
+                      {acting===r.id ? "Confirming..." : "✓ Confirm & Assign"}
+                    </button>
+                  ) : (
+                    <span style={{fontSize:".75rem",color:"#065F46",fontWeight:700}}>✅ Confirmed</span>
                   )}
                 </div>
-                <div>
-                  <div style={C.amount}>₦{(o.amountPaid||0).toLocaleString()}</div>
-                  <div style={C.meta}>{o.paidAt ? new Date(o.paidAt).toLocaleDateString("en-NG") : "Not paid yet"}</div>
+              ))}
+            </div>
+          )
+        ) : (
+          loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
+          : orders.length===0 ? <div style={C.empty}>No {tab} bank transfer orders.</div>
+          : (
+            <div style={C.card}>
+              {orders.map((o:any) => (
+                <div key={o.id} style={C.row}>
+                  <div style={{minWidth:0}}>
+                    <div style={C.title}>{o.topic}</div>
+                    <div style={C.meta}>{o.client?.name} · {o.client?.phone}</div>
+                    <div style={C.meta}>{DEG[o.degreeGroup]||o.degreeGroup} · {o.plan?.planName}</div>
+                    {(o as any).bankTransferReference && (
+                      <div style={{marginTop:"4px"}}>
+                        <span style={C.ref}>{(o as any).bankTransferReference}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div style={C.amount}>₦{(o.amountPaid||0).toLocaleString()}</div>
+                    <div style={C.meta}>{o.paidAt ? new Date(o.paidAt).toLocaleDateString("en-NG") : "Not paid yet"}</div>
+                  </div>
+                  {tab === "pending" ? (
+                    <button style={C.btnG} disabled={acting===o.id} onClick={()=>confirm(o.id)}>
+                      {acting===o.id ? "Confirming..." : "✓ Confirm Payment"}
+                    </button>
+                  ) : (
+                    <span style={{fontSize:".75rem",color:"#065F46",fontWeight:700}}>✅ Confirmed</span>
+                  )}
                 </div>
-                {tab === "pending" ? (
-                  <button style={C.btnG} disabled={acting===o.id} onClick={()=>confirm(o.id)}>
-                    {acting===o.id ? "Confirming..." : "✓ Confirm Payment"}
-                  </button>
-                ) : (
-                  <span style={{fontSize:".75rem",color:"#065F46",fontWeight:700}}>✅ Confirmed</span>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         )}
       </div>
     </AdminLayout>
