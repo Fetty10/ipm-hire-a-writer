@@ -70,20 +70,40 @@ export async function POST(req: NextRequest) {
   });
 
   // ── Create QC earning ─────────────────────────────────────
-  const qcRate = await prisma.payRate.findFirst({
-    where: {
-      role:        "QC",
-      degreeGroup: chapter.order.degreeGroup,
-      planName:    chapter.order.plan.planName,
-    },
-  });
+  const isOtherServiceOrder = chapter.order.serviceType !== "HIRE_WRITER" && !!chapter.order.serviceType;
 
-  if (qcRate?.amountKobo) {
+  let qcEarnAmount = 0;
+
+  if (isOtherServiceOrder) {
+    // Flat service — use the QC check pay rate set on OtherService
+    const svcValueMap: Record<string,string> = {
+      PROPOSAL_SEMINAR: "seminar",
+      JOURNAL_WRITING:  "journal",
+      JOURNAL_SOURCING: "journal_sourcing",
+      TOPIC_SUGGESTION: "topic",
+      HIRE_WRITER:      "assignment",
+    };
+    const svcValue = svcValueMap[chapter.order.serviceType] || chapter.order.serviceType?.toLowerCase();
+    const svc = await (prisma as any).otherService.findFirst({ where: { value: svcValue } });
+    qcEarnAmount = svc?.qcCheckPayKobo || 0;
+  } else {
+    // Project chapter — use the regular PayRate table
+    const qcRate = await prisma.payRate.findFirst({
+      where: {
+        role:        "QC",
+        degreeGroup: chapter.order.degreeGroup,
+        planName:    chapter.order.plan.planName,
+      },
+    });
+    qcEarnAmount = qcRate?.amountKobo || 0;
+  }
+
+  if (qcEarnAmount > 0) {
     await prisma.earning.create({
       data: {
         userId:         session.user.id,
         orderChapterId: chapterId,
-        amountKobo:     qcRate.amountKobo,
+        amountKobo:     qcEarnAmount,
         status:         "PENDING",
         category:       "CHAPTER",
       } as any,
