@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
@@ -82,35 +83,35 @@ export default function QCCorrectionsActive() {
   }
 
   async function handleUpload(jobId:string, file:File) {
-    if (file.size>20*1024*1024) { alert("Max 20MB"); return; }
+    if (file.size>20*1024*1024) { toast.error("Max 20MB"); return; }
     upd(jobId,"uploading",true);
     const fd=new FormData(); fd.append("file",file); fd.append("folder","chapters/corrections");
     const res  = await fetch("/api/upload",{method:"POST",body:fd});
     const data = await res.json();
     if (res.ok) { upd(jobId,"fileUrl",data.url); upd(jobId,"fileName",data.fileName); }
-    else alert(data.error||"Upload failed");
+    else toast.error(data.error||"Upload failed" || "Something went wrong");
     upd(jobId,"uploading",false);
   }
 
   async function handleSend(jobId:string) {
     const s = state[jobId];
-    if (!s?.fileUrl) { alert("Please upload the corrected file first."); return; }
+    if (!s?.fileUrl) { toast.error("Please upload the corrected file first."); return; }
     upd(jobId,"submitting",true);
     const res  = await fetch("/api/chapters/qc-clear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId:jobId,clearedFileUrl:s.fileUrl,qcNotes:s.notes||undefined,isCorrection:true})});
     const data = await res.json();
-    if (res.ok) { alert("Correction sent to student!"); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
-    else alert(data.error);
+    if (res.ok) { toast.error("Correction sent to student!"); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
+    else toast.error(data.error || "Something went wrong");
     upd(jobId,"submitting",false);
   }
 
   async function handleEscalate(jobId:string) {
     const s = state[jobId];
-    if (!s.escNotes.trim()) { alert("Please provide instructions for the writer."); return; }
+    if (!s.escNotes.trim()) { toast.error("Please provide instructions for the writer."); return; }
     upd(jobId,"escalating",true);
     const res  = await fetch("/api/chapters/qc-escalate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId:jobId,escalationType:s.escType,instructionsForWriter:s.escNotes})});
     const data = await res.json();
-    if (res.ok) { alert(data.message); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
-    else alert(data.error);
+    if (res.ok) { toast.success(data.message); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
+    else toast.error(data.error || "Something went wrong");
     upd(jobId,"escalating",false);
   }
 
@@ -158,8 +159,8 @@ export default function QCCorrectionsActive() {
 
               <div style={C.files}>
                 <div style={C.filest}>Files to Work From</div>
-                {job.submittedFileUrl && <a href={job.submittedFileUrl} target="_blank" rel="noreferrer" style={C.flink}>⬇ {job.chapterLabel} — Original Delivered Version</a>}
-                {supUrl && <a href={supUrl} target="_blank" rel="noreferrer" style={C.flink}>⬇ Supervisor's Notes (uploaded by student)</a>}
+                {job.submittedFileUrl && <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer" style={C.flink}>⬇ {job.chapterLabel} — Original Delivered Version</a>}
+                {supUrl && supUrl.split(",").map((u:string,i:number,arr:string[]) => (<a key={i} href={`/api/download/guideline?url=${encodeURIComponent(u.trim())}&label=${encodeURIComponent(`Supervisor Notes${arr.length>1?` ${i+1}`:""}`)}`} target="_blank" rel="noreferrer" style={C.flink}>⬇ Supervisor's Notes{arr.length>1?` ${i+1}`:""}</a>))}
               </div>
 
               {/* Notes */}
