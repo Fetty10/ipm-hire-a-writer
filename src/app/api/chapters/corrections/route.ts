@@ -43,8 +43,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Block Basic plan corrections ──────────────────────────────
-  if (chapter.order.plan.planName === "BASIC") {
+  // ── Block Basic plan corrections — project orders only ──────
+  const isOtherServiceOrder = chapter.order.serviceType !== "HIRE_WRITER" && !!chapter.order.serviceType;
+  if (!isOtherServiceOrder && chapter.order.plan.planName === "BASIC") {
     return NextResponse.json(
       { error: "Your current plan (Basic) does not include free corrections. Please upgrade your plan by placing a new order." },
       { status: 403 }
