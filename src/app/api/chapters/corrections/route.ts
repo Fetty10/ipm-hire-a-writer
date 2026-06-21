@@ -5,6 +5,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ChapterStatus, Role } from "@prisma/client";
+import { getNextQCForCorrectionRoundRobin } from "@/lib/assignment";
+import { sendQCCheckAssignedEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -49,49 +51,66 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Set QC_IN_PROGRESS but leave routedToQcId NULL
-  // so it appears in QC Pending Corrections (not Active)
+  // ── Assign via STRICT ROUND-ROBIN ────────────────────────────
+  // Corrections rotate equally — Peter, Timothy, Peter, Timothy...
+  // regardless of how many active jobs each currently has.
+  const qcUserId = await getNextQCForCorrectionRoundRobin();
+
   await prisma.orderChapter.update({
     where: { id: chapterId },
     data: {
       status:          ChapterStatus.QC_IN_PROGRESS,
       correctionNotes: correctionRequest,
-      routedToQcId:    null,
+      routedToQcId:    qcUserId,
       routedToQcAt:    new Date(),
       adminNotes:      supervisorNotesUrl ? `supervisor_notes:${supervisorNotesUrl}` : null,
     },
   });
 
-  // Notify all QC staff
-  const qcStaff = await prisma.user.findMany({
-    where: { role: Role.QC, isApproved: true, isSuspended: false },
-    select: { id: true },
-  });
-
-  if (qcStaff.length > 0) {
-    await prisma.notification.createMany({
-      data: qcStaff.map(qc => ({
-        userId:  qc.id,
-        orderId: chapter.orderId,
-        title:   "Student Correction Request",
-        message: `A student has requested a correction on ${chapter.chapterLabel} for "${chapter.order.topic}". Log in to review and handle it.`,
-        type:    "ACTION_REQUIRED" as const,
-      })),
+  if (qcUserId) {
+    const qc = await prisma.user.findUnique({
+      where:  { id: qcUserId },
+      select: { id: true, name: true, email: true },
     });
+
+    if (qc) {
+      await prisma.notification.create({
+        data: {
+          userId:  qc.id,
+          orderId: chapter.orderId,
+          title:   "Correction Request Assigned to You",
+          message: `A student has requested a correction on ${chapter.chapterLabel} for "${chapter.order.topic}". Log in to your Pending Corrections to handle it.`,
+          type:    "ACTION_REQUIRED",
+        },
+      });
+
+      try {
+        await sendQCCheckAssignedEmail({
+          to:           qc.email,
+          name:         qc.name,
+          topic:        chapter.order.topic,
+          chapterLabel: chapter.chapterLabel,
+          checks:       ["Correction Request"],
+        });
+      } catch (e) { console.error("[EMAIL] Correction assigned:", e); }
+    }
   } else {
+    // No QC staff exist at all — fall back to admin notification
     const admins = await prisma.user.findMany({
       where: { role: { in: [Role.MAIN_ADMIN, Role.SUB_ADMIN] } },
       select: { id: true },
     });
-    await prisma.notification.createMany({
-      data: admins.map(a => ({
-        userId:  a.id,
-        orderId: chapter.orderId,
-        title:   "⚠️ Correction Request — No QC Available",
-        message: `Student correction for ${chapter.chapterLabel} on "${chapter.order.topic}" needs manual QC assignment.`,
-        type:    "ALERT" as const,
-      })),
-    });
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map(a => ({
+          userId:  a.id,
+          orderId: chapter.orderId,
+          title:   "⚠️ Correction Request — No QC Available",
+          message: `Student correction for ${chapter.chapterLabel} on "${chapter.order.topic}" needs manual QC assignment.`,
+          type:    "ALERT" as const,
+        })),
+      });
+    }
   }
 
   // Notify student that correction was received
