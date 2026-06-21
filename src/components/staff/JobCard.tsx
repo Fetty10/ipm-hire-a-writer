@@ -197,14 +197,19 @@ export function JobCard(props: JobCardProps) {
 
       {/* Guideline download */}
       {props.guidelineFileUrl && (
-        <a
-          href={props.guidelineFileUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs font-600 text-sky-600 hover:underline mb-4"
-        >
-          📎 Download School Format/Guideline
-        </a>
+        <div className="mb-4">
+          {props.guidelineFileUrl.split(",").map(u => u.trim()).filter(Boolean).map((u, i, arr) => (
+            <a
+              key={i}
+              href={`/api/download/guideline?url=${encodeURIComponent(u)}&label=${encodeURIComponent(`Guideline${arr.length>1?` ${i+1}`:""}`)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-600 text-sky-600 hover:underline mb-1 block"
+            >
+              📎 Download School Format/Guideline{arr.length>1?` ${i+1}`:""}
+            </a>
+          ))}
+        </div>
       )}
 
       {/* ── PENDING ACTIONS ── */}
