@@ -121,6 +121,7 @@ model User {
   suspendReason   String?
   approvedAt      DateTime?
   approvedById    String?   // main admin user id
+  hasPendingCorrections Boolean @default(false)
 
   // Client-only fields
   institution     String?
@@ -378,6 +379,7 @@ model OrderChapter {
   status          ChapterStatus @default(NOT_STARTED)
   isUrgent        Boolean   @default(false)
   urgentMarkedAt  DateTime?
+  isEscalatedCorrection Boolean @default(false)
 
   // Pre-delivery requirements (Chapter 1, non-exception depts only)
   requiresPrelim        Boolean  @default(false)
