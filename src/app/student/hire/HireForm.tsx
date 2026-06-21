@@ -76,6 +76,7 @@ export default function HireAWriter() {
   const [loading,      setLoading]      = useState(false);
   const [bankAccount,  setBankAccount]  = useState<any>(null);
   const [quantity,     setQuantity]     = useState<number>(1);
+  const [wantsPlagiarismCheck, setWantsPlagiarismCheck] = useState(false);
   const [areaOfInterest, setAreaOfInterest] = useState("");
   const [geoInfo,      setGeoInfo]      = useState<{currency:string;symbol:string;flw:string;isNigeria:boolean}>({currency:"NGN",symbol:"₦",flw:"NGN",isNigeria:true});
   const [exceptionCourses, setExceptionCourses] = useState<string[]>([]);
@@ -163,6 +164,15 @@ export default function HireAWriter() {
     return 0;
   }
 
+  function calcPlagiarismAddOnPrice(): number {
+    if (isProject || !degreeGroup) return 0;
+    const svc = SERVICES.find(s => s.value === service) as any;
+    if (!svc) return 0;
+    const degKey: Record<string,string> = { OND_HND_NCE:"OND", BSC_BED_BA:"BSC", PGD_MSC_PHD:"PGD", PHD:"PHD" };
+    const field = `plagiarismAddOn${degKey[degreeGroup]||"BSC"}`;
+    return (svc[field] || 0) / 100;
+  }
+
   function calcTotal(): number {
     if (!degreeGroup) return 0;
     if (!isProject) {
@@ -184,7 +194,8 @@ export default function HireAWriter() {
         unitPrice = (priceMap[degreeGroup] || 0) / 100;
       }
       const qty = (service === "topic" || service === "journal_sourcing") ? quantity : 1;
-      return unitPrice * qty;
+      const addOn = (wantsPlagiarismCheck && geoInfo.isNigeria) ? calcPlagiarismAddOnPrice() : 0;
+      return (unitPrice * qty) + addOn;
     }
     if (!selectedPlan) return 0;
     // Use international price if available
@@ -228,6 +239,7 @@ export default function HireAWriter() {
           ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
           : instructions.trim() || undefined,
         quantity:    (service === "topic" || service === "journal_sourcing") ? quantity : undefined,
+        requiresPlagiarismCheck: (!isProject && wantsPlagiarismCheck) || undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map((f:any)=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       toServiceType(service),
@@ -264,6 +276,7 @@ export default function HireAWriter() {
           ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
           : instructions.trim() || undefined,
         quantity:    (service === "topic" || service === "journal_sourcing") ? quantity : undefined,
+        requiresPlagiarismCheck: (!isProject && wantsPlagiarismCheck) || undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       toServiceType(service),
@@ -294,6 +307,7 @@ export default function HireAWriter() {
           ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
           : instructions.trim() || undefined,
         quantity:    (service === "topic" || service === "journal_sourcing") ? quantity : undefined,
+        requiresPlagiarismCheck: (!isProject && wantsPlagiarismCheck) || undefined,
         guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
         chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
         serviceType:       toServiceType(service),
@@ -517,6 +531,18 @@ export default function HireAWriter() {
             </div>
           )}
 
+          {/* Plagiarism/AI Check Add-On — only for flat services with a price set, Nigeria only */}
+          {!isProject && service !== "topic" && service !== "journal_sourcing" && geoInfo.isNigeria && calcPlagiarismAddOnPrice() > 0 && (
+            <label className="flex items-start gap-3 p-4 bg-purple-50 rounded-xl border border-purple-200 cursor-pointer">
+              <input type="checkbox" checked={wantsPlagiarismCheck} onChange={e=>setWantsPlagiarismCheck(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-purple-600" />
+              <div>
+                <div className="text-sm font-700 text-purple-800">🔍 Add Plagiarism & AI Detection Check</div>
+                <div className="text-xs text-purple-600 mt-0.5">Our QC team will check your work for plagiarism and AI content before delivery — +{geoInfo.symbol}{calcPlagiarismAddOnPrice().toLocaleString()}</div>
+              </div>
+            </label>
+          )}
+
           {/* Guideline upload — hidden for topic coining, journal sourcing and Basic plan */}
           {service !== "topic" && service !== "journal_sourcing" && !isBasicPlan && (
           <div>
@@ -590,6 +616,9 @@ export default function HireAWriter() {
                 )}
                 {isProject && isPerChapter && selChapters.length > 0 && (
                   <div className="flex justify-between"><span className="text-navy-muted">Chapters</span><span className="font-600">{selChapters.sort().map(n=>`Ch ${n}`).join(", ")} ({selChapters.length})</span></div>
+                )}
+                {!isProject && wantsPlagiarismCheck && calcPlagiarismAddOnPrice() > 0 && (
+                  <div className="flex justify-between"><span className="text-navy-muted">+ Plagiarism/AI Check</span><span className="font-600">{geoInfo.symbol}{calcPlagiarismAddOnPrice().toLocaleString()}</span></div>
                 )}
                 <div className="flex justify-between pt-2 border-t border-sky-200 mt-1">
                   <span className="font-700 text-navy-DEFAULT">Total</span>
