@@ -58,7 +58,7 @@ export default function StudentDownloads() {
                   </div>
                 </div>
                 {d.fileUrl
-                  ? <button style={C.btnP} onClick={()=>window.open(d.fileUrl,"_blank")}>⬇ Download</button>
+                  ? <button style={C.btnP} onClick={()=>window.open(`/api/download?chapterId=${d.id}`,"_blank")}>⬇ Download</button>
                   : <span style={{fontSize:".75rem",color:"#5B7EA6",flexShrink:0}}>Not available</span>}
               </div>
             ))}
