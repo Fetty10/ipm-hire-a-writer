@@ -41,8 +41,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Chapter not found or not available for QC." }, { status: 404 });
   }
 
-  const now        = new Date();
-  const deadlineAt = addWorkingDays(now, 1); // QC always 1 working day
+  const now         = new Date();
+  const isCorrection = !!chapter.correctionNotes;
+  const deadlineAt  = addWorkingDays(now, isCorrection ? 2 : 1); // corrections get 2 days, checks get 1
 
   await prisma.orderChapter.update({
     where: { id: chapterId },
