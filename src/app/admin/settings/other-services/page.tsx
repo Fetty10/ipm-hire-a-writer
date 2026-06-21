@@ -23,6 +23,7 @@ const INTL_FIELDS = CURRENCIES.flatMap(c => DEGREES.map(d => `price${c.key}${d.k
 const BLANK: any = {
   label:"", value:"", description:"",
   priceOND:"", priceBSC:"", pricePGD:"", pricePHD:"",
+  writerPayKobo:"",
   sortOrder:"0",
   ...Object.fromEntries(INTL_FIELDS.map(f => [f, ""])),
 };
@@ -101,14 +102,15 @@ export default function AdminOtherServices() {
     setSaving(id);
     const body: any = {
       id,
-      label:       e.label,
-      description: e.description,
-      priceOND:    parseFloat(e.priceOND)||0,
-      priceBSC:    parseFloat(e.priceBSC)||0,
-      pricePGD:    parseFloat(e.pricePGD)||0,
-      pricePHD:    parseFloat(e.pricePHD)||0,
-      sortOrder:   parseInt(e.sortOrder)||0,
-      isActive:    e.isActive,
+      label:         e.label,
+      description:   e.description,
+      priceOND:      parseFloat(e.priceOND)||0,
+      priceBSC:      parseFloat(e.priceBSC)||0,
+      pricePGD:      parseFloat(e.pricePGD)||0,
+      pricePHD:      parseFloat(e.pricePHD)||0,
+      writerPayKobo: parseFloat(e.writerPayKobo)||0,
+      sortOrder:     parseInt(e.sortOrder)||0,
+      isActive:      e.isActive,
     };
     for (const f of INTL_FIELDS) body[f] = parseFloat(e[f])||0;
 
@@ -141,14 +143,15 @@ export default function AdminOtherServices() {
     if (!newSvc.label.trim() || !newSvc.value.trim()) { toast.error("Name and identifier required."); return; }
     setAdding(true);
     const body: any = {
-      label:       newSvc.label.trim(),
-      value:       newSvc.value.trim(),
-      description: newSvc.description.trim(),
-      priceOND:    parseFloat(newSvc.priceOND)||0,
-      priceBSC:    parseFloat(newSvc.priceBSC)||0,
-      pricePGD:    parseFloat(newSvc.pricePGD)||0,
-      pricePHD:    parseFloat(newSvc.pricePHD)||0,
-      sortOrder:   parseInt(newSvc.sortOrder)||0,
+      label:         newSvc.label.trim(),
+      value:         newSvc.value.trim(),
+      description:   newSvc.description.trim(),
+      priceOND:      parseFloat(newSvc.priceOND)||0,
+      priceBSC:      parseFloat(newSvc.priceBSC)||0,
+      pricePGD:      parseFloat(newSvc.pricePGD)||0,
+      pricePHD:      parseFloat(newSvc.pricePHD)||0,
+      writerPayKobo: parseFloat(newSvc.writerPayKobo)||0,
+      sortOrder:     parseInt(newSvc.sortOrder)||0,
     };
     for (const f of INTL_FIELDS) body[f] = parseFloat(newSvc[f])||0;
 
@@ -219,6 +222,16 @@ export default function AdminOtherServices() {
                   value={newSvc[f.key]} onChange={e=>setNewSvc((p:any)=>({...p,[f.key]:e.target.value}))} />
               </div>
             ))}
+          </div>
+
+          {/* Staff Pay Rate */}
+          <div style={C.secHdr}>💰 Staff Pay Rate (₦)</div>
+          <div style={{marginBottom:"1rem",maxWidth:"160px"}}>
+            <div style={C.fg}>
+              <label style={C.lbl}>Writer Pay (₦)</label>
+              <input style={C.tdInp} type="number" min="0" placeholder="e.g. 2000"
+                value={newSvc.writerPayKobo} onChange={e=>setNewSvc((p:any)=>({...p,writerPayKobo:e.target.value}))} />
+            </div>
           </div>
 
           {/* International prices */}
