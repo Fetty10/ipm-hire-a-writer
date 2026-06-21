@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
@@ -64,7 +65,7 @@ export default function QCCorrectionsPending() {
     const res  = await fetch("/api/qc/start", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chapterId:id}) });
     const data = await res.json();
     if (res.ok) { setJobs(prev=>prev.filter(j=>j.id!==id)); router.push("/qc/corrections/active"); }
-    else alert(data.error);
+    else toast.error(data.error || "Something went wrong");
     setStarting(null);
   }
 
@@ -112,8 +113,8 @@ export default function QCCorrectionsPending() {
 
               <div style={C.files}>
                 <div style={C.filest}>Files to Work From</div>
-                {job.submittedFileUrl && <a href={job.submittedFileUrl} target="_blank" rel="noreferrer" style={C.flink}>⬇ Download {job.chapterLabel} (Delivered Version)</a>}
-                {supUrl && <a href={supUrl} target="_blank" rel="noreferrer" style={C.flink}>⬇ Download Supervisor's Notes</a>}
+                {job.submittedFileUrl && <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer" style={C.flink}>⬇ Download {job.chapterLabel} (Delivered Version)</a>}
+                {supUrl && supUrl.split(",").map((u:string,i:number,arr:string[]) => (<a key={i} href={`/api/download/guideline?url=${encodeURIComponent(u.trim())}&label=${encodeURIComponent(`Supervisor Notes${arr.length>1?` ${i+1}`:""}`)}`} target="_blank" rel="noreferrer" style={C.flink}>⬇ Supervisor's Notes{arr.length>1?` ${i+1}`:""}</a>))}
                 {!job.submittedFileUrl && !supUrl && <p style={{fontSize:".78rem",color:"#5B7EA6",fontStyle:"italic"}}>No files uploaded yet.</p>}
               </div>
 
