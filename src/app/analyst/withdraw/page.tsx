@@ -54,6 +54,7 @@ const C = {
 export default function AnalystWithdraw() {
   const { data: session } = useSession();
   const [available,  setAvailable]  = useState(0);
+  const [pendingCorrections, setPendingCorrections] = useState<any[]>([]);
   const [prevWds,    setPrevWds]    = useState<any[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -165,9 +166,9 @@ export default function AnalystWithdraw() {
     setSubmitting(false);
   }
 
-  const canSubmit = useNewBank
+  const canSubmit = pendingCorrections.length === 0 && (useNewBank
     ? (resolved && accName && amount)
-    : (savedBank?.accountNumber && amount);
+    : (savedBank?.accountNumber && amount));
 
   return (
     <StaffLayout navItems={NAV} role="Analyst" initials={initials}>
@@ -182,6 +183,20 @@ export default function AnalystWithdraw() {
               <div style={C.balLbl}>Available Balance</div>
               <div style={C.balVal}>₦{available.toLocaleString()}</div>
             </div>
+
+            {pendingCorrections.length > 0 && (
+              <div style={{background:"#FEF2F2",border:"1.5px solid #FCA5A5",borderRadius:"14px",padding:"1.25rem",marginBottom:"1.5rem"}}>
+                <div style={{fontSize:".85rem",fontWeight:700,color:"#991B1B",marginBottom:".5rem"}}>🔒 Withdrawals Paused</div>
+                <p style={{fontSize:".8rem",color:"#7F1D1D",lineHeight:1.6,marginBottom:".5rem"}}>
+                  QC has flagged the following job(s) for correction. Please resolve and resubmit them before requesting a withdrawal:
+                </p>
+                <ul style={{fontSize:".78rem",color:"#991B1B",paddingLeft:"1.2rem",lineHeight:1.6}}>
+                  {pendingCorrections.map((c:any) => (
+                    <li key={c.id}>{c.chapterLabel} — {c.topic}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {success ? (
               <div style={C.card}>
