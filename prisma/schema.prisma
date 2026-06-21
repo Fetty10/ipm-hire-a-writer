@@ -505,3 +505,8 @@ model PendingChapterRequest {
   confirmedById    String?
   createdAt        DateTime  @default(now())
 }
+model CorrectionRotationState {
+  id                String   @id @default("singleton")
+  lastAssignedQcId  String?
+  updatedAt         DateTime @updatedAt
+}
