@@ -48,6 +48,7 @@ export default function WriterEarnings() {
   const router = useRouter();
   const [earnings, setEarnings] = useState<any[]>([]);
   const [summary,  setSummary]  = useState<any>(null);
+  const [byCategory, setByCategory] = useState<any>({});
   const [loading,  setLoading]  = useState(true);
   const [page,     setPage]     = useState(1);
   const [pages,    setPages]    = useState(1);
@@ -60,6 +61,7 @@ export default function WriterEarnings() {
       if(d.success){
         setEarnings(d.data.earnings);
         setSummary(d.data.summary);
+        setByCategory(d.data.byCategory || {});
         setTotal(d.data.total||0);
         setPages(d.data.pages||1);
       }
@@ -87,6 +89,28 @@ export default function WriterEarnings() {
                   <div style={C.slbl}>{s.label}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Earnings by category */}
+            <div style={{background:"#fff",borderRadius:"16px",border:"1.5px solid #E0F2FE",padding:"1.25rem",marginBottom:"1.25rem"}}>
+              <div style={{fontFamily:"'Syne',sans-serif",fontSize:".85rem",fontWeight:700,color:"#0C1A2E",marginBottom:".85rem"}}>Earnings by Category</div>
+              <div style={{display:"flex",flexDirection:"column" as const,gap:".6rem"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:".82rem",color:"#5B7EA6"}}>🔍 Plagiarism / AI Checks</span>
+                  <span style={{fontSize:".88rem",fontWeight:700,color:"#0284C7"}}>₦{((byCategory.CHAPTER||0)/100).toLocaleString()}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:".82rem",color:"#5B7EA6"}}>📝 Footnotes (Law Projects)</span>
+                  <span style={{fontSize:".88rem",fontWeight:700,color:"#7C3AED"}}>₦{((byCategory.FOOTNOTE||0)/100).toLocaleString()}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:".82rem",color:"#5B7EA6"}}>🛠️ Corrections (Daily Prorated)</span>
+                  <span style={{fontSize:".88rem",fontWeight:700,color:"#16A34A"}}>₦{((byCategory.CORRECTION_DAILY||0)/100).toLocaleString()}</span>
+                </div>
+              </div>
+              <div style={{fontSize:".68rem",color:"#5B7EA6",marginTop:".75rem",paddingTop:".75rem",borderTop:"1px solid #F0F9FF",lineHeight:1.5}}>
+                💡 Correction pay is credited automatically every day at midnight — a small amount adds up daily rather than all at once.
+              </div>
             </div>
 
             {(summary?.availableKobo||0)>0 && (
