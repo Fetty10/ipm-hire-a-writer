@@ -85,7 +85,8 @@ export async function POST(req: NextRequest) {
         orderChapterId: chapterId,
         amountKobo:     qcRate.amountKobo,
         status:         "PENDING",
-      },
+        category:       "CHAPTER",
+      } as any,
     });
   }
 
@@ -118,7 +119,8 @@ export async function POST(req: NextRequest) {
             amountKobo:     footnotePay,
             status:         "AVAILABLE", // paid immediately on clear
             availableAt:    new Date(),
-          },
+            category:       "FOOTNOTE",
+          } as any,
         });
       }
     }
