@@ -200,6 +200,15 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
                 <StatusBadge status={ch.status} />
               </div>
 
+              {ch.correctionNotes && (
+                <div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:"10px",padding:".75rem 1rem",marginBottom:".75rem",fontSize:".78rem",color:"#92400E"}}>
+                  <strong>📝 Correction Request:</strong>
+                  <div style={{marginTop:".3rem",lineHeight:1.5}}>{ch.correctionNotes}</div>
+                  {!ch.routedToQcId && <div style={{marginTop:".4rem",fontSize:".7rem",fontWeight:700,color:"#9A3412"}}>⏳ Awaiting QC pickup — not yet claimed by any QC staff</div>}
+                  {ch.routedToQcId && ch.qcName && <div style={{marginTop:".4rem",fontSize:".7rem",fontWeight:700,color:"#065F46"}}>👤 Being handled by: {ch.qcName}</div>}
+                </div>
+              )}
+
               <div style={{ display:"flex", gap:"1rem", marginBottom:".5rem" }}>
                 {ch.submittedFileUrl && (
                   <a href={`/api/download?chapterId=${ch.id}`} target="_blank" rel="noreferrer" style={C.dlBtn}>📄 Submitted</a>
