@@ -83,7 +83,7 @@ async function isExceptionDepartment(department: string): Promise<boolean> {
 // ─────────────────────────────────────────────────────────────
 // QC-SPECIFIC WORKLOAD COUNTER
 // QC workload = chapters they have actively started (routedToQcId set, not yet cleared)
-async function getQCWithFewestJobs(): Promise<string | null> {
+export async function getQCWithFewestJobs(): Promise<string | null> {
   const staffList = await prisma.user.findMany({
     where:   { role: Role.QC, isApproved: true, isSuspended: false },
     select:  { id: true },
@@ -110,6 +110,45 @@ async function getQCWithFewestJobs(): Promise<string | null> {
   const minCount = counts[0].count;
   const tied = counts.filter(c => c.count === minCount);
   return tied[Math.floor(Math.random() * tied.length)].id;
+}
+
+// ─────────────────────────────────────────────────────────────
+// STRICT ROUND-ROBIN FOR CORRECTIONS
+// Unlike regular QC checks (availability-based), corrections rotate
+// strictly in order — Peter, Timothy, Peter, Timothy... — regardless
+// of current workload. New QC staff join the rotation automatically
+// based on join order (createdAt).
+// ─────────────────────────────────────────────────────────────
+export async function getNextQCForCorrectionRoundRobin(): Promise<string | null> {
+  const staffList = await prisma.user.findMany({
+    where:   { role: Role.QC, isApproved: true, isSuspended: false },
+    select:  { id: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (staffList.length === 0) return null;
+  if (staffList.length === 1) return staffList[0].id;
+
+  const state = await (prisma as any).correctionRotationState.findUnique({ where: { id: "singleton" } });
+  const lastId = state?.lastAssignedQcId;
+
+  let nextIndex = 0;
+  if (lastId) {
+    const lastIndex = staffList.findIndex(s => s.id === lastId);
+    if (lastIndex !== -1) {
+      nextIndex = (lastIndex + 1) % staffList.length;
+    }
+  }
+
+  const nextQc = staffList[nextIndex].id;
+
+  // Persist for next time
+  await (prisma as any).correctionRotationState.upsert({
+    where:  { id: "singleton" },
+    update: { lastAssignedQcId: nextQc, updatedAt: new Date() },
+    create: { id: "singleton", lastAssignedQcId: nextQc },
+  });
+
+  return nextQc;
 }
 
 // ─────────────────────────────────────────────────────────────
