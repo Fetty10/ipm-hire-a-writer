@@ -119,6 +119,7 @@ export async function GET(req: NextRequest) {
         deliveredFileUrl:   ch.deliveredFileUrl,
         writerNotes:        ch.writerNotes,
         correctionNotes:    ch.correctionNotes,
+        qcEscalationNotes:  (ch as any).qcEscalationNotes || null,
         // Dates
         createdAt:          ch.createdAt,
         submittedAt:        ch.submittedAt,
