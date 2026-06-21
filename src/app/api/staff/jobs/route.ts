@@ -136,6 +136,7 @@ export async function GET(req: NextRequest) {
         planName:           ch.order.plan.planName, // for deadline calc only
         startedAt:          ch.startedAt || null,
         isUrgent:           (ch as any).isUrgent || false,
+        isEscalatedCorrection: (ch as any).isEscalatedCorrection || false,
         // Analyst gets writer's prelim notes for context
         writerPrelimNotes,
       };
