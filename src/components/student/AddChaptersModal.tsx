@@ -142,17 +142,25 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
                   <div style={C.chips}>
                     {[1,2,3,4,5].map(n => {
                       const already = info.existingChapters.includes(n);
+                      const pending = (info.pendingChapters||[]).includes(n);
+                      const locked  = already || pending;
                       const active  = selected.includes(n);
                       return (
                         <button key={n} type="button"
-                          style={{...C.chip,...(already?C.chipX:active?C.chipA:{})}}
-                          disabled={already}
-                          onClick={()=>!already&&toggle(n)}>
-                          {CH_LABELS[n]} {already?"✓":""}
+                          style={{...C.chip,...(locked?C.chipX:active?C.chipA:{})}}
+                          disabled={locked}
+                          title={pending ? "Awaiting payment confirmation" : already ? "Already ordered" : ""}
+                          onClick={()=>!locked&&toggle(n)}>
+                          {CH_LABELS[n]} {already?"✓":pending?"⏳":""}
                         </button>
                       );
                     })}
                   </div>
+                  {(info.pendingChapters||[]).length > 0 && (
+                    <p style={{fontSize:".72rem",color:"#9A3412",marginBottom:"1rem"}}>
+                      ⏳ Chapter(s) {(info.pendingChapters||[]).join(", ")} have a payment pending confirmation from admin.
+                    </p>
+                  )}
                   {selected.length > 0 && (
                     <p style={{fontSize:".75rem",color:"#0369A1",fontWeight:600,marginBottom:"1.25rem"}}>
                       {selected.length} chapter{selected.length>1?"s":""} selected
