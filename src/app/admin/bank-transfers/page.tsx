@@ -90,6 +90,25 @@ export default function AdminBankTransfers() {
     setActing(null);
   }
 
+  async function rejectChapterRequest(requestId: string) {
+    toast((t) => (
+      <span style={{display:"flex",alignItems:"center",gap:"1rem",fontSize:".82rem"}}>
+        <span>Reject this duplicate/stale request?</span>
+        <button style={{background:"#FEE2E2",color:"#991B1B",border:"none",padding:"4px 10px",borderRadius:"6px",cursor:"pointer",fontWeight:700}}
+          onClick={async()=>{
+            toast.dismiss(t.id);
+            setActing(requestId);
+            const res = await fetch("/api/admin/pending-chapter-requests",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({requestId})});
+            const data = await res.json();
+            if (res.ok) { toast.success("Request rejected."); loadChapterRequests(); }
+            else toast.error(data.error || "Something went wrong");
+            setActing(null);
+          }}>Reject</button>
+        <button style={{background:"#F1F5F9",border:"none",padding:"4px 10px",borderRadius:"6px",cursor:"pointer"}} onClick={()=>toast.dismiss(t.id)}>Cancel</button>
+      </span>
+    ), {duration:10000});
+  }
+
   async function confirm(orderId: string) {
     setActing(orderId);
     const res  = await fetch("/api/orders/bank-transfer", {
@@ -178,9 +197,14 @@ export default function AdminBankTransfers() {
                     <div style={C.meta}>{new Date(r.createdAt).toLocaleDateString("en-NG")}</div>
                   </div>
                   {r.status === "PENDING_PAYMENT" ? (
-                    <button style={C.btnG} disabled={acting===r.id} onClick={()=>confirmChapterRequest(r.id)}>
-                      {acting===r.id ? "Confirming..." : "✓ Confirm & Assign"}
-                    </button>
+                    <div style={{display:"flex",flexDirection:"column" as const,gap:".4rem"}}>
+                      <button style={C.btnG} disabled={acting===r.id} onClick={()=>confirmChapterRequest(r.id)}>
+                        {acting===r.id ? "Confirming..." : "✓ Confirm & Assign"}
+                      </button>
+                      <button style={C.btnR} disabled={acting===r.id} onClick={()=>rejectChapterRequest(r.id)}>
+                        ✕ Reject
+                      </button>
+                    </div>
                   ) : (
                     <span style={{fontSize:".75rem",color:"#065F46",fontWeight:700}}>✅ Confirmed</span>
                   )}
