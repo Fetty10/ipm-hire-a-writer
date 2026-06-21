@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       submittedFileUrl: fileUrl,
       submittedAt:      new Date(),
       writerNotes:      writerNotes || null,
-      isEscalatedCorrection: false, // resolved on resubmission
+      isEscalatedCorrection: false, // no longer "with writer" — back with QC for re-check
       // Save prelim fields if provided
       ...(researchObjectives ? { researchObjectives } : {}),
       ...(hypotheses         ? { hypotheses         } : {}),
