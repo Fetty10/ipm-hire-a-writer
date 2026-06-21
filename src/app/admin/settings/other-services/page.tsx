@@ -23,7 +23,8 @@ const INTL_FIELDS = CURRENCIES.flatMap(c => DEGREES.map(d => `price${c.key}${d.k
 const BLANK: any = {
   label:"", value:"", description:"",
   priceOND:"", priceBSC:"", pricePGD:"", pricePHD:"",
-  writerPayKobo:"",
+  writerPayKobo:"", qcCheckPayKobo:"",
+  plagiarismAddOnOND:"", plagiarismAddOnBSC:"", plagiarismAddOnPGD:"", plagiarismAddOnPHD:"",
   sortOrder:"0",
   ...Object.fromEntries(INTL_FIELDS.map(f => [f, ""])),
 };
@@ -81,6 +82,12 @@ export default function AdminOtherServices() {
           priceBSC:    s.priceBSC/100,
           pricePGD:    s.pricePGD/100,
           pricePHD:    s.pricePHD/100,
+          writerPayKobo: s.writerPayKobo ? s.writerPayKobo/100 : "",
+          qcCheckPayKobo: s.qcCheckPayKobo ? s.qcCheckPayKobo/100 : "",
+          plagiarismAddOnOND: s.plagiarismAddOnOND ? s.plagiarismAddOnOND/100 : "",
+          plagiarismAddOnBSC: s.plagiarismAddOnBSC ? s.plagiarismAddOnBSC/100 : "",
+          plagiarismAddOnPGD: s.plagiarismAddOnPGD ? s.plagiarismAddOnPGD/100 : "",
+          plagiarismAddOnPHD: s.plagiarismAddOnPHD ? s.plagiarismAddOnPHD/100 : "",
           sortOrder:   s.sortOrder,
           isActive:    s.isActive,
         };
@@ -109,6 +116,11 @@ export default function AdminOtherServices() {
       pricePGD:      parseFloat(e.pricePGD)||0,
       pricePHD:      parseFloat(e.pricePHD)||0,
       writerPayKobo: parseFloat(e.writerPayKobo)||0,
+      qcCheckPayKobo: parseFloat(e.qcCheckPayKobo)||0,
+      plagiarismAddOnOND: parseFloat(e.plagiarismAddOnOND)||0,
+      plagiarismAddOnBSC: parseFloat(e.plagiarismAddOnBSC)||0,
+      plagiarismAddOnPGD: parseFloat(e.plagiarismAddOnPGD)||0,
+      plagiarismAddOnPHD: parseFloat(e.plagiarismAddOnPHD)||0,
       sortOrder:     parseInt(e.sortOrder)||0,
       isActive:      e.isActive,
     };
@@ -151,6 +163,11 @@ export default function AdminOtherServices() {
       pricePGD:      parseFloat(newSvc.pricePGD)||0,
       pricePHD:      parseFloat(newSvc.pricePHD)||0,
       writerPayKobo: parseFloat(newSvc.writerPayKobo)||0,
+      qcCheckPayKobo: parseFloat(newSvc.qcCheckPayKobo)||0,
+      plagiarismAddOnOND: parseFloat(newSvc.plagiarismAddOnOND)||0,
+      plagiarismAddOnBSC: parseFloat(newSvc.plagiarismAddOnBSC)||0,
+      plagiarismAddOnPGD: parseFloat(newSvc.plagiarismAddOnPGD)||0,
+      plagiarismAddOnPHD: parseFloat(newSvc.plagiarismAddOnPHD)||0,
       sortOrder:     parseInt(newSvc.sortOrder)||0,
     };
     for (const f of INTL_FIELDS) body[f] = parseFloat(newSvc[f])||0;
@@ -225,14 +242,32 @@ export default function AdminOtherServices() {
           </div>
 
           {/* Staff Pay Rate */}
-          <div style={C.secHdr}>💰 Staff Pay Rate (₦)</div>
-          <div style={{marginBottom:"1rem",maxWidth:"160px"}}>
+          <div style={C.secHdr}>💰 Staff Pay Rates (₦)</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem",marginBottom:"1rem"}}>
             <div style={C.fg}>
               <label style={C.lbl}>Writer Pay (₦)</label>
               <input style={C.tdInp} type="number" min="0" placeholder="e.g. 2000"
                 value={newSvc.writerPayKobo} onChange={e=>setNewSvc((p:any)=>({...p,writerPayKobo:e.target.value}))} />
             </div>
+            <div style={C.fg}>
+              <label style={C.lbl}>QC Check Pay (₦) <span style={{fontWeight:400}}>(per check)</span></label>
+              <input style={C.tdInp} type="number" min="0" placeholder="e.g. 500"
+                value={newSvc.qcCheckPayKobo} onChange={e=>setNewSvc((p:any)=>({...p,qcCheckPayKobo:e.target.value}))} />
+            </div>
           </div>
+
+          {/* Plagiarism/AI Check Add-On */}
+          <div style={C.secHdr}>🔍 Plagiarism/AI Check Add-On (₦) — optional extra charge per degree level</div>
+          <div style={C.degGrid}>
+            {[{key:"plagiarismAddOnOND",label:"HND/OND"},{key:"plagiarismAddOnBSC",label:"BSc/BEd"},{key:"plagiarismAddOnPGD",label:"PGD/MSc"},{key:"plagiarismAddOnPHD",label:"PhD"}].map(f=>(
+              <div key={f.key} style={C.fg}>
+                <label style={C.lbl}>{f.label}</label>
+                <input style={C.tdInp} type="number" min="0" placeholder="0"
+                  value={newSvc[f.key]} onChange={e=>setNewSvc((p:any)=>({...p,[f.key]:e.target.value}))} />
+              </div>
+            ))}
+          </div>
+          <p style={{fontSize:".68rem",color:"#5B7EA6",marginBottom:"1rem"}}>Leave at 0 to disable this add-on for this service.</p>
 
           {/* International prices */}
           {CURRENCIES.map(c => (
@@ -306,8 +341,27 @@ export default function AdminOtherServices() {
                         value={e.writerPayKobo??( s.writerPayKobo ? s.writerPayKobo/100 : "")}
                         onChange={ev=>upd(s.id,"writerPayKobo",ev.target.value)} />
                     </div>
-
+                    <div style={C.fg}>
+                      <label style={C.lbl}>QC Check Pay (₦) <span style={{fontWeight:400}}>(per check)</span></label>
+                      <input style={C.tdInp} type="number" min="0" placeholder="e.g. 500"
+                        value={e.qcCheckPayKobo??( s.qcCheckPayKobo ? s.qcCheckPayKobo/100 : "")}
+                        onChange={ev=>upd(s.id,"qcCheckPayKobo",ev.target.value)} />
+                    </div>
                   </div>
+
+                  {/* Plagiarism/AI Check Add-On */}
+                  <div style={C.secHdr}>🔍 Plagiarism/AI Check Add-On (₦) — student-facing extra fee</div>
+                  <div style={C.degGrid}>
+                    {[{key:"plagiarismAddOnOND",label:"HND/OND"},{key:"plagiarismAddOnBSC",label:"BSc/BEd"},{key:"plagiarismAddOnPGD",label:"PGD/MSc"},{key:"plagiarismAddOnPHD",label:"PhD"}].map(f=>(
+                      <div key={f.key} style={C.fg}>
+                        <label style={C.lbl}>{f.label}</label>
+                        <input style={C.tdInp} type="number" min="0" placeholder="0"
+                          value={e[f.key]??( (s as any)[f.key] ? (s as any)[f.key]/100 : "")}
+                          onChange={ev=>upd(s.id,f.key,ev.target.value)} />
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{fontSize:".68rem",color:"#5B7EA6",marginBottom:"1rem"}}>0 disables this add-on — students won't see the option.</p>
 
                   {/* International prices */}
                   {CURRENCIES.map(c => (
