@@ -155,8 +155,17 @@ export default function WriterActiveJobs() {
                 <span style={C.badge}>In Progress</span>
               </div>
 
+              {job.qcEscalationNotes && (
+                <div style={C.warn}>
+                  <div style={C.warnt}>🔧 QC's Instructions</div>
+                  {job.qcEscalationNotes}
+                </div>
+              )}
               {job.correctionNotes && (
-                <div style={C.warn}><div style={C.warnt}>⚠ Correction Required</div>{job.correctionNotes}</div>
+                <div style={{...C.warn, background:"#F0F9FF", borderColor:"#BAE6FD"}}>
+                  <div style={{...C.warnt, color:"#0369A1"}}>📋 Student's Original Request</div>
+                  {job.correctionNotes}
+                </div>
               )}
 
               {job.specialInstructions && (
