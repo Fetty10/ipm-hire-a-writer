@@ -10,11 +10,12 @@ import { prisma } from "@/lib/prisma";
 import { ChapterStatus, Role } from "@prisma/client";
 
 const STATUS_GROUPS = {
-  pending:   [ChapterStatus.NOT_STARTED],
-  active:    [ChapterStatus.IN_PROGRESS, ChapterStatus.PRELIM_SUBMITTED],
-  qc:        [ChapterStatus.QC_IN_PROGRESS],
-  delivered: [ChapterStatus.SUBMITTED, ChapterStatus.QC_IN_PROGRESS, ChapterStatus.QC_DONE, ChapterStatus.DELIVERED],
-  all:       Object.values(ChapterStatus),
+  pending:     [ChapterStatus.NOT_STARTED],
+  active:      [ChapterStatus.IN_PROGRESS, ChapterStatus.PRELIM_SUBMITTED],
+  qc:          [ChapterStatus.QC_IN_PROGRESS],
+  delivered:   [ChapterStatus.SUBMITTED, ChapterStatus.QC_IN_PROGRESS, ChapterStatus.QC_DONE, ChapterStatus.DELIVERED],
+  corrections: Object.values(ChapterStatus), // status doesn't matter — filtered by isEscalatedCorrection below
+  all:         Object.values(ChapterStatus),
 };
 
 export async function GET(req: NextRequest) {
@@ -32,21 +33,36 @@ export async function GET(req: NextRequest) {
   const filter  = (searchParams.get("status") || "all") as keyof typeof STATUS_GROUPS;
   const search  = searchParams.get("search") || "";
   const page    = parseInt(searchParams.get("page") || "1");
-  const perPage = filter === "delivered" ? 15 : 50; // paginate delivered tab
+  const perPage = (filter === "delivered" || filter === "corrections") ? 15 : 50;
 
   const statuses = STATUS_GROUPS[filter] || STATUS_GROUPS.all;
 
-  const where = {
+  const where: any = {
     assignedToId: session.user.id,
     status:       { in: statuses },
     ...(search ? { order: { topic: { contains: search, mode: "insensitive" } } } : {}),
   };
 
+  // Corrections tab: chapters that are or have been flagged as an escalated
+  // correction. We show both currently-active corrections (isEscalatedCorrection
+  // true) AND already-resolved ones (DELIVERED with isCorrectionHistory true)
+  // so the writer/analyst can see a full history, newest first.
+  if (filter === "corrections") {
+    where.OR = [
+      { isEscalatedCorrection: true },
+      { isCorrectionHistory: true },
+    ];
+    delete where.status;
+  }
+
   // Pending: oldest orders first, chapter number ascending (so Ch1 before Ch5)
   // Active: createdAt desc (most recently started first)
   // Delivered: most recently delivered first
+  // Corrections: newest first (most recently flagged/resolved on top)
   const orderBy: any = filter === "delivered"
     ? [{ deliveredAt: "desc" }]
+    : filter === "corrections"
+    ? [{ updatedAt: "desc" }]
     : filter === "pending"
     ? [{ order: { createdAt: "asc" } }, { chapterNumber: "asc" }]
     : [{ createdAt: "desc" }];
