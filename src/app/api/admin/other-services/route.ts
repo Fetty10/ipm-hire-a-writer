@@ -73,6 +73,11 @@ export async function POST(req: NextRequest) {
       ...intlData,
       sortOrder:      sortOrder || 0,
       writerPayKobo:  Math.round((body.writerPayKobo  || 0) * 100),
+      qcCheckPayKobo: Math.round((body.qcCheckPayKobo || 0) * 100),
+      plagiarismAddOnOND: Math.round((body.plagiarismAddOnOND || 0) * 100),
+      plagiarismAddOnBSC: Math.round((body.plagiarismAddOnBSC || 0) * 100),
+      plagiarismAddOnPGD: Math.round((body.plagiarismAddOnPGD || 0) * 100),
+      plagiarismAddOnPHD: Math.round((body.plagiarismAddOnPHD || 0) * 100),
       isActive:       true,
     },
   });
@@ -100,6 +105,11 @@ export async function PATCH(req: NextRequest) {
   if (sortOrder       !== undefined) data.sortOrder       = sortOrder;
   if (isActive        !== undefined) data.isActive        = isActive;
   if (body.writerPayKobo  !== undefined) data.writerPayKobo  = Math.round(body.writerPayKobo  * 100);
+  if (body.qcCheckPayKobo !== undefined) data.qcCheckPayKobo = Math.round(body.qcCheckPayKobo * 100);
+  if (body.plagiarismAddOnOND !== undefined) data.plagiarismAddOnOND = Math.round(body.plagiarismAddOnOND * 100);
+  if (body.plagiarismAddOnBSC !== undefined) data.plagiarismAddOnBSC = Math.round(body.plagiarismAddOnBSC * 100);
+  if (body.plagiarismAddOnPGD !== undefined) data.plagiarismAddOnPGD = Math.round(body.plagiarismAddOnPGD * 100);
+  if (body.plagiarismAddOnPHD !== undefined) data.plagiarismAddOnPHD = Math.round(body.plagiarismAddOnPHD * 100);
 
   // Save all intl price fields
   for (const field of INTL_FIELDS) {
