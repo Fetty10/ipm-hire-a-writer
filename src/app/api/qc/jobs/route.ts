@@ -26,14 +26,14 @@ export async function GET(req: NextRequest) {
   let routingFilter: any = {};
 
   if (status === "pending") {
-    // Pending = QC_IN_PROGRESS but not yet claimed by any QC
+    // Pending = assigned to this QC, not yet started (no startedAt timestamp)
     statusFilter  = [ChapterStatus.QC_IN_PROGRESS];
-    routingFilter = { routedToQcId: null };
+    routingFilter = { routedToQcId: session.user.id, startedAt: null };
   }
   if (status === "active") {
-    // Active = QC_IN_PROGRESS and claimed by this QC
+    // Active = assigned to this QC and already started
     statusFilter  = [ChapterStatus.QC_IN_PROGRESS];
-    routingFilter = { routedToQcId: session.user.id };
+    routingFilter = { routedToQcId: session.user.id, startedAt: { not: null } };
   }
   if (status === "cleared") {
     statusFilter  = [ChapterStatus.QC_DONE, ChapterStatus.DELIVERED];
