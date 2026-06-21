@@ -90,7 +90,7 @@ export default function StudentCompleted() {
                   <div style={C.chnum}>{ch.chapterNumber}</div>
                   <span style={C.chlbl}>{ch.chapterLabel}</span>
                   {ch.deliveredFileUrl
-                    ? <button style={C.dlBtn} onClick={()=>window.open(ch.deliveredFileUrl,"_blank")}>⬇ Download</button>
+                    ? <button style={C.dlBtn} onClick={()=>window.open(`/api/download?chapterId=${ch.id}`,"_blank")}>⬇ Download</button>
                     : <span style={{fontSize:".7rem",color:"#5B7EA6"}}>Processing</span>}
                 </div>
               ))}
