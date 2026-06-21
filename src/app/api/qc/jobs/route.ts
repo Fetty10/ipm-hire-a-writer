@@ -104,6 +104,7 @@ export async function GET(req: NextRequest) {
     qcClearedAt:         ch.qcClearedAt,
     routedToQcAt:        ch.routedToQcAt,
     originalStaffRole:   ch.assignedTo?.role || null,
+    isUrgent:            (ch as any).isUrgent || false,
   }));
 
   return NextResponse.json({ success: true, data: formatted, total, page, pages: Math.ceil(total / perPage) });
