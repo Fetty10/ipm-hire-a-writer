@@ -72,32 +72,37 @@ export async function POST(req: NextRequest) {
   });
 
   // ── Create QC earning ─────────────────────────────────────
+  // Corrections are NOT paid per-job — QC earns a flat monthly rate for
+  // handling corrections, prorated and credited daily via cron job.
+  // Only regular plagiarism/AI checks get a per-chapter earning here.
   const isOtherServiceOrder = chapter.order.serviceType !== "HIRE_WRITER" && !!chapter.order.serviceType;
 
   let qcEarnAmount = 0;
 
-  if (isOtherServiceOrder) {
-    // Flat service — use the QC check pay rate set on OtherService
-    const svcValueMap: Record<string,string> = {
-      PROPOSAL_SEMINAR: "seminar",
-      JOURNAL_WRITING:  "journal",
-      JOURNAL_SOURCING: "journal_sourcing",
-      TOPIC_SUGGESTION: "topic",
-      HIRE_WRITER:      "assignment",
-    };
-    const svcValue = svcValueMap[chapter.order.serviceType] || chapter.order.serviceType?.toLowerCase();
-    const svc = await (prisma as any).otherService.findFirst({ where: { value: svcValue } });
-    qcEarnAmount = svc?.qcCheckPayKobo || 0;
-  } else {
-    // Project chapter — use the regular PayRate table
-    const qcRate = await prisma.payRate.findFirst({
-      where: {
-        role:        "QC",
-        degreeGroup: chapter.order.degreeGroup,
-        planName:    chapter.order.plan.planName,
-      },
-    });
-    qcEarnAmount = qcRate?.amountKobo || 0;
+  if (!isCorrection) {
+    if (isOtherServiceOrder) {
+      // Flat service — use the QC check pay rate set on OtherService
+      const svcValueMap: Record<string,string> = {
+        PROPOSAL_SEMINAR: "seminar",
+        JOURNAL_WRITING:  "journal",
+        JOURNAL_SOURCING: "journal_sourcing",
+        TOPIC_SUGGESTION: "topic",
+        HIRE_WRITER:      "assignment",
+      };
+      const svcValue = svcValueMap[chapter.order.serviceType] || chapter.order.serviceType?.toLowerCase();
+      const svc = await (prisma as any).otherService.findFirst({ where: { value: svcValue } });
+      qcEarnAmount = svc?.qcCheckPayKobo || 0;
+    } else {
+      // Project chapter — use the regular PayRate table
+      const qcRate = await prisma.payRate.findFirst({
+        where: {
+          role:        "QC",
+          degreeGroup: chapter.order.degreeGroup,
+          planName:    chapter.order.plan.planName,
+        },
+      });
+      qcEarnAmount = qcRate?.amountKobo || 0;
+    }
   }
 
   if (qcEarnAmount > 0) {
