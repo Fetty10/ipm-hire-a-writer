@@ -66,6 +66,8 @@ export async function POST(req: NextRequest) {
       adminNotes:      qcNotes || null,
       plagiarismScore: plagiarismScore != null ? parseInt(plagiarismScore) : null,
       aiScore:         aiScore != null ? parseInt(aiScore) : null,
+      correctionNotes:   null, // resolved — clear so it doesn't show again
+      qcEscalationNotes: null,
     } as any,
   });
 
