@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -8,6 +9,7 @@ const NAV = [
   { label:"Dashboard",    icon:"📊", href:"/writer/dashboard" },
   { label:"Pending Jobs", icon:"📋", href:"/writer/jobs/pending" },
   { label:"Active Jobs",  icon:"✍️", href:"/writer/jobs/active" },
+  { label:"Corrections",  icon:"🔧", href:"/writer/corrections" },
   { label:"Delivered",    icon:"✅", href:"/writer/jobs/delivered" },
   { label:"Earnings",     icon:"💰", href:"/writer/earnings" },
   { label:"Withdraw",     icon:"🏦", href:"/writer/withdraw" },
@@ -55,18 +57,18 @@ export default function WriterProfile() {
     e.preventDefault(); setSaving(true);
     const res  = await fetch("/api/staff/profile",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,phone})});
     const data = await res.json();
-    if(res.ok) alert("Profile updated!"); else alert(data.error);
+    if(res.ok) toast.success("Profile updated!"); else toast.error(data.error || "Something went wrong");
     setSaving(false);
   }
 
   async function savePw(e:React.FormEvent) {
     e.preventDefault();
-    if(newPw!==conPw){ alert("Passwords do not match."); return; }
-    if(newPw.length<8){ alert("Min. 8 characters."); return; }
+    if(newPw!==conPw){ toast.error("Passwords do not match."); return; }
+    if(newPw.length<8){ toast.error("Min. 8 characters."); return; }
     setPwSaving(true);
     const res  = await fetch("/api/staff/profile",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({currentPassword:curPw,newPassword:newPw})});
     const data = await res.json();
-    if(res.ok){ alert("Password updated!"); setCurPw(""); setNewPw(""); setConPw(""); } else alert(data.error);
+    if(res.ok){ toast.success("Password updated!"); setCurPw(""); setNewPw(""); setConPw(""); } else toast.error(data.error || "Something went wrong");
     setPwSaving(false);
   }
 
