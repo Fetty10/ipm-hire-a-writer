@@ -47,7 +47,7 @@ export default function StudentInProgress() {
   const [addModal,setAddModal]= useState<string|null>(null);
   const [chapterReqs, setChapterReqs] = useState<any[]>([]);
 
-  useEffect(()=>{
+  function loadData() {
     fetch("/api/student/orders?filter=active")
       .then(r=>r.json())
       .then(d=>{ if(d.success) setOrders(d.data); })
@@ -55,7 +55,28 @@ export default function StudentInProgress() {
     fetch("/api/student/chapter-requests")
       .then(r=>r.json())
       .then(d=>{ if(d.success) setChapterReqs(d.data); });
+  }
+
+  useEffect(()=>{
+    loadData();
+    // If returning from a payment redirect (Paystack), the webhook may still be
+    // processing — refetch a couple more times over the next few seconds to
+    // catch the update without requiring a manual page refresh.
+    const t1 = setTimeout(loadData, 2000);
+    const t2 = setTimeout(loadData, 5000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   },[]);
+
+  // Poll periodically while there's an unconfirmed bank transfer (order or add-chapters)
+  // so the page updates automatically once admin confirms — no manual refresh needed.
+  useEffect(() => {
+    const hasPendingOrder   = orders.some(o => o.status === "PENDING_PAYMENT" && o.paymentMethod === "BANK_TRANSFER");
+    const hasPendingChapter = chapterReqs.some(r => r.status === "PENDING_PAYMENT");
+    if (!hasPendingOrder && !hasPendingChapter) return;
+
+    const interval = setInterval(loadData, 20000); // every 20 seconds
+    return () => clearInterval(interval);
+  }, [orders, chapterReqs]);
 
   return (
     <StudentLayout>
@@ -158,7 +179,7 @@ export default function StudentInProgress() {
       </div>
 
       {addModal && (
-        <AddChaptersModal orderId={addModal} onClose={()=>setAddModal(null)} />
+        <AddChaptersModal orderId={addModal} onClose={()=>{ setAddModal(null); loadData(); }} />
       )}
     </StudentLayout>
   );
