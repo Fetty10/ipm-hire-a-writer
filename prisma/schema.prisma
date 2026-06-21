@@ -269,6 +269,11 @@ priceGBPBSC  Int  @default(0)
 priceGBPPGD  Int  @default(0)
 priceGBPPHD  Int  @default(0)
 writerPayKobo  Int  @default(0)
+plagiarismAddOnOND Int @default(0)
+plagiarismAddOnBSC Int @default(0)
+plagiarismAddOnPGD Int @default(0)
+plagiarismAddOnPHD Int @default(0)
+qcCheckPayKobo     Int @default(0)
 }
 
 // ─────────────────────────────────────────
