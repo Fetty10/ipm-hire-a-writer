@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { planId, topic, department, degreeGroup, specialInstructions, guidelineFileUrl, chaptersRequested, serviceType } = body;
+    const { planId, topic, department, degreeGroup, specialInstructions, guidelineFileUrl, chaptersRequested, serviceType, requiresPlagiarismCheck } = body;
 
     console.log("[BT] Received:", JSON.stringify({ planId, topic, degreeGroup, serviceType }));
 
@@ -75,6 +75,17 @@ export async function POST(req: NextRequest) {
       };
       amountKobo = priceMap[degreeGroup] || 0;
       console.log("[BT] amountKobo:", amountKobo);
+
+      // Add plagiarism/AI check add-on if requested and a price exists
+      if (requiresPlagiarismCheck && svc) {
+        const addOnMap: Record<string,number> = {
+          OND_HND_NCE: (svc as any).plagiarismAddOnOND || 0,
+          BSC_BED_BA:  (svc as any).plagiarismAddOnBSC || 0,
+          PGD_MSC_PHD: (svc as any).plagiarismAddOnPGD || 0,
+          PHD:         (svc as any).plagiarismAddOnPHD || 0,
+        };
+        amountKobo += addOnMap[degreeGroup] || 0;
+      }
     }
 
     const reference = `IPM-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
@@ -96,6 +107,8 @@ export async function POST(req: NextRequest) {
         paymentMethod:        "BANK_TRANSFER",
         bankTransferReference: reference,
         amountPaidKobo:       amountKobo,
+        requiresPlagiarismCheck: !!requiresPlagiarismCheck,
+        requiresAiCheck:         !!requiresPlagiarismCheck, // bundled together as one add-on
       } as any,
     });
 
