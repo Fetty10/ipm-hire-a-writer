@@ -9,6 +9,7 @@ const WRITER_NAV = [
   { label:"Dashboard",    icon:"📊", href:"/writer/dashboard" },
   { label:"Pending Jobs", icon:"📋", href:"/writer/jobs/pending" },
   { label:"Active Jobs",  icon:"✍️", href:"/writer/jobs/active" },
+  { label:"Corrections",  icon:"🔧", href:"/writer/corrections" },
   { label:"Delivered",    icon:"✅", href:"/writer/jobs/delivered" },
   { label:"Earnings",     icon:"💰", href:"/writer/earnings" },
   { label:"Withdraw",     icon:"🏦", href:"/writer/withdraw" },
