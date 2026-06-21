@@ -27,7 +27,8 @@ export async function GET(req: NextRequest) {
             id: true, chapterLabel: true, chapterNumber: true, status: true,
             assignedToId: true, assigneeRole: true, correctionNotes: true,
             submittedFileUrl: true, deliveredFileUrl: true, qcFileUrl: true,
-            plagiarismScore: true, aiScore: true,
+            plagiarismScore: true, aiScore: true, isUrgent: true,
+            routedToQcId: true, routedToQcAt: true,
             assignedTo: { select: { id: true, name: true, role: true } },
           },
           orderBy: { chapterNumber: "asc" },
@@ -35,6 +36,14 @@ export async function GET(req: NextRequest) {
       },
     });
     if (!o) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+
+    // Resolve QC names separately since routedToQcId has no Prisma relation defined
+    const qcIds = [...new Set(o.chapters.map((ch:any) => ch.routedToQcId).filter(Boolean))];
+    const qcUsers = qcIds.length > 0
+      ? await prisma.user.findMany({ where: { id: { in: qcIds as string[] } }, select: { id: true, name: true } })
+      : [];
+    const qcMap = Object.fromEntries(qcUsers.map(u => [u.id, u.name]));
+
     return NextResponse.json({
       success: true,
       data: {
@@ -49,7 +58,10 @@ export async function GET(req: NextRequest) {
         adminNote: o.adminNote || null,
         student: o.client,
         client:  o.client,
-        chapters: o.chapters,
+        chapters: o.chapters.map((ch: any) => ({
+          ...ch,
+          qcName: ch.routedToQcId ? (qcMap[ch.routedToQcId] || "Unknown") : null,
+        })),
         createdAt: o.createdAt, paidAt: o.paidAt,
         paymentMethod:         (o as any).paymentMethod || "PAYSTACK",
         bankTransferReference: (o as any).bankTransferReference || null,
@@ -172,6 +184,59 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, message: "Chapter reassigned." });
+  }
+
+  // ── Mark/unmark chapter as urgent — notify the assigned staff ──
+  if (action === "mark_urgent" || action === "unmark_urgent") {
+    if (!chapterId) return NextResponse.json({ error: "chapterId is required." }, { status: 400 });
+
+    const isUrgent = action === "mark_urgent";
+
+    const chapter = await prisma.orderChapter.update({
+      where: { id: chapterId },
+      data:  { isUrgent, urgentMarkedAt: isUrgent ? new Date() : null } as any,
+      include: { assignedTo: { select: { id: true, name: true, email: true } } },
+    });
+
+    // Determine who to notify — assigned staff, or the QC handling it
+    const recipientId = (chapter as any).routedToQcId || chapter.assignedToId;
+
+    if (isUrgent && recipientId) {
+      await prisma.notification.create({
+        data: {
+          userId:  recipientId,
+          orderId,
+          title:   "🚨 Urgent: Priority Job",
+          message: `${chapter.chapterLabel} for "${order.topic}" has been marked URGENT by admin. Please prioritise this job.`,
+          type:    "ALERT" as any,
+        },
+      });
+
+      // Send email if we have the recipient's contact
+      const recipient = chapter.assignedTo?.id === recipientId
+        ? chapter.assignedTo
+        : await prisma.user.findUnique({ where: { id: recipientId }, select: { id:true, name:true, email:true } });
+
+      if (recipient?.email) {
+        try {
+          const { Resend } = await import("resend");
+          const resend = new Resend(process.env.RESEND_API_KEY!);
+          await resend.emails.send({
+            from: "iProjectMaster <noreply@hire.iprojectmaster.com>",
+            to:   recipient.email,
+            subject: `🚨 Urgent Job — ${chapter.chapterLabel}`,
+            html: `
+              <div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:1.5rem;background:#fff;border-radius:14px;border:1px solid #FECACA;">
+                <h2 style="color:#991B1B;font-size:1.1rem;margin:0 0 .5rem;">🚨 This job is now URGENT</h2>
+                <p style="color:#5B7EA6;font-size:.85rem;line-height:1.6;">Hi ${recipient.name}, admin has marked <strong>${chapter.chapterLabel}</strong> for "${order.topic}" as urgent. Please log in and prioritise this job above your other pending work.</p>
+              </div>
+            `,
+          });
+        } catch (e) { console.error("[EMAIL] Urgent notify:", e); }
+      }
+    }
+
+    return NextResponse.json({ success: true, message: isUrgent ? "Marked as urgent. Staff notified." : "Urgent flag removed." });
   }
 
   // ── Reset chapter (unassign, back to NOT_STARTED) ─────────────
