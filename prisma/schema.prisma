@@ -370,6 +370,8 @@ model OrderChapter {
   assignedToId    String?
   assigneeRole    AssigneeRole?
   status          ChapterStatus @default(NOT_STARTED)
+  isUrgent        Boolean   @default(false)
+  urgentMarkedAt  DateTime?
 
   // Pre-delivery requirements (Chapter 1, non-exception depts only)
   requiresPrelim        Boolean  @default(false)
