@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       status:            ChapterStatus.IN_PROGRESS,
       qcEscalationNotes: instructionsForWriter,
       isEscalatedCorrection: true,
+      isCorrectionHistory:   true, // permanent — for the Corrections tab history
       // Clear old QC fields so it needs to go through QC again
       qcFileUrl:      null,
       qcClearedAt:    null,
