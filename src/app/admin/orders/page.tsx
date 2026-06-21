@@ -184,14 +184,17 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
         <div style={C.sect}>
           <span style={C.sl}>Chapters ({order.chapters?.length})</span>
           {order.chapters?.map((ch: any) => (
-            <div key={ch.id} style={C.chCard}>
+            <div key={ch.id} style={{...C.chCard, ...(ch.isUrgent ? {border:"1.5px solid #FCA5A5",background:"#FEF2F2"} : {})}}>
               <div style={C.chHead}>
                 <div style={ch.status==="DELIVERED" ? C.chNumD : C.chNum}>{ch.chapterNumber}</div>
                 <div style={C.chInfo}>
-                  <div style={C.chTitle}>{ch.chapterLabel}</div>
+                  <div style={C.chTitle}>
+                    {ch.chapterLabel}
+                    {ch.isUrgent && <span style={{marginLeft:".5rem",fontSize:".65rem",fontWeight:800,color:"#991B1B",background:"#FEE2E2",padding:"1px 8px",borderRadius:"999px"}}>🚨 URGENT</span>}
+                  </div>
                   <div style={C.chStaff}>
                     {ch.assignedTo ? `${ch.assignedTo.name} (${ch.assignedTo.role})` : "Unassigned"}
-                    {ch.routedToQcId ? " → QC assigned" : ""}
+                    {ch.routedToQcId && ch.qcName ? ` → QC: ${ch.qcName}` : ""}
                   </div>
                 </div>
                 <StatusBadge status={ch.status} />
@@ -217,6 +220,21 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
                     onClick={() => act("reset_chapter", { chapterId:ch.id })}>
                     🔄 Reset
                   </button>
+                )}
+                {!["DELIVERED","QC_DONE"].includes(ch.status) && (
+                  ch.isUrgent ? (
+                    <button style={{ ...C.btnSm, background:"#F1F5F9", color:"#64748B" }}
+                      disabled={saving==="unmark_urgent"+ch.id}
+                      onClick={() => act("unmark_urgent", { chapterId:ch.id })}>
+                      {saving==="unmark_urgent"+ch.id ? "..." : "Remove Urgent"}
+                    </button>
+                  ) : (
+                    <button style={{ ...C.btnSm, background:"#FEE2E2", color:"#991B1B" }}
+                      disabled={saving==="mark_urgent"+ch.id}
+                      onClick={() => act("mark_urgent", { chapterId:ch.id })}>
+                      {saving==="mark_urgent"+ch.id ? "..." : "🚨 Mark Urgent"}
+                    </button>
+                  )
                 )}
               </div>
 
