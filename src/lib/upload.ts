@@ -19,14 +19,15 @@ export const ALLOWED_MIME_TYPES = [
 export const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
 
 export type UploadFolder =
-  | "chapters/submitted"       // writer/analyst first upload
-  | "chapters/qc-cleared"      // QC-cleared version
-  | "chapters/delivered"       // final delivered to student
-  | "chapters/corrections"     // correction uploads
-  | "staff/cv"                 // staff CV uploads
-  | "staff/samples"            // staff work sample uploads
-  | "orders/guidelines"        // student-uploaded format/guideline
-  | "orders/supervisor-notes"; // student-uploaded supervisor correction notes
+  | "chapters/submitted"
+  | "chapters/qc-cleared"
+  | "chapters/delivered"
+  | "chapters/corrections"
+  | "staff/cv"
+  | "staff/samples"
+  | "orders/guidelines"
+  | "orders/supervisor-notes"
+  | "orders/corrections";
 
 export interface UploadResult {
   url:       string;
@@ -37,22 +38,57 @@ export interface UploadResult {
 }
 
 /**
- * Upload a Buffer to Cloudinary
+ * Map a MIME type to its correct file extension.
+ * Critical: Cloudinary's "raw" resource type needs the extension preserved
+ * in the public_id so the served URL has the right extension, otherwise
+ * browsers default to text/plain when downloading.
+ */
+function mimeToExt(mime: string, originalName: string): string {
+  const map: Record<string,string> = {
+    "application/pdf": "pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/msword": "doc",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "audio/mpeg": "mp3",
+    "audio/mp4": "m4a",
+    "audio/wav": "wav",
+    "audio/ogg": "ogg",
+    "audio/aac": "aac",
+    "audio/webm": "webm",
+    "video/webm": "webm",
+  };
+  if (map[mime]) return map[mime];
+  // Fallback: try to infer from original filename
+  const fromName = originalName.split(".").pop()?.toLowerCase();
+  return fromName || "bin";
+}
+
+/**
+ * Upload a Buffer to Cloudinary, preserving the correct file extension
+ * so downloads always have the right type and open correctly.
  */
 export async function uploadToCloudinary(
   buffer:   Buffer,
   fileName: string,
-  folder:   UploadFolder
+  folder:   UploadFolder,
+  mimeType?: string
 ): Promise<UploadResult> {
+  const ext = mimeType ? mimeToExt(mimeType, fileName) : (fileName.split(".").pop()?.toLowerCase() || "bin");
+  const baseName = sanitizeFileName(fileName);
+  const publicIdWithExt = `${baseName}.${ext}`;
+
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
-        public_id:     sanitizeFileName(fileName),
-        resource_type: "raw", // treats PDF/DOCX as raw files
-        use_filename:  true,
+        public_id:       publicIdWithExt,
+        resource_type:   "raw",
+        use_filename:    false, // we set public_id explicitly with extension
         unique_filename: true,
-        access_mode:   "authenticated", // signed URLs only — no public access
+        access_mode:     "authenticated",
       },
       (error, result) => {
         if (error || !result) {
@@ -64,7 +100,7 @@ export async function uploadToCloudinary(
           publicId:  result.public_id,
           fileName,
           sizeBytes: result.bytes,
-          format:    result.format,
+          format:    ext,
         });
       }
     );
@@ -73,20 +109,22 @@ export async function uploadToCloudinary(
 }
 
 /**
- * Generate a short-lived signed URL for secure download
- * (so students/staff can only download files they're authorised for)
+ * Generate a short-lived signed URL for secure download with a custom
+ * display filename via Cloudinary's `fl_attachment` flag.
  */
-export function generateSignedUrl(publicId: string, expiresInSeconds = 3600): string {
+export function generateSignedUrl(
+  publicId: string,
+  expiresInSeconds = 3600,
+  downloadFileName?: string
+): string {
   return cloudinary.url(publicId, {
     resource_type: "raw",
     sign_url:      true,
     expires_at:    Math.floor(Date.now() / 1000) + expiresInSeconds,
+    flags:         downloadFileName ? `attachment:${encodeURIComponent(downloadFileName)}` : "attachment",
   });
 }
 
-/**
- * Delete a file from Cloudinary (e.g. when a chapter is reassigned)
- */
 export async function deleteFromCloudinary(publicId: string): Promise<void> {
   await cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
 }
@@ -94,7 +132,7 @@ export async function deleteFromCloudinary(publicId: string): Promise<void> {
 // ── Helpers ──────────────────────────────────────────────────
 function sanitizeFileName(name: string): string {
   return name
-    .replace(/\.[^.]+$/, "")           // remove extension
-    .replace(/[^a-zA-Z0-9_-]/g, "_")  // replace special chars
-    .slice(0, 60);                      // max length
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .slice(0, 60);
 }
