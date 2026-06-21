@@ -82,12 +82,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Other services (non-project) never go to QC — always deliver directly
+  // Other services (non-project) skip QC by default UNLESS the student
+  // explicitly added the Plagiarism/AI Check add-on at order time.
   const isOtherService = chapter.order.serviceType !== "HIRE_WRITER" && !!chapter.order.serviceType;
+  const otherServiceNeedsQC = isOtherService && (
+    chapter.order.requiresPlagiarismCheck || chapter.order.requiresAiCheck
+  );
   const isProfessional = !isOtherService && (
     chapter.order.plan.planName === PlanName.PROFESSIONAL ||
     chapter.order.plan.planName === PlanName.PHD_PROFESSIONAL
   );
+  const goesToQC = isProfessional || otherServiceNeedsQC;
 
   // ── Update chapter with submitted file + prelim data ─────
   await prisma.orderChapter.update({
@@ -178,8 +183,8 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Route to QC or deliver directly ──────────────────────
-  if (isProfessional) {
-    // Professional plan → always goes to QC first
+  if (goesToQC) {
+    // Professional plan, or other service with plagiarism/AI add-on → goes to QC first
     await routeChapterToQC(chapterId);
     return NextResponse.json({
       success: true,
