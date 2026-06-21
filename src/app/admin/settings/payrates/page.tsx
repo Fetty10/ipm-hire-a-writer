@@ -39,6 +39,8 @@ export default function AdminPayRates() {
   const [edits,   setEdits]   = useState<Record<string,string>>({});
   const [adding,  setAdding]  = useState(false);
   const [newRate, setNewRate] = useState({ role:"WRITER", degreeGroup:"OND_HND_NCE", planName:"STANDARD", amountKobo:"" });
+  const [correctionRate, setCorrectionRate] = useState("");
+  const [savingCorrection, setSavingCorrection] = useState(false);
 
   async function load() {
     const res  = await fetch("/api/admin/settings?type=payrates");
@@ -46,7 +48,28 @@ export default function AdminPayRates() {
     if (data.success) setRates(data.data.payRates);
     setLoading(false);
   }
-  useEffect(() => { load(); }, []);
+
+  async function loadCorrectionRate() {
+    const res  = await fetch("/api/admin/qc-correction-rate");
+    const data = await res.json();
+    if (data.success && data.data) setCorrectionRate((data.data.monthlyRateKobo/100).toString());
+  }
+
+  useEffect(() => { load(); loadCorrectionRate(); }, []);
+
+  async function saveCorrectionRate() {
+    const amt = parseFloat(correctionRate);
+    if (isNaN(amt) || amt < 0) { toast.error("Enter a valid amount."); return; }
+    setSavingCorrection(true);
+    const res  = await fetch("/api/admin/qc-correction-rate", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ monthlyRateKobo: Math.round(amt*100) }),
+    });
+    const data = await res.json();
+    if (res.ok) toast.success("Monthly correction rate updated.");
+    else toast.error(data.error || "Failed to save");
+    setSavingCorrection(false);
+  }
 
   async function save(id: string) {
     if (!edits[id]) return;
