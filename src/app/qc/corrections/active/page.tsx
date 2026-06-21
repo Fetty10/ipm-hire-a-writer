@@ -143,7 +143,7 @@ export default function QCCorrectionsActive() {
             <div key={job.id} style={C.card}>
               <div style={C.head}>
                 <div>
-                  <div style={C.title}>{job.chapterLabel}</div>
+                  <div style={C.title}>{job.chapterLabel} {job.isUrgent && <span style={{marginLeft:".4rem",fontSize:".62rem",fontWeight:800,color:"#991B1B",background:"#FEE2E2",padding:"1px 7px",borderRadius:"999px"}}>🚨 URGENT</span>}</div>
                   <div style={C.meta}>{job.topic}</div>
                   <div style={C.meta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup}</div>
                 </div>
