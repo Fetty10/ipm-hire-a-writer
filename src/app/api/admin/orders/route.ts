@@ -198,41 +198,79 @@ export async function PATCH(req: NextRequest) {
       include: { assignedTo: { select: { id: true, name: true, email: true } } },
     });
 
-    // Determine who to notify — assigned staff, or the QC handling it
+    const isUnroutedCorrection = !!chapter.correctionNotes && !(chapter as any).routedToQcId;
     const recipientId = (chapter as any).routedToQcId || chapter.assignedToId;
 
-    if (isUrgent && recipientId) {
-      await prisma.notification.create({
-        data: {
-          userId:  recipientId,
-          orderId,
-          title:   "🚨 Urgent: Priority Job",
-          message: `${chapter.chapterLabel} for "${order.topic}" has been marked URGENT by admin. Please prioritise this job.`,
-          type:    "ALERT" as any,
-        },
-      });
+    if (isUrgent) {
+      if (isUnroutedCorrection) {
+        // Correction request not yet claimed by any QC — ping ALL QC staff
+        const qcStaff = await prisma.user.findMany({
+          where: { role: Role.QC, isApproved: true, isSuspended: false },
+          select: { id: true, name: true, email: true },
+        });
 
-      // Send email if we have the recipient's contact
-      const recipient = chapter.assignedTo?.id === recipientId
-        ? chapter.assignedTo
-        : await prisma.user.findUnique({ where: { id: recipientId }, select: { id:true, name:true, email:true } });
-
-      if (recipient?.email) {
-        try {
-          const { Resend } = await import("resend");
-          const resend = new Resend(process.env.RESEND_API_KEY!);
-          await resend.emails.send({
-            from: "iProjectMaster <noreply@hire.iprojectmaster.com>",
-            to:   recipient.email,
-            subject: `🚨 Urgent Job — ${chapter.chapterLabel}`,
-            html: `
-              <div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:1.5rem;background:#fff;border-radius:14px;border:1px solid #FECACA;">
-                <h2 style="color:#991B1B;font-size:1.1rem;margin:0 0 .5rem;">🚨 This job is now URGENT</h2>
-                <p style="color:#5B7EA6;font-size:.85rem;line-height:1.6;">Hi ${recipient.name}, admin has marked <strong>${chapter.chapterLabel}</strong> for "${order.topic}" as urgent. Please log in and prioritise this job above your other pending work.</p>
-              </div>
-            `,
+        if (qcStaff.length > 0) {
+          await prisma.notification.createMany({
+            data: qcStaff.map(qc => ({
+              userId:  qc.id,
+              orderId,
+              title:   "🚨 Urgent: Correction Awaiting Pickup",
+              message: `A correction request for ${chapter.chapterLabel} on "${order.topic}" has been marked URGENT by admin. Please claim and handle it ASAP.`,
+              type:    "ALERT" as any,
+            })),
           });
-        } catch (e) { console.error("[EMAIL] Urgent notify:", e); }
+
+          try {
+            const { Resend } = await import("resend");
+            const resend = new Resend(process.env.RESEND_API_KEY!);
+            await Promise.all(qcStaff.filter(qc => qc.email).map(qc =>
+              resend.emails.send({
+                from: "iProjectMaster <noreply@hire.iprojectmaster.com>",
+                to:   qc.email,
+                subject: `🚨 Urgent Correction — ${chapter.chapterLabel}`,
+                html: `
+                  <div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:1.5rem;background:#fff;border-radius:14px;border:1px solid #FECACA;">
+                    <h2 style="color:#991B1B;font-size:1.1rem;margin:0 0 .5rem;">🚨 Urgent correction awaiting pickup</h2>
+                    <p style="color:#5B7EA6;font-size:.85rem;line-height:1.6;">Hi ${qc.name}, a correction request for <strong>${chapter.chapterLabel}</strong> on "${order.topic}" has been marked urgent by admin. Please log in to your Pending Corrections tab and claim it as soon as possible.</p>
+                  </div>
+                `,
+              })
+            ));
+          } catch (e) { console.error("[EMAIL] Urgent correction notify:", e); }
+        }
+      } else if (recipientId) {
+        // Normal case — single assignee (writer/analyst, or QC already claimed it)
+        await prisma.notification.create({
+          data: {
+            userId:  recipientId,
+            orderId,
+            title:   "🚨 Urgent: Priority Job",
+            message: `${chapter.chapterLabel} for "${order.topic}" has been marked URGENT by admin. Please prioritise this job.`,
+            type:    "ALERT" as any,
+          },
+        });
+
+        const recipient = chapter.assignedTo?.id === recipientId
+          ? chapter.assignedTo
+          : await prisma.user.findUnique({ where: { id: recipientId }, select: { id:true, name:true, email:true } });
+
+        if (recipient?.email) {
+          try {
+            const { Resend } = await import("resend");
+            const resend = new Resend(process.env.RESEND_API_KEY!);
+            await resend.emails.send({
+              from: "iProjectMaster <noreply@hire.iprojectmaster.com>",
+              to:   recipient.email,
+              subject: `🚨 Urgent Job — ${chapter.chapterLabel}`,
+              html: `
+                <div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:1.5rem;background:#fff;border-radius:14px;border:1px solid #FECACA;">
+                  <h2 style="color:#991B1B;font-size:1.1rem;margin:0 0 .5rem;">🚨 This job is now URGENT</h2>
+                  <p style="color:#5B7EA6;font-size:.85rem;line-height:1.6;">Hi ${recipient.name}, admin has marked <strong>${chapter.chapterLabel}</strong> for "${order.topic}" as urgent. Please log in and prioritise this job above your other pending work.</p>
+                </div>
+              `,
+            });
+          } catch (e) { console.error("[EMAIL] Urgent notify:", e); }
+        }
       }
     }
 
