@@ -24,6 +24,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Only staff members can request withdrawals." }, { status: 403 });
   }
 
+  // ── Block withdrawal if staff has unresolved escalated corrections ──
+  const staff = await prisma.user.findUnique({
+    where:  { id: session.user.id },
+    select: { hasPendingCorrections: true } as any,
+  });
+
+  if ((staff as any)?.hasPendingCorrections) {
+    const pendingChapters = await prisma.orderChapter.findMany({
+      where:   { assignedToId: session.user.id, isEscalatedCorrection: true } as any,
+      select:  { chapterLabel: true, order: { select: { topic: true } } },
+      take: 5,
+    });
+    const list = pendingChapters.map((c: any) => `${c.chapterLabel} ("${c.order.topic}")`).join(", ");
+    return NextResponse.json(
+      { error: `You have unresolved correction(s) flagged by QC: ${list || "see your Active Jobs"}. Please complete and resubmit them before requesting a withdrawal.` },
+      { status: 403 }
+    );
+  }
+
   const { amountKobo, bankName, accountNumber, accountName } = await req.json();
 
   if (!amountKobo || !bankName || !accountNumber || !accountName) {
