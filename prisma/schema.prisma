@@ -380,6 +380,7 @@ model OrderChapter {
   isUrgent        Boolean   @default(false)
   urgentMarkedAt  DateTime?
   isEscalatedCorrection Boolean @default(false)
+  qcEscalationNotes String? @db.Text
 
   // Pre-delivery requirements (Chapter 1, non-exception depts only)
   requiresPrelim        Boolean  @default(false)
