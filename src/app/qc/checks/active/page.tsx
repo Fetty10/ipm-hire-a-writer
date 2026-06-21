@@ -172,7 +172,7 @@ export default function QCChecksActive() {
               )}
 
               {job.submittedFileUrl && (
-                <a href={job.submittedFileUrl} target="_blank" rel="noreferrer" style={C.dlBtn}>
+                <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer" style={C.dlBtn}>
                   📄 Download Chapter to Review
                 </a>
               )}
