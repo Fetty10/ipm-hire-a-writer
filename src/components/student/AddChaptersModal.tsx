@@ -48,8 +48,8 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
   const [info,       setInfo]       = useState<any>(null);
   const [loading,    setLoading]    = useState(true);
   const [selected,   setSelected]   = useState<number[]>([]);
-  const [guideUrl,   setGuideUrl]   = useState("");
-  const [guideName,  setGuideName]  = useState("");
+  const [guideFiles, setGuideFiles] = useState<{url:string,name:string}[]>([]);
+  const [instructions,setInstructions]=useState("");
   const [uploading,  setUploading]  = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [bankAccount,  setBankAccount]  = useState<any>(null);
@@ -72,14 +72,26 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
   }
 
   async function handleUpload(file: File) {
-    if (file.size > 20*1024*1024) { toast.error("Max 20MB"); return; }
+    if (guideFiles.length >= 5) { toast.error("Max 5 files."); return; }
+    if (file.size > 20*1024*1024) { toast.error("Max 20MB per file."); return; }
     setUploading(true);
     const fd = new FormData(); fd.append("file", file); fd.append("folder", "orders/guidelines");
     const res  = await fetch("/api/upload", { method:"POST", body:fd });
     const data = await res.json();
-    if (res.ok) { setGuideUrl(data.url); setGuideName(data.fileName||file.name); }
-    else toast.error(data.error||"Upload failed" || "Something went wrong");
+    if (res.ok) { setGuideFiles(prev => [...prev, { url:data.url, name:data.fileName||file.name }]); }
+    else toast.error(data.error || "Upload failed");
     setUploading(false);
+  }
+
+  function openFilePicker() {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.multiple = true;
+    inp.accept = ".pdf,.doc,.docx";
+    inp.onchange = async (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      for (const f of files) await handleUpload(f);
+    };
+    inp.click();
   }
 
   async function handlePay() {
@@ -87,7 +99,12 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
     setSubmitting(true);
     const res  = await fetch("/api/orders/add-chapters", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, chaptersRequested: selected, guidelineFileUrl: guideUrl||undefined }),
+      body: JSON.stringify({
+        orderId,
+        chaptersRequested: selected,
+        guidelineFileUrl: guideFiles.length > 0 ? guideFiles.map(f=>f.url).join(",") : undefined,
+        specialInstructions: instructions.trim() || undefined,
+      }),
     });
     const data = await res.json();
     if (res.ok) window.location.href = data.paymentUrl;
@@ -103,7 +120,13 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
     setBankPending(true);
     const res  = await fetch("/api/orders/add-chapters", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, chaptersRequested: selected, guidelineFileUrl: guideUrl||undefined, paymentMethod: "BANK_TRANSFER" }),
+      body: JSON.stringify({
+        orderId,
+        chaptersRequested: selected,
+        guidelineFileUrl: guideFiles.length > 0 ? guideFiles.map(f=>f.url).join(",") : undefined,
+        specialInstructions: instructions.trim() || undefined,
+        paymentMethod: "BANK_TRANSFER",
+      }),
     });
     const data = await res.json();
     if (res.ok) setBankDone({ reference: data.reference, amountNaira: data.amountNaira });
@@ -167,14 +190,33 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
                     </p>
                   )}
 
-                  {/* Optional guideline upload */}
-                  <label style={C.lbl}>Upload New Format/Guideline <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0,color:"#5B7EA6"}}>(optional)</span></label>
-                  <div style={guideUrl ? C.upzoneOk : C.upzone}
-                    onClick={() => { const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(f);};inp.click(); }}>
-                    {uploading ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
-                    : guideUrl  ? <div><div style={C.upi}>✅</div><div style={C.upok}>{guideName}</div><div style={C.upsub}>Tap to replace</div></div>
-                    : <div><div style={C.upi}>📎</div><div style={C.uplbl}>Upload guideline</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
-                  </div>
+                  {/* Special instructions */}
+                  <label style={C.lbl}>Special Instructions <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0,color:"#5B7EA6"}}>(optional)</span></label>
+                  <textarea value={instructions} onChange={e=>setInstructions(e.target.value)} rows={3}
+                    placeholder="Any specific instructions for these chapters..."
+                    style={{width:"100%",padding:".75rem 1rem",borderRadius:"12px",border:"1.5px solid #BAE6FD",fontSize:".82rem",fontFamily:"'DM Sans',sans-serif",outline:"none",resize:"none" as const,marginBottom:"1.25rem",boxSizing:"border-box" as const}} />
+
+                  {/* Optional guideline upload — multi-file */}
+                  <label style={C.lbl}>Upload Format/Guideline <span style={{fontWeight:400,textTransform:"none" as const,letterSpacing:0,color:"#5B7EA6"}}>(optional)</span></label>
+                  {guideFiles.length > 0 && (
+                    <div style={{display:"flex",flexDirection:"column" as const,gap:".4rem",marginBottom:".6rem"}}>
+                      {guideFiles.map((f,i) => (
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:".5rem",background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:"8px",padding:".5rem .75rem"}}>
+                          <span>📎</span>
+                          <span style={{flex:1,fontSize:".78rem",color:"#0C1A2E",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{f.name}</span>
+                          <button type="button" style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontWeight:700}}
+                            onClick={()=>setGuideFiles(prev=>prev.filter((_,j)=>j!==i))}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {guideFiles.length < 5 && (
+                    <div style={C.upzone} onClick={openFilePicker}>
+                      {uploading
+                        ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
+                        : <div><div style={C.upi}>📎</div><div style={C.uplbl}>{guideFiles.length>0?"Add Another File":"Upload guideline"}</div><div style={C.upsub}>PDF or Word · Max 20MB · Up to 5 files</div></div>}
+                    </div>
+                  )}
 
                   {/* Summary */}
                   {selected.length > 0 && (
