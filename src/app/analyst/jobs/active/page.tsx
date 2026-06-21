@@ -158,6 +158,20 @@ export default function AnalystActiveJobs() {
                 <span style={C.badge}>In Progress</span>
               </div>
 
+              {job.qcEscalationNotes && (
+                <div style={{...C.infoBox, background:"#FFF7ED", border:"1px solid #FED7AA"}}>
+                  <div style={{...C.infoT, color:"#9A3412"}}>🔧 QC's Instructions</div>
+                  <div style={{...C.infoV, color:"#7C2D12"}}>{job.qcEscalationNotes}</div>
+                </div>
+              )}
+
+              {job.correctionNotes && (
+                <div style={{...C.infoBox, background:"#F0F9FF", border:"1px solid #BAE6FD"}}>
+                  <div style={{...C.infoT, color:"#0369A1"}}>📋 Student's Original Request</div>
+                  <div style={{...C.infoV, color:"#0C4A6E"}}>{job.correctionNotes}</div>
+                </div>
+              )}
+
               {job.specialInstructions && (
                 <div style={C.infoBox}>
                   <div style={C.infoT}>Student Instructions</div>
