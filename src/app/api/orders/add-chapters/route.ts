@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { orderId, chaptersRequested, guidelineFileUrl, paymentMethod } = await req.json();
+  const { orderId, chaptersRequested, guidelineFileUrl, specialInstructions, paymentMethod } = await req.json();
 
   if (!orderId || !chaptersRequested?.length) {
     return NextResponse.json({ error: "orderId and chaptersRequested are required." }, { status: 400 });
@@ -104,13 +104,20 @@ export async function POST(req: NextRequest) {
     ? order.plan.priceKobo * chaptersRequested.length
     : order.plan.priceKobo;
 
-  // Update guideline if new one uploaded
-  if (guidelineFileUrl) {
-    const existing = order.guidelineFileUrl;
-    await prisma.order.update({
-      where: { id: orderId },
-      data: { guidelineFileUrl: existing ? `${existing},${guidelineFileUrl}` : guidelineFileUrl },
-    });
+  // Update guideline and special instructions if provided
+  if (guidelineFileUrl || specialInstructions) {
+    const data: any = {};
+    if (guidelineFileUrl) {
+      const existing = order.guidelineFileUrl;
+      data.guidelineFileUrl = existing ? `${existing},${guidelineFileUrl}` : guidelineFileUrl;
+    }
+    if (specialInstructions) {
+      const existingInstr = order.specialInstructions;
+      data.specialInstructions = existingInstr
+        ? `${existingInstr}\n\n[Additional chapters note]: ${specialInstructions}`
+        : `[Additional chapters note]: ${specialInstructions}`;
+    }
+    await prisma.order.update({ where: { id: orderId }, data });
   }
 
   // ── Bank Transfer flow ──────────────────────────────────────
