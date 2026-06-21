@@ -95,6 +95,8 @@ export async function POST(req: NextRequest) {
   const goesToQC = isProfessional || otherServiceNeedsQC;
 
   // ── Update chapter with submitted file + prelim data ─────
+  const wasEscalated = (chapter as any).isEscalatedCorrection;
+
   await prisma.orderChapter.update({
     where: { id: chapterId },
     data: {
@@ -102,13 +104,31 @@ export async function POST(req: NextRequest) {
       submittedFileUrl: fileUrl,
       submittedAt:      new Date(),
       writerNotes:      writerNotes || null,
+      isEscalatedCorrection: false, // resolved on resubmission
       // Save prelim fields if provided
       ...(researchObjectives ? { researchObjectives } : {}),
       ...(hypotheses         ? { hypotheses         } : {}),
       ...(scopeOfStudy       ? { scopeOfStudy       } : {}),
       ...(researchObjectives ? { prelimSubmittedAt: new Date() } : {}),
-    },
+    } as any,
   });
+
+  // ── If this resolved an escalated correction, check if staff has any
+  // other pending corrections left — if not, unlock withdrawals ──────
+  if (wasEscalated) {
+    const stillPending = await prisma.orderChapter.count({
+      where: {
+        assignedToId: session.user.id,
+        isEscalatedCorrection: true,
+      } as any,
+    });
+    if (stillPending === 0) {
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data:  { hasPendingCorrections: false } as any,
+      });
+    }
+  }
 
   // ── Notify analysts if Chapter 1 prelim fields just submitted ──
   if (chapter.chapterNumber === 1 && researchObjectives && !chapter.prelimSubmittedAt) {
