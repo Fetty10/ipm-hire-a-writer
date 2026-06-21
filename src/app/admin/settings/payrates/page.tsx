@@ -120,6 +120,31 @@ export default function AdminPayRates() {
         <h1 style={C.h1}>Pay Rates</h1>
         <p style={C.sub}>Control what each role earns per chapter per plan.</p>
 
+        {/* QC Monthly Correction Rate */}
+        <div style={{...C.addBox, background:"#F0FDF4", border:"1px solid #BBF7D0"}}>
+          <div style={C.addT}>🛠️ QC Monthly Correction Rate</div>
+          <p style={{fontSize:".78rem",color:"#5B7EA6",marginBottom:"1rem",lineHeight:1.5}}>
+            Since corrections aren't charged to students, QC staff earn a fixed monthly amount for handling corrections.
+            This is automatically prorated and credited daily (at midnight) so they can withdraw earnings as they accrue —
+            same rate applies to all QC staff.
+          </p>
+          <div style={{display:"flex",gap:".75rem",alignItems:"flex-end",flexWrap:"wrap" as const}}>
+            <div style={C.fg}>
+              <label style={C.lbl}>Monthly Rate (₦)</label>
+              <input style={{...C.input,width:"140px"}} type="number" min="0" placeholder="e.g. 30000"
+                value={correctionRate} onChange={e=>setCorrectionRate(e.target.value)} />
+            </div>
+            <button style={C.btnA} disabled={savingCorrection} onClick={saveCorrectionRate}>
+              {savingCorrection ? "Saving..." : "💾 Save Rate"}
+            </button>
+          </div>
+          {correctionRate && (
+            <p style={{fontSize:".72rem",color:"#16A34A",marginTop:".75rem"}}>
+              ≈ ₦{Math.round(parseFloat(correctionRate||"0")/30).toLocaleString()} credited per day to each QC staff member (30-day average).
+            </p>
+          )}
+        </div>
+
         {/* Add new pay rate */}
         <div style={C.addBox}>
           <div style={C.addT}>+ Add New Pay Rate</div>
