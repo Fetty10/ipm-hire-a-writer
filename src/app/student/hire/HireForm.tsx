@@ -329,7 +329,10 @@ export default function HireAWriter() {
   const total  = calcTotal();
   const showSummary = degreeGroup && service && (isProject ? planId && (!isPerChapter || selChapters.length > 0) : true);
 
+  const isQuickService = service === "topic" || service === "journal_sourcing";
+
   function getExpectedDelivery(): string {
+    if (isQuickService) return "Within 24 hours";
     const d = new Date();
     let added = 0;
     while (added < 3) {
@@ -475,7 +478,7 @@ export default function HireAWriter() {
           {/* Topic Coining — special fields */}
           {service === "topic" && (
             <div className="flex flex-col gap-4 p-4 bg-sky-50 rounded-xl border border-sky-200">
-              <div className="text-xs font-700 text-sky-700 uppercase tracking-wider">Topic Coining Details</div>
+              <div className="flex items-center justify-between"><div className="text-xs font-700 text-sky-700 uppercase tracking-wider">Topic Coining Details</div><span className="text-[.65rem] font-700 text-green-700 bg-green-100 px-2 py-0.5 rounded-full">⚡ 24hr Delivery</span></div>
               <div>
                 <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Course of Study</label>
                 <input value={department} onChange={e=>setDepartment(e.target.value)} placeholder="e.g. Mass Communication"
@@ -503,7 +506,7 @@ export default function HireAWriter() {
           {/* Journal Sourcing — special fields */}
           {service === "journal_sourcing" && (
             <div className="flex flex-col gap-4 p-4 bg-sky-50 rounded-xl border border-sky-200">
-              <div className="text-xs font-700 text-sky-700 uppercase tracking-wider">Journal Sourcing Details</div>
+              <div className="flex items-center justify-between"><div className="text-xs font-700 text-sky-700 uppercase tracking-wider">Journal Sourcing Details</div><span className="text-[.65rem] font-700 text-green-700 bg-green-100 px-2 py-0.5 rounded-full">⚡ 24hr Delivery</span></div>
               <div>
                 <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Research Topic / Keywords</label>
                 <input value={topic} onChange={e=>setTopic(e.target.value)} placeholder="e.g. Impact of social media on youth"
@@ -628,7 +631,9 @@ export default function HireAWriter() {
                   <div className="mt-3 p-3 bg-green-50 rounded-xl border border-green-200">
                     <div className="text-[.62rem] font-700 uppercase tracking-wider text-green-700 mb-0.5">📅 Expected Delivery</div>
                     <div className="text-sm font-700 text-green-800">{getExpectedDelivery()}</div>
-                    <div className="text-[.7rem] text-green-600 mt-0.5">3 working days from tomorrow (weekdays only)</div>
+                    <div className="text-[.7rem] text-green-600 mt-0.5">
+                      {isQuickService ? "Fast turnaround — delivered within 24 hours" : "3 working days from tomorrow (weekdays only)"}
+                    </div>
                   </div>
                 )}
               </div>
