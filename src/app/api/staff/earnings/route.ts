@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   // Summary always covers ALL earnings, regardless of page
   const allEarnings = await prisma.earning.findMany({
     where:  { userId: session.user.id },
-    select: { amountKobo: true, status: true },
+    select: { amountKobo: true, status: true, category: true } as any,
   });
 
   const pending   = allEarnings.filter(e => e.status === "PENDING");
@@ -34,6 +34,13 @@ export async function GET(req: NextRequest) {
     withdrawnKobo: withdrawn.reduce((s, e) => s + e.amountKobo, 0),
     totalKobo:     allEarnings.reduce((s, e) => s + e.amountKobo, 0),
   };
+
+  // Breakdown by category — useful for QC (checks vs footnotes vs corrections)
+  const byCategory: Record<string, number> = {};
+  allEarnings.forEach((e: any) => {
+    const cat = e.category || "CHAPTER";
+    byCategory[cat] = (byCategory[cat] || 0) + e.amountKobo;
+  });
 
   // Paginated list
   const [earnings, total] = await Promise.all([
@@ -61,19 +68,21 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     success: true,
     data: {
-      earnings: earnings.map(e => ({
+      earnings: earnings.map((e: any) => ({
         id:           e.id,
         amountKobo:   e.amountKobo,
         status:       e.status,
+        category:     e.category || "CHAPTER",
         availableAt:  e.availableAt,
         createdAt:    e.createdAt,
-        chapterLabel: e.orderChapter.chapterLabel,
-        topic:        e.orderChapter.order.topic,
-        degreeGroup:  e.orderChapter.order.degreeGroup,
-        serviceType:  e.orderChapter.order.serviceType,
-        chapterStatus:e.orderChapter.status,
+        chapterLabel: e.orderChapter?.chapterLabel || (e.category === "CORRECTION_DAILY" ? "Daily Correction Pay" : "—"),
+        topic:        e.orderChapter?.order?.topic || null,
+        degreeGroup:  e.orderChapter?.order?.degreeGroup || null,
+        serviceType:  e.orderChapter?.order?.serviceType || null,
+        chapterStatus:e.orderChapter?.status || null,
       })),
       summary,
+      byCategory,
       total, page, pages: Math.ceil(total / perPage),
     },
   });
