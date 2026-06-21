@@ -135,7 +135,8 @@ export default function AnalystActiveJobs() {
             <div key={job.id} style={C.card}>
               <div style={C.chead}>
                 <div>
-                  <div style={C.ctitle}>{job.chapterLabel} {job.isUrgent && <span style={{marginLeft:".4rem",fontSize:".62rem",fontWeight:800,color:"#991B1B",background:"#FEE2E2",padding:"1px 7px",borderRadius:"999px"}}>🚨 URGENT</span>}</div>
+                  <div style={C.ctitle}>{job.chapterLabel} {job.isUrgent && <span style={{marginLeft:".4rem",fontSize:".62rem",fontWeight:800,color:"#991B1B",background:"#FEE2E2",padding:"1px 7px",borderRadius:"999px"}}>🚨 URGENT</span>}
+                  {job.isEscalatedCorrection && <span style={{marginLeft:".4rem",fontSize:".62rem",fontWeight:800,color:"#9A3412",background:"#FFEDD5",padding:"1px 7px",borderRadius:"999px"}}>🔧 QC CORRECTION</span>}</div>
                   <div style={C.cmeta}>{job.topic}</div>
                   <div style={C.cmeta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup}</div>
                   <div style={{display:"flex",gap:"1rem",marginTop:".3rem",flexWrap:"wrap" as const}}>
