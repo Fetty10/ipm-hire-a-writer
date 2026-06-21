@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       status:       ChapterStatus.NOT_STARTED,
     },
     include: {
-      order: { select: { topic: true, plan: { select: { planName: true } } } },
+      order: { select: { topic: true, serviceType: true, plan: { select: { planName: true } } } },
     },
   });
 
@@ -41,13 +41,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Chapter not found or not available to start." }, { status: 404 });
   }
 
-  const now      = new Date();
-  const planName = chapter.order.plan.planName;
-  const role     = session.user.role as "WRITER" | "ANALYST";
+  const now         = new Date();
+  const planName    = chapter.order.plan.planName;
+  const serviceType = chapter.order.serviceType;
+  const role        = session.user.role as "WRITER" | "ANALYST";
 
-  // Deadline: Professional = 2 working days, others = 3
-  const isPro    = planName === "PROFESSIONAL" || planName === "PHD_PROFESSIONAL";
-  const deadlineAt = addWorkingDays(now, isPro ? 2 : 3);
+  // Quick-turnaround services: delivered within 24 hours (not working days)
+  const isQuickService = serviceType === "JOURNAL_SOURCING" || serviceType === "TOPIC_SUGGESTION";
+
+  let deadlineAt: Date;
+  if (isQuickService) {
+    deadlineAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // straight 24 hours
+  } else {
+    // Deadline: Professional = 2 working days, others = 3
+    const isPro = planName === "PROFESSIONAL" || planName === "PHD_PROFESSIONAL";
+    deadlineAt = addWorkingDays(now, isPro ? 2 : 3);
+  }
 
   await prisma.orderChapter.update({
     where: { id: chapterId },
