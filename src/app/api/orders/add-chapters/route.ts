@@ -27,7 +27,17 @@ export async function GET(req: NextRequest) {
   if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
   const existingChapterNums = order.chapters.map(ch => ch.chapterNumber);
-  const availableChapters   = [1,2,3,4,5].filter(n => !existingChapterNums.includes(n));
+
+  // Also exclude chapters that have an unconfirmed pending request
+  const pendingRequests = await (prisma as any).pendingChapterRequest.findMany({
+    where: { orderId, status: "PENDING_PAYMENT" },
+  });
+  const pendingNums = pendingRequests.flatMap((r: any) =>
+    r.chapterNumbers.split(",").map(Number)
+  );
+
+  const unavailableNums   = [...new Set([...existingChapterNums, ...pendingNums])];
+  const availableChapters = [1,2,3,4,5].filter(n => !unavailableNums.includes(n));
 
   return NextResponse.json({
     success: true,
@@ -40,6 +50,7 @@ export async function GET(req: NextRequest) {
       pricePerChapter:  order.plan.priceKobo / 100,
       pricingType:      order.plan.pricingType,
       existingChapters: existingChapterNums,
+      pendingChapters:  pendingNums,
       availableChapters,
     },
   });
@@ -72,6 +83,20 @@ export async function POST(req: NextRequest) {
   const invalid = chaptersRequested.filter((n: number) => existingNums.includes(n));
   if (invalid.length > 0) {
     return NextResponse.json({ error: `Chapter(s) ${invalid.join(", ")} already exist on this order.` }, { status: 400 });
+  }
+
+  // Validate chapters aren't already in an unconfirmed pending request
+  const pendingRequests = await (prisma as any).pendingChapterRequest.findMany({
+    where: { orderId, status: "PENDING_PAYMENT" },
+  });
+  const alreadyPendingNums = pendingRequests.flatMap((r: any) =>
+    r.chapterNumbers.split(",").map(Number)
+  );
+  const duplicatePending = chaptersRequested.filter((n: number) => alreadyPendingNums.includes(n));
+  if (duplicatePending.length > 0) {
+    return NextResponse.json({
+      error: `Chapter(s) ${duplicatePending.join(", ")} already have a pending request awaiting payment confirmation. Please wait for admin to confirm, or contact support if you made the transfer more than 24 hours ago.`,
+    }, { status: 409 });
   }
 
   // Calculate amount
