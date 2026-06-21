@@ -199,10 +199,10 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
 
               <div style={{ display:"flex", gap:"1rem", marginBottom:".5rem" }}>
                 {ch.submittedFileUrl && (
-                  <a href={ch.submittedFileUrl} target="_blank" rel="noreferrer" style={C.dlBtn}>📄 Submitted</a>
+                  <a href={`/api/download?chapterId=${ch.id}`} target="_blank" rel="noreferrer" style={C.dlBtn}>📄 Submitted</a>
                 )}
                 {ch.deliveredFileUrl && (
-                  <a href={ch.deliveredFileUrl} target="_blank" rel="noreferrer" style={C.dlBtn}>✅ Delivered</a>
+                  <a href={`/api/download?chapterId=${ch.id}`} target="_blank" rel="noreferrer" style={C.dlBtn}>✅ Delivered</a>
                 )}
               </div>
 
