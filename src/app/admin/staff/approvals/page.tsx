@@ -80,13 +80,13 @@ export default function StaffApprovals() {
               <div style={C.fileRow}>
                 <span style={C.fileIcon}>📄</span>
                 {s.cvFileUrl
-                  ? <a href={s.cvFileUrl} target="_blank" rel="noreferrer" style={C.fileLink}>Download CV / Resume</a>
+                  ? <a href={`/api/download/guideline?url=${encodeURIComponent(s.cvFileUrl)}&label=${encodeURIComponent(`${s.name} CV`)}`} target="_blank" rel="noreferrer" style={C.fileLink}>Download CV / Resume</a>
                   : <span style={C.noFile}>No CV uploaded</span>}
               </div>
               <div style={C.fileRow}>
                 <span style={C.fileIcon}>📝</span>
                 {s.sampleFileUrl
-                  ? <a href={s.sampleFileUrl} target="_blank" rel="noreferrer" style={C.fileLink}>Download Work Sample</a>
+                  ? <a href={`/api/download/guideline?url=${encodeURIComponent(s.sampleFileUrl)}&label=${encodeURIComponent(`${s.name} Work Sample`)}`} target="_blank" rel="noreferrer" style={C.fileLink}>Download Work Sample</a>
                   : <span style={C.noFile}>No work sample uploaded</span>}
               </div>
             </div>
