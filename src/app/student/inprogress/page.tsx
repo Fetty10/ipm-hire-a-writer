@@ -160,7 +160,7 @@ export default function StudentInProgress() {
                   <div style={ch.status==="DELIVERED"?C.chnumD:C.chnum}>{ch.chapterNumber}</div>
                   <span style={C.chlbl}>{ch.chapterLabel}</span>
                   {ch.status==="DELIVERED"&&ch.deliveredFileUrl
-                    ? <button style={C.dlBtn} onClick={()=>window.open(ch.deliveredFileUrl,"_blank")}>⬇ Download</button>
+                    ? <button style={C.dlBtn} onClick={()=>window.open(`/api/download?chapterId=${ch.id}`,"_blank")}>⬇ Download</button>
                     : <span style={{fontSize:".72rem",color:ch.status==="IN_PROGRESS"?"#CA8A04":ch.status==="QC_IN_PROGRESS"?"#0369A1":"#5B7EA6"}}>
                         {ch.status==="IN_PROGRESS"?"Writing...":ch.status==="QC_IN_PROGRESS"?"QC Review":"Queued"}
                       </span>}
