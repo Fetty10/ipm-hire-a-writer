@@ -146,7 +146,7 @@ export default function QCChecksActive() {
                   <div style={C.cmeta}>{job.topic}</div>
                   <div style={C.cmeta}>{job.department} · {DEG[job.degreeGroup]||job.degreeGroup}</div>
                   <div style={{display:"flex",gap:"1rem",marginTop:".3rem",flexWrap:"wrap" as const}}>
-                    <span style={{fontSize:".7rem",color:"#5B7EA6"}}>🟢 Started: <strong>{job.startedAt ? new Date(job.startedAt).toLocaleDateString("en-NG",{day:"numeric",month:"short"}) : "—"}</strong></span>
+                    <span style={{fontSize:".7rem",color:"#5B7EA6"}}>🟢 Started: <strong>{job.qcStartedAt ? new Date(job.qcStartedAt).toLocaleDateString("en-NG",{day:"numeric",month:"short"}) : "—"}</strong></span>
                     {job.deadlineAt && (() => {
                       const dl = new Date(job.deadlineAt);
                       const days = Math.ceil((dl.getTime()-Date.now())/(1000*60*60*24));
