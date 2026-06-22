@@ -110,11 +110,14 @@ export default function AnalystCorrections() {
                     </div>
                   )}
 
-                  {isActive && (
-                    <div style={{marginTop:"1rem"}}>
+                  <div style={{display:"flex",gap:".75rem",alignItems:"center",marginTop:"1rem",flexWrap:"wrap" as const}}>
+                    <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer" style={{fontSize:".78rem",fontWeight:700,color:"#0369A1",textDecoration:"none"}}>
+                      ⬇ Download {isActive ? "Original File" : "Final File"}
+                    </a>
+                    {isActive && (
                       <a href="/analyst/jobs/active" style={C.goBtn}>Go to Active Jobs to Resolve →</a>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               );
             })}
