@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
 
-import { QC_NAV } from "../_nav";
+import { QC_NAV as NAV } from "../_nav";
 
 const TYPE_STYLE:Record<string,{dot:string,border:string}> = {
   ACTION_REQUIRED: {dot:"#38BDF8",   border:"#38BDF8"},
