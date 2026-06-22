@@ -97,7 +97,13 @@ export default function AnalystDeliveredJobs() {
                       </p>
                     </div>
                   </div>
-                  <StatusBadge status={job.status} qcStarted={job.qcStarted} />
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <StatusBadge status={job.status} qcStarted={job.qcStarted} />
+                    <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer"
+                      className="text-xs font-700 text-sky-600 hover:underline whitespace-nowrap">
+                      ⬇ Download
+                    </a>
+                  </div>
                 </Card>
               ))}
             </div>
