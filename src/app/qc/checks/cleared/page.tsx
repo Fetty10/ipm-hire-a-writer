@@ -92,6 +92,10 @@ export default function QCChecksCleared() {
                   {job.adminNotes && (
                     <p className="text-xs text-navy-muted mt-2 pt-2 border-t border-sky-100">📝 {job.adminNotes}</p>
                   )}
+                  <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer"
+                    className="inline-block mt-2 text-xs font-700 text-sky-600 hover:underline">
+                    ⬇ Download Cleared File
+                  </a>
                 </Card>
               ))}
             </div>
