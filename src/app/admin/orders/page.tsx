@@ -180,6 +180,23 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
           </div>
         )}
 
+        {/* Student's uploaded guideline files */}
+        {order.guidelineFileUrl && (
+          <div style={C.sect}>
+            <span style={C.sl}>Student's Uploaded Guideline{order.guidelineFileUrl.split(",").length>1?"s":""}</span>
+            <div style={{display:"flex",flexDirection:"column" as const,gap:".4rem"}}>
+              {order.guidelineFileUrl.split(",").map((u:string,i:number,arr:string[]) => (
+                <a key={i}
+                  href={`/api/download/guideline?url=${encodeURIComponent(u.trim())}&label=${encodeURIComponent(`Guideline ${i+1} ${order.topic}`)}`}
+                  target="_blank" rel="noreferrer"
+                  style={{display:"inline-flex",alignItems:"center",gap:".4rem",fontSize:".8rem",fontWeight:600,color:"#0369A1",textDecoration:"none"}}>
+                  📎 {arr.length>1?`Guideline ${i+1}`:"Download Guideline"}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Chapters */}
         <div style={C.sect}>
           <span style={C.sl}>Chapters ({order.chapters?.length})</span>
