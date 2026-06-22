@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
   // Create order first
   const tx_ref = `IPM-FLW-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
 
+  const isProjectService = !!(planId && planId !== "flat");
+
   const order = await prisma.order.create({
     data: {
       clientId:            session.user.id,
@@ -54,6 +56,8 @@ export async function POST(req: NextRequest) {
       status:              "PENDING_PAYMENT",
       currency,
       flutterwaveReference: tx_ref,
+      requiresPlagiarismCheck: isProjectService ? plan.includesPlagiarismCheck : false,
+      requiresAiCheck:         isProjectService ? plan.includesPlagiarismCheck : false,
     } as any,
   });
 
