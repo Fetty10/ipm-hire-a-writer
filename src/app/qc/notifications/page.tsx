@@ -4,19 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
 
-const QC_NAV = [
-  { label:"Dashboard",           icon:"📊", href:"/qc/dashboard"              },
-  { label:"Pending Checks",      icon:"🔍", href:"/qc/checks/pending"          },
-  { label:"Active Checks",       icon:"⚙️", href:"/qc/checks/active"           },
-  { label:"Cleared & Sent",      icon:"✅", href:"/qc/checks/cleared"          },
-  { label:"Pending Corrections", icon:"🔧", href:"/qc/corrections/pending"     },
-  { label:"Working on Corrections",icon:"✏️",href:"/qc/corrections/active"     },
-  { label:"Corrections Sent",    icon:"📨", href:"/qc/corrections/done"        },
-  { label:"Earnings",            icon:"💰", href:"/qc/earnings"                },
-  { label:"Withdraw",            icon:"🏦", href:"/qc/withdraw"                },
-  { label:"Notifications",       icon:"🔔", href:"/qc/notifications"           },
-  { label:"Profile",             icon:"👤", href:"/qc/profile"                 },
-];
+import { QC_NAV } from "../_nav";
 
 const TYPE_STYLE:Record<string,{dot:string,border:string}> = {
   ACTION_REQUIRED: {dot:"#38BDF8",   border:"#38BDF8"},
@@ -75,7 +63,7 @@ export default function WriterNotifications() {
   const unread = notifs.filter(n=>!n.isRead).length;
 
   return (
-    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={NAV} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <div style={C.top}>
           <div>
