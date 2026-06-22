@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     where: { id: chapterId },
     data:  {
       routedToQcId: session.user.id,
-      startedAt:    now,
+      qcStartedAt:  now,
       deadlineAt,
     } as any,
   });
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     success:    true,
     message:    "QC check started.",
-    startedAt:  now.toISOString(),
+    qcStartedAt: now.toISOString(),
     deadlineAt: deadlineAt.toISOString(),
   });
 }
