@@ -4,18 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
-
-const NAV = [
-  { label:"Dashboard",      icon:"📊", href:"/qc/dashboard" },
-  { label:"Pending Checks", icon:"📋", href:"/qc/checks/pending" },
-  { label:"Active Checks",  icon:"🔍", href:"/qc/checks/active" },
-  { label:"Cleared",        icon:"✅", href:"/qc/checks/cleared" },
-  { label:"Corrections",    icon:"🔧", href:"/qc/corrections/pending" },
-  { label:"Earnings",       icon:"💰", href:"/qc/earnings" },
-  { label:"Withdraw",       icon:"🏦", href:"/qc/withdraw" },
-  { label:"Notifications",  icon:"🔔", href:"/qc/notifications" },
-  { label:"Profile",        icon:"👤", href:"/qc/profile" },
-];
+import { QC_NAV as NAV } from "../../_nav";
 
 const C = {
   page:   { maxWidth:"640px", margin:"0 auto" },
@@ -122,7 +111,7 @@ export default function QCChecksActive() {
   const nav = NAV.map(item=>item.href==="/qc/checks/active"?{...item,badge:jobs.length}:item);
 
   return (
-    <StaffLayout navItems={nav} role="QC" initials={initials}>
+    <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>Active Checks</h1>
         <p style={C.sub}>You have 24 hours to clear each chapter after starting a check.</p>
