@@ -398,6 +398,7 @@ model OrderChapter {
   qcClearedAt           DateTime?
   deliveredFileUrl      String?   // final file sent to client
   deliveredAt           DateTime?
+  qcStartedAt DateTime?
 
   // QC routing
   routedToQcId          String?   // QC user assigned
