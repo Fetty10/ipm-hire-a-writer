@@ -28,12 +28,12 @@ export async function GET(req: NextRequest) {
   if (status === "pending") {
     // Pending = assigned to this QC, not yet started (no startedAt timestamp)
     statusFilter  = [ChapterStatus.QC_IN_PROGRESS];
-    routingFilter = { routedToQcId: session.user.id, startedAt: null };
+    routingFilter = { routedToQcId: session.user.id, qcStartedAt: null } as any;
   }
   if (status === "active") {
     // Active = assigned to this QC and already started
     statusFilter  = [ChapterStatus.QC_IN_PROGRESS];
-    routingFilter = { routedToQcId: session.user.id, startedAt: { not: null } };
+    routingFilter = { routedToQcId: session.user.id, qcStartedAt: { not: null } } as any;
   }
   if (status === "cleared") {
     statusFilter  = [ChapterStatus.QC_DONE, ChapterStatus.DELIVERED];
@@ -103,6 +103,8 @@ export async function GET(req: NextRequest) {
     adminNotes:          ch.adminNotes,   // may contain supervisor_notes URL
     qcClearedAt:         ch.qcClearedAt,
     routedToQcAt:        ch.routedToQcAt,
+    qcStartedAt:         (ch as any).qcStartedAt || null,
+    deadlineAt:          (ch as any).deadlineAt || null,
     originalStaffRole:   ch.assignedTo?.role || null,
     isUrgent:            (ch as any).isUrgent || false,
   }));
