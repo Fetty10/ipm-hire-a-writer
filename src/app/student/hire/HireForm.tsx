@@ -144,6 +144,18 @@ export default function HireAWriter() {
     : plans;
   const isPerChapter    = selectedPlan?.pricingType === "PER_CHAPTER";
 
+  // Only reset the selected plan if it's no longer valid for the current
+  // department (e.g. student had Basic selected, then typed "Law" — Basic
+  // isn't allowed for exception depts). Don't reset on every keystroke.
+  useEffect(() => {
+    if (!planId || !selectedPlan) return;
+    const stillValid = !isExceptionDept || selectedPlan.planName === "PROFESSIONAL" || selectedPlan.planName === "PHD_PROFESSIONAL";
+    if (!stillValid) {
+      setPlanId("");
+      setSelChapters([]);
+    }
+  }, [isExceptionDept]);
+
   // Calculate total
   function calcUnitPrice(): number {
     if (!isProject) {
@@ -461,12 +473,7 @@ export default function HireAWriter() {
           {service !== "topic" && service !== "journal_sourcing" && (
             <div>
               <label className="text-xs font-700 text-navy-DEFAULT uppercase tracking-wider block mb-1.5">Department / Course</label>
-              <input value={department} onChange={e => {
-                    setDepartment(e.target.value);
-                    // Reset plan if switching to/from exception dept
-                    setPlanId("");
-                    setSelChapters([]);
-                  }}
+              <input value={department} onChange={e => setDepartment(e.target.value)}
                 placeholder="e.g. Business Administration"
                 className="w-full px-4 py-3 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
               {errors.department && <p className="text-xs text-red-500 mt-1">{errors.department}</p>}
