@@ -107,8 +107,8 @@ export async function POST(req: NextRequest) {
         paymentMethod:        "BANK_TRANSFER",
         bankTransferReference: reference,
         amountPaidKobo:       amountKobo,
-        requiresPlagiarismCheck: !!requiresPlagiarismCheck,
-        requiresAiCheck:         !!requiresPlagiarismCheck, // bundled together as one add-on
+        requiresPlagiarismCheck: isProjectService ? plan.includesPlagiarismCheck : !!requiresPlagiarismCheck,
+        requiresAiCheck:         isProjectService ? plan.includesPlagiarismCheck : !!requiresPlagiarismCheck,
       } as any,
     });
 
