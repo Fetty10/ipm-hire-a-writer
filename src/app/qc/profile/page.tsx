@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
 
-import { QC_NAV } from "../_nav";
+import { QC_NAV as NAV } from "../_nav";
 
 const C = {
   page:  { maxWidth:"520px", margin:"0 auto" },
