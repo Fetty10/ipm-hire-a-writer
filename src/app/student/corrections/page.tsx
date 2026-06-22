@@ -158,7 +158,7 @@ export default function StudentCorrections() {
                   {c.correctionNotes}
                 </div>
                 {c.status==="DELIVERED" && c.deliveredFileUrl && (
-                  <button style={C.dlBtn} onClick={()=>window.open(c.deliveredFileUrl,"_blank")}>
+                  <button style={C.dlBtn} onClick={()=>window.open(`/api/download?chapterId=${c.id}`,"_blank")}>
                     ⬇ Download Corrected Chapter
                   </button>
                 )}
