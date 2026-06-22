@@ -1,22 +1,11 @@
 "use client";
+import toast from "react-hot-toast";
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
 
-const QC_NAV = [
-  { label:"Dashboard",             icon:"📊", href:"/qc/dashboard"           },
-  { label:"Pending Checks",        icon:"🔍", href:"/qc/checks/pending"       },
-  { label:"Active Checks",         icon:"⚙️", href:"/qc/checks/active"        },
-  { label:"Cleared & Sent",        icon:"✅", href:"/qc/checks/cleared"       },
-  { label:"Pending Corrections",   icon:"🔧", href:"/qc/corrections/pending"  },
-  { label:"Working on Corrections",icon:"✏️", href:"/qc/corrections/active"   },
-  { label:"Corrections Sent",      icon:"📨", href:"/qc/corrections/done"     },
-  { label:"Earnings",              icon:"💰", href:"/qc/earnings"             },
-  { label:"Withdraw",              icon:"🏦", href:"/qc/withdraw"             },
-  { label:"Notifications",         icon:"🔔", href:"/qc/notifications"        },
-  { label:"Profile",               icon:"👤", href:"/qc/profile"              },
-];
+import { QC_NAV } from "../_nav";
 
 const C = {
   page:  { maxWidth:"520px", margin:"0 auto" },
@@ -33,7 +22,7 @@ const C = {
   btnO:  { width:"100%", padding:".75rem", borderRadius:"12px", background:"#fff", color:"#0369A1", fontSize:".88rem", fontWeight:700, border:"1.5px solid #38BDF8", cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
 };
 
-export default function QCProfile() {
+export default function WriterProfile() {
   const { data: session } = useSession();
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
@@ -45,7 +34,7 @@ export default function QCProfile() {
   const [curPw, setCurPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [conPw, setConPw] = useState("");
-  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
+  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
 
   useEffect(()=>{
     fetch("/api/staff/profile").then(r=>r.json()).then(d=>{
@@ -58,29 +47,25 @@ export default function QCProfile() {
     e.preventDefault(); setSaving(true);
     const res  = await fetch("/api/staff/profile",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,phone})});
     const data = await res.json();
-    if(res.ok) alert("Profile updated!"); else alert(data.error);
+    if(res.ok) toast.success("Profile updated!"); else toast.error(data.error || "Something went wrong");
     setSaving(false);
   }
 
   async function savePw(e:React.FormEvent) {
     e.preventDefault();
-    if(newPw!==conPw){ alert("Passwords do not match."); return; }
-    if(newPw.length<8){ alert("Min. 8 characters."); return; }
+    if(newPw!==conPw){ toast.error("Passwords do not match."); return; }
+    if(newPw.length<8){ toast.error("Min. 8 characters."); return; }
     setPwSaving(true);
     const res  = await fetch("/api/staff/profile",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({currentPassword:curPw,newPassword:newPw})});
     const data = await res.json();
-    if(res.ok){ alert("Password updated!"); setCurPw(""); setNewPw(""); setConPw(""); } else alert(data.error);
+    if(res.ok){ toast.success("Password updated!"); setCurPw(""); setNewPw(""); setConPw(""); } else toast.error(data.error || "Something went wrong");
     setPwSaving(false);
   }
 
-  if(loading) return (
-    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
-      <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
-    </StaffLayout>
-  );
+  if(loading) return <StaffLayout navItems={NAV} role="Quality Control" initials={initials}><div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div></StaffLayout>;
 
   return (
-    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={NAV} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>My Profile</h1>
         <p style={C.sub}>Manage your account details.</p>
@@ -93,7 +78,7 @@ export default function QCProfile() {
             <div style={C.fg}>
               <label style={C.lbl}>Email Address</label>
               <input style={{...C.inp,...C.inpD}} value={email} disabled />
-              <div style={C.hint}>Email cannot be changed.</div>
+              <div style={C.hint}>Email cannot be changed. Contact admin if needed.</div>
             </div>
             <div style={C.fg}>
               <label style={C.lbl}>Role</label>
@@ -108,7 +93,7 @@ export default function QCProfile() {
           <form onSubmit={savePw}>
             <div style={C.fg}><label style={C.lbl}>Current Password</label><input type="password" style={C.inp} value={curPw} onChange={e=>setCurPw(e.target.value)} placeholder="••••••••" /></div>
             <div style={C.fg}><label style={C.lbl}>New Password</label><input type="password" style={C.inp} value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="Min. 8 characters" /></div>
-            <div style={C.fg}><label style={C.lbl}>Confirm Password</label><input type="password" style={C.inp} value={conPw} onChange={e=>setConPw(e.target.value)} placeholder="Re-enter" /></div>
+            <div style={C.fg}><label style={C.lbl}>Confirm New Password</label><input type="password" style={C.inp} value={conPw} onChange={e=>setConPw(e.target.value)} placeholder="Re-enter" /></div>
             <button type="submit" style={C.btnO} disabled={pwSaving}>{pwSaving?"Updating...":"Update Password"}</button>
           </form>
         </div>
