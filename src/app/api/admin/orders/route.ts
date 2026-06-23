@@ -186,6 +186,47 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, message: "Chapter reassigned." });
   }
 
+  // ── Reassign a QC check/correction to a different QC staff member ──
+  // Used when the originally assigned QC is unresponsive — admin can
+  // hand the job to someone else without disturbing the chapter's status
+  // (it stays QC_IN_PROGRESS) and resets qcStartedAt so it lands fresh
+  // in the new QC's Pending tab.
+  if (action === "reassign_qc") {
+    if (!chapterId || !staffId) {
+      return NextResponse.json({ error: "chapterId and staffId are required." }, { status: 400 });
+    }
+    const qc = await prisma.user.findUnique({ where: { id: staffId } });
+    if (!qc || qc.role !== Role.QC) {
+      return NextResponse.json({ error: "Selected staff member is not a QC." }, { status: 400 });
+    }
+
+    const chapter = await prisma.orderChapter.findUnique({ where: { id: chapterId } });
+    if (!chapter) return NextResponse.json({ error: "Chapter not found." }, { status: 404 });
+
+    await prisma.orderChapter.update({
+      where: { id: chapterId },
+      data: {
+        routedToQcId: staffId,
+        routedToQcAt: new Date(),
+        qcStartedAt:  null, // fresh start for the new QC — lands in Pending
+      } as any,
+    });
+
+    const isCorrection = !!(chapter as any).correctionNotes;
+
+    await prisma.notification.create({
+      data: {
+        userId:  staffId,
+        orderId,
+        title:   isCorrection ? "Correction Reassigned to You" : "QC Check Reassigned to You",
+        message: `${(chapter as any).chapterLabel || "A chapter"} for "${order.topic}" has been reassigned to you by admin. Check your ${isCorrection ? "Pending Corrections" : "Pending Checks"} tab.`,
+        type:    "ACTION_REQUIRED",
+      },
+    });
+
+    return NextResponse.json({ success: true, message: `${isCorrection ? "Correction" : "QC check"} reassigned to ${qc.name}.` });
+  }
+
   // ── Mark/unmark chapter as urgent — notify the assigned staff ──
   if (action === "mark_urgent" || action === "unmark_urgent") {
     if (!chapterId) return NextResponse.json({ error: "chapterId is required." }, { status: 400 });
