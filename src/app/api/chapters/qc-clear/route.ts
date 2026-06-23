@@ -56,6 +56,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // ── If this is resolving a correction, preserve a permanent history
+  // record (before file, after file, what was asked, when) BEFORE we
+  // clear the live correctionNotes/qcEscalationNotes fields. Without
+  // this, students lose all context on what was actually fixed.
+  if (isCorrection && chapter.correctionNotes) {
+    await (prisma as any).correctionHistory.create({
+      data: {
+        orderChapterId: chapterId,
+        studentRequest: chapter.correctionNotes,
+        qcInstructions: (chapter as any).qcEscalationNotes || null,
+        fileBeforeUrl:  chapter.deliveredFileUrl || chapter.submittedFileUrl || null,
+        fileAfterUrl:   clearedFileUrl,
+        requestedAt:    (chapter as any).routedToQcAt || chapter.updatedAt,
+        resolvedById:   session.user.id,
+      },
+    });
+  }
+
   // ── Mark QC done ──────────────────────────────────────────
   await prisma.orderChapter.update({
     where: { id: chapterId },
