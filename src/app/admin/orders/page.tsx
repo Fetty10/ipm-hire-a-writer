@@ -88,6 +88,8 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
   const [saving,   setSaving]   = useState<string|null>(null);
   const [reassign, setReassign] = useState<string|null>(null);
   const [newStaff, setNewStaff] = useState("");
+  const [reassignQc, setReassignQc] = useState<string|null>(null);
+  const [newQcStaff, setNewQcStaff] = useState("");
 
   async function load() {
     setLoading(true);
@@ -113,6 +115,8 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
     setSaving(null);
     setReassign(null);
     setNewStaff("");
+    setReassignQc(null);
+    setNewQcStaff("");
   }
 
   if (loading) return (
@@ -240,6 +244,12 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
                   onClick={() => setReassign(reassign===ch.id ? null : ch.id)}>
                   👤 Reassign
                 </button>
+                {ch.status === "QC_IN_PROGRESS" && (
+                  <button style={{ ...C.btnSm, background:"#EDE9FE", color:"#5B21B6" }}
+                    onClick={() => setReassignQc(reassignQc===ch.id ? null : ch.id)}>
+                    🔍 Reassign QC
+                  </button>
+                )}
                 {["IN_PROGRESS","NOT_STARTED"].includes(ch.status) && (
                   <button style={{ ...C.btnSm, ...C.btnR }}
                     disabled={saving==="reset_chapter"+ch.id}
@@ -276,6 +286,25 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
                     disabled={!newStaff || saving==="reassign_chapter"+ch.id}
                     onClick={() => act("reassign_chapter", { chapterId:ch.id, staffId:newStaff })}>
                     {saving==="reassign_chapter"+ch.id ? "Saving..." : "Confirm Reassign"}
+                  </button>
+                </div>
+              )}
+
+              {reassignQc === ch.id && (
+                <div style={{ marginTop:".6rem", paddingTop:".6rem", borderTop:"1px dashed #DDD6FE" }}>
+                  <p style={{fontSize:".7rem",color:"#5B21B6",marginBottom:".4rem"}}>
+                    Currently with: {ch.qcName || "Unclaimed"}. Reassigning resets it to that QC's Pending tab.
+                  </p>
+                  <select style={C.staffSel} value={newQcStaff} onChange={e => setNewQcStaff(e.target.value)}>
+                    <option value="">-- Select QC staff --</option>
+                    {staffList.filter(s => s.role === "QC").map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                  <button style={{ ...C.btnSm, background:"#5B21B6", color:"#fff" }}
+                    disabled={!newQcStaff || saving==="reassign_qc"+ch.id}
+                    onClick={() => act("reassign_qc", { chapterId:ch.id, staffId:newQcStaff })}>
+                    {saving==="reassign_qc"+ch.id ? "Saving..." : "Confirm QC Reassign"}
                   </button>
                 </div>
               )}
