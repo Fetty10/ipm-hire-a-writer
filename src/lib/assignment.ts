@@ -384,7 +384,8 @@ export async function routeChapterToQC(chapterId: string): Promise<void> {
       status:       ChapterStatus.QC_IN_PROGRESS,
       routedToQcId: qcUserId,
       routedToQcAt: new Date(),
-    },
+      qcStartedAt:  null, // reset — fresh QC review, not yet started
+    } as any,
   });
 
   // Notify only the assigned QC
