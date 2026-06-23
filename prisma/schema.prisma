@@ -528,3 +528,14 @@ model QCCorrectionRate {
   updatedAt       DateTime @updatedAt
   updatedById     String?
 }
+model CorrectionHistory {
+  id             String   @id @default(cuid())
+  orderChapterId String
+  studentRequest String   @db.Text
+  qcInstructions String?  @db.Text
+  fileBeforeUrl  String?
+  fileAfterUrl   String?
+  requestedAt    DateTime
+  resolvedAt     DateTime @default(now())
+  resolvedById   String?
+}
