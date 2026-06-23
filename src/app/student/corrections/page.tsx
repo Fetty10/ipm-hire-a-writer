@@ -68,7 +68,7 @@ export default function StudentCorrections() {
   const [attachments, setAttachments] = useState<{url:string,name:string,type:string}[]>([]);
   const [uploading,   setUploading]   = useState(false);
 
-  useEffect(()=>{
+  function loadData() {
     Promise.all([
       fetch("/api/student/orders?filter=completed").then(r=>r.json()),
       fetch("/api/student/corrections").then(r=>r.json()),
@@ -76,7 +76,9 @@ export default function StudentCorrections() {
       if(oData.success) setOrders(oData.data);
       if(cData.success) setCorrs(cData.data);
     }).finally(()=>setLoading(false));
-  },[]);
+  }
+
+  useEffect(()=>{ loadData(); },[]);
 
   const selOrder = orders.find(o=>o.id===orderId);
 
@@ -112,7 +114,16 @@ export default function StudentCorrections() {
     setSubmitting(true);
     const res  = await fetch("/api/chapters/corrections",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId,correctionRequest:request,supervisorNotesUrl:attachments.length>0?attachments.map(a=>a.url).join(","):undefined})});
     const data = await res.json();
-    if(res.ok){ setSuccess(true); }
+    if(res.ok){
+      setSuccess(true);
+      // Reset the form so it's clean if they submit another request
+      setOrderId("");
+      setChapterId("");
+      setRequest("");
+      setAttachments([]);
+      // Refresh the history list so the new request shows up immediately
+      loadData();
+    }
     else toast.error(data.error || "Something went wrong");
     setSubmitting(false);
   }
