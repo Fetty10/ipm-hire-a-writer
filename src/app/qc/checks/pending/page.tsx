@@ -111,7 +111,7 @@ export default function QCChecksPending() {
               )}
 
               {job.guidelineFileUrl && job.guidelineFileUrl.split(",").map((url:string,i:number,arr:string[]) => (
-                <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=${encodeURIComponent(`Guideline${arr.length>1?` ${i+1}`:""}`)}`}
+                <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=${encodeURIComponent(`Guideline${arr.length>1?` ${i+1}`:""} ${job.topic}`)}`}
                   target="_blank" rel="noreferrer" style={C.link}>
                   📎 {arr.length>1?`Guideline ${i+1}`:"Download Guideline"}
                 </a>
