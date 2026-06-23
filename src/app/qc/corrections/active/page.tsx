@@ -147,7 +147,7 @@ export default function QCCorrectionsActive() {
               <div style={C.files}>
                 <div style={C.filest}>Files to Work From</div>
                 {job.submittedFileUrl && <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer" style={C.flink}>⬇ {job.chapterLabel} — Original Delivered Version</a>}
-                {supUrl && supUrl.split(",").map((u:string,i:number,arr:string[]) => (<a key={i} href={`/api/download/guideline?url=${encodeURIComponent(u.trim())}&label=${encodeURIComponent(`Supervisor Notes${arr.length>1?` ${i+1}`:""}`)}`} target="_blank" rel="noreferrer" style={C.flink}>⬇ Supervisor's Notes{arr.length>1?` ${i+1}`:""}</a>))}
+                {supUrl && supUrl.split(",").map((u:string,i:number,arr:string[]) => (<a key={i} href={`/api/download/guideline?url=${encodeURIComponent(u.trim())}&label=${encodeURIComponent(`Supervisor Notes${arr.length>1?` ${i+1}`:""} ${job.topic}`)}`} target="_blank" rel="noreferrer" style={C.flink}>⬇ Supervisor's Notes{arr.length>1?` ${i+1}`:""}</a>))}
               </div>
 
               {/* Notes */}
