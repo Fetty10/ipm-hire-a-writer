@@ -174,7 +174,7 @@ export default function WriterActiveJobs() {
               )}
 
               {job.guidelineFileUrl && job.guidelineFileUrl.split(",").map((url:string, i:number) => (
-                <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=${encodeURIComponent(job.guidelineFileUrl.split(",").length>1?`Guideline ${i+1}`:"Guideline")}`} target="_blank" rel="noreferrer"
+                <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=${encodeURIComponent(job.guidelineFileUrl.split(",").length>1?`Guideline ${i+1} ${job.topic}`:`Guideline ${job.topic}`)}`} target="_blank" rel="noreferrer"
                   style={{display:"inline-flex",alignItems:"center",gap:".3rem",fontSize:".78rem",fontWeight:600,color:"#0369A1",textDecoration:"none",marginBottom:"1rem",marginRight:"1rem"}}>
                   📎 {job.guidelineFileUrl.split(",").length>1?`Guideline ${i+1}`:"Download Guideline"}
                 </a>
@@ -198,7 +198,7 @@ export default function WriterActiveJobs() {
 
               <div
                 style={s.fileUrl ? C.upzoneOk : C.upzone}
-                onClick={()=>{ if(!s.fileUrl){const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};inp.click();} }}>
+                onClick={()=>{const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};inp.click();}}>
                 {s.uploading ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
                 : s.fileUrl  ? <div><div style={C.upi}>✅</div><div style={C.upok}>{s.fileName||"File uploaded"}</div><div style={C.upsub}>Tap to replace</div></div>
                 : <div><div style={C.upi}>📄</div><div style={C.uplbl}>Upload {job.chapterLabel}</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
