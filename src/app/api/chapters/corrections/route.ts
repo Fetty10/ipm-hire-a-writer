@@ -64,8 +64,9 @@ export async function POST(req: NextRequest) {
       correctionNotes: correctionRequest,
       routedToQcId:    qcUserId,
       routedToQcAt:    new Date(),
+      qcStartedAt:     null, // reset — this is a fresh correction, not yet started by QC
       adminNotes:      supervisorNotesUrl ? `supervisor_notes:${supervisorNotesUrl}` : null,
-    },
+    } as any,
   });
 
   if (qcUserId) {
