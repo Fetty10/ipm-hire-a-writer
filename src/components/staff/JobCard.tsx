@@ -201,7 +201,7 @@ export function JobCard(props: JobCardProps) {
           {props.guidelineFileUrl.split(",").map(u => u.trim()).filter(Boolean).map((u, i, arr) => (
             <a
               key={i}
-              href={`/api/download/guideline?url=${encodeURIComponent(u)}&label=${encodeURIComponent(`Guideline${arr.length>1?` ${i+1}`:""}`)}`}
+              href={`/api/download/guideline?url=${encodeURIComponent(u)}&label=${encodeURIComponent(`Guideline${arr.length>1?` ${i+1}`:""} ${props.topic}`)}`}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-xs font-600 text-sky-600 hover:underline mb-1 block"
