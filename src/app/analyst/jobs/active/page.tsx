@@ -196,7 +196,7 @@ export default function AnalystActiveJobs() {
               )}
 
               {job.guidelineFileUrl && job.guidelineFileUrl.split(",").map((url:string,i:number)=>(
-                <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=${encodeURIComponent(job.guidelineFileUrl.split(",").length>1?`Guideline ${i+1}`:"Guideline")}`} target="_blank" rel="noreferrer"
+                <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=${encodeURIComponent(job.guidelineFileUrl.split(",").length>1?`Guideline ${i+1} ${job.topic}`:`Guideline ${job.topic}`)}`} target="_blank" rel="noreferrer"
                   style={{display:"inline-flex",alignItems:"center",gap:".3rem",fontSize:".78rem",fontWeight:600,color:"#0369A1",textDecoration:"none",marginBottom:"1rem",marginRight:"1rem"}}>
                   📎 {job.guidelineFileUrl.split(",").length>1?`Guideline ${i+1}`:"Download Guideline"}
                 </a>
