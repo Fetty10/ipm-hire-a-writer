@@ -30,6 +30,18 @@ export async function GET() {
     orderBy: { deliveredAt: "desc" },
   });
 
+  const chapterIds = chapters.map(ch => ch.id);
+  const correctionCounts = chapterIds.length > 0
+    ? await (prisma as any).correctionHistory.groupBy({
+        by: ["orderChapterId"],
+        where: { orderChapterId: { in: chapterIds } },
+        _count: { id: true },
+      })
+    : [];
+  const correctionCountMap = Object.fromEntries(
+    correctionCounts.map((c: any) => [c.orderChapterId, c._count.id])
+  );
+
   const downloads = chapters.map(ch => ({
     id:              ch.id,
     chapterLabel:    ch.chapterLabel,
@@ -42,6 +54,7 @@ export async function GET() {
     isQcCleared:     !!ch.qcFileUrl,
     plagiarismScore: (ch as any).plagiarismScore ?? null,
     aiScore:         (ch as any).aiScore ?? null,
+    correctionCount: correctionCountMap[ch.id] || 0,
   }));
 
   return NextResponse.json({ success: true, data: downloads });
