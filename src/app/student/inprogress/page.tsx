@@ -9,6 +9,12 @@ const AddChaptersModal = NextDynamic(() => import("@/components/student/AddChapt
 const STEPS=["Paid","Assigned","Writing","QC","Done"];
 const STATUS_STEPS:Record<string,number>={PENDING_PAYMENT:0,PAYMENT_CONFIRMED:1,IN_PROGRESS:2,QC_REVIEW:3,DELIVERED:4};
 const isBankPending = (o:any) => o.status === 'PENDING_PAYMENT' && (o as any).paymentMethod === 'BANK_TRANSFER';
+const isUnpaid      = (o:any) => {
+  if (o.status !== 'PENDING_PAYMENT' || (o as any).paymentMethod === 'BANK_TRANSFER') return false;
+  // Give a 10-minute grace period in case the student is still mid-checkout
+  const ageMs = Date.now() - new Date(o.createdAt).getTime();
+  return ageMs > 10 * 60 * 1000;
+};
 
 const C = {
   page:  { maxWidth:"640px", margin:"0 auto" },
@@ -46,6 +52,7 @@ export default function StudentInProgress() {
   const [loading, setLoading] = useState(true);
   const [addModal,setAddModal]= useState<string|null>(null);
   const [chapterReqs, setChapterReqs] = useState<any[]>([]);
+  const [retrying, setRetrying] = useState<string|null>(null);
 
   function loadData() {
     fetch("/api/student/orders?filter=active")
@@ -55,6 +62,21 @@ export default function StudentInProgress() {
     fetch("/api/student/chapter-requests")
       .then(r=>r.json())
       .then(d=>{ if(d.success) setChapterReqs(d.data); });
+  }
+
+  async function retryPayment(orderId: string) {
+    setRetrying(orderId);
+    const res  = await fetch("/api/orders/retry-payment", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ orderId }),
+    });
+    const data = await res.json();
+    if (res.ok && data.paymentUrl) {
+      window.location.href = data.paymentUrl;
+    } else {
+      setRetrying(null);
+      alert(data.error || "Could not start payment. Please try again.");
+    }
   }
 
   useEffect(()=>{
@@ -106,12 +128,29 @@ export default function StudentInProgress() {
                 </div>
                 {isBankPending(order) ? (
                   <span style={{...C.badge, background:"#FEF9C3", color:"#854D0E"}}>⏳ Awaiting Payment Confirmation</span>
+                ) : isUnpaid(order) ? (
+                  <span style={{...C.badge, background:"#FEE2E2", color:"#991B1B"}}>⚠ Payment Not Completed</span>
                 ) : (
                   <span style={{...C.badge,...(order.status==="QC_REVIEW"?C.bS:C.bY)}}>
                     {order.status==="QC_REVIEW"?"QC Review":"In Progress"}
                   </span>
                 )}
               </div>
+
+              {/* Unpaid order — retry payment notice */}
+              {isUnpaid(order) && (
+                <div style={{background:"#FEF2F2",border:"1px solid #FCA5A5",borderRadius:"10px",padding:".85rem 1rem",marginBottom:"1rem"}}>
+                  <p style={{fontSize:".78rem",color:"#991B1B",lineHeight:1.5,marginBottom:".6rem"}}>
+                    ⚠ Your payment was not completed for this order. Your work hasn't started yet — complete payment to begin.
+                  </p>
+                  <button
+                    disabled={retrying===order.id}
+                    onClick={()=>retryPayment(order.id)}
+                    style={{padding:".6rem 1.1rem",borderRadius:"10px",background:"#38BDF8",color:"#0C1A2E",fontSize:".8rem",fontWeight:700,border:"none",cursor:"pointer"}}>
+                    {retrying===order.id ? "Processing..." : "💳 Complete Payment →"}
+                  </button>
+                </div>
+              )}
 
               {/* Bank transfer notice */}
               {isBankPending(order) && (
