@@ -162,6 +162,30 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Email the dedicated payments inbox so confirmations happen promptly
+    try {
+      const { Resend } = await import("resend");
+      const resend = new Resend(process.env.RESEND_API_KEY!);
+      await resend.emails.send({
+        from: "iProjectMaster <noreply@hire.iprojectmaster.com>",
+        to:   "payment.iprojectmaster@gmail.com",
+        subject: `🏦 New Bank Transfer (Add Chapters) — ₦${(amountKobo/100).toLocaleString()} (Ref: ${reference})`,
+        html: `
+          <div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:1.5rem;background:#fff;border-radius:14px;border:1px solid #BAE6FD;">
+            <h2 style="color:#0C1A2E;font-size:1.1rem;margin:0 0 .75rem;">🏦 Add-Chapter Bank Transfer</h2>
+            <table style="width:100%;font-size:.85rem;color:#0C1A2E;border-collapse:collapse;">
+              <tr><td style="padding:.4rem 0;color:#5B7EA6;">Topic</td><td style="padding:.4rem 0;font-weight:700;">${order.topic}</td></tr>
+              <tr><td style="padding:.4rem 0;color:#5B7EA6;">Chapter(s)</td><td style="padding:.4rem 0;font-weight:700;">${chaptersRequested.join(", ")}</td></tr>
+              <tr><td style="padding:.4rem 0;color:#5B7EA6;">Amount</td><td style="padding:.4rem 0;font-weight:700;">₦${(amountKobo/100).toLocaleString()}</td></tr>
+              <tr><td style="padding:.4rem 0;color:#5B7EA6;">Reference</td><td style="padding:.4rem 0;font-weight:700;font-family:monospace;">${reference}</td></tr>
+            </table>
+            <p style="color:#5B7EA6;font-size:.8rem;line-height:1.6;margin-top:1rem;">Once payment is confirmed, log in and confirm under Admin → Bank Transfers → Add-Chapter Requests to auto-assign.</p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/bank-transfers" style="display:inline-block;margin-top:.75rem;padding:.7rem 1.5rem;background:#38BDF8;color:#0C1A2E;font-weight:700;font-size:.85rem;border-radius:10px;text-decoration:none;">Go to Bank Transfers →</a>
+          </div>
+        `,
+      });
+    } catch (e) { console.error("[EMAIL] Add-chapters bank transfer admin notify:", e); }
+
     return NextResponse.json({
       success:     true,
       bankTransfer:true,
