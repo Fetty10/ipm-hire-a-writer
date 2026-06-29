@@ -173,6 +173,19 @@ export default function AnalystActiveJobs() {
                 </div>
               )}
 
+              {job.supervisorNotesUrl && (
+                <div style={{margin:".5rem 0"}}>
+                  {job.supervisorNotesUrl.split(",").map((u:string,i:number,arr:string[]) => (
+                    <a key={i}
+                      href={`/api/download/guideline?url=${encodeURIComponent(u.trim())}&label=${encodeURIComponent(`Supervisor Notes${arr.length>1?` ${i+1}`:""} ${job.topic}`)}`}
+                      target="_blank" rel="noreferrer"
+                      style={{display:"inline-flex",alignItems:"center",gap:".4rem",fontSize:".78rem",fontWeight:700,color:"#0369A1",textDecoration:"none",marginRight:"1rem"}}>
+                      📎 Supervisor's Notes{arr.length>1?` ${i+1}`:""}
+                    </a>
+                  ))}
+                </div>
+              )}
+
               {job.specialInstructions && (
                 <div style={C.infoBox}>
                   <div style={C.infoT}>Student Instructions</div>
