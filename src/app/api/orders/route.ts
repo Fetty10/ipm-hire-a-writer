@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
         topic,
         chaptersRequested: chaptersRequested || [],
       },
-      callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/dashboard?payment=success`,
+      callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/inprogress`,
     }),
   });
 
