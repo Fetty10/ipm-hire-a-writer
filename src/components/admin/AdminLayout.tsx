@@ -75,7 +75,7 @@ export function AdminLayout({ children, badges = {} }: {
               <div className="text-[.6rem] text-sky-400">{session?.user?.role?.replace("_"," ")}</div>
             </div>
           </div>
-          <button onClick={() => signOut({ callbackUrl: "/login" })}
+          <button onClick={() => signOut({ callbackUrl: "/staff/login" })}
             className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-[.73rem] font-600 text-red-300 bg-red-500/8 border border-red-500/15 hover:bg-red-500/15 transition-all">
             🚪 Logout
           </button>
