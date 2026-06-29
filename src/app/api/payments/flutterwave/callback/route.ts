@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const tx_id     = searchParams.get("transaction_id");
 
   if (status !== "successful" || !tx_ref || !tx_id) {
-    return NextResponse.redirect(`${APP_URL}/student/hire?error=payment_failed`);
+    return NextResponse.redirect(`${APP_URL}/student/inprogress?error=payment_failed`);
   }
 
   // Verify with Flutterwave
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   const verData = await verRes.json();
 
   if (verData.data?.status !== "successful") {
-    return NextResponse.redirect(`${APP_URL}/student/hire?error=payment_failed`);
+    return NextResponse.redirect(`${APP_URL}/student/inprogress?error=payment_failed`);
   }
 
   // Find order by tx_ref
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
   });
 
   if (!order || order.status !== "PENDING_PAYMENT") {
-    return NextResponse.redirect(`${APP_URL}/student/dashboard`);
+    return NextResponse.redirect(`${APP_URL}/student/inprogress`);
   }
 
   // Confirm payment
@@ -64,5 +64,5 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  return NextResponse.redirect(`${APP_URL}/student/dashboard?paid=1`);
+  return NextResponse.redirect(`${APP_URL}/student/inprogress?paid=1`);
 }
