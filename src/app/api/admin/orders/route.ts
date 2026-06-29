@@ -183,6 +183,28 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
+    if (staff.email) {
+      try {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY!);
+        const dashLink = staff.role === "ANALYST" ? `${process.env.NEXT_PUBLIC_APP_URL}/analyst/jobs/pending`
+                       : staff.role === "QC"       ? `${process.env.NEXT_PUBLIC_APP_URL}/qc/checks/pending`
+                       : `${process.env.NEXT_PUBLIC_APP_URL}/writer/jobs/pending`;
+        await resend.emails.send({
+          from: "iProjectMaster <noreply@hire.iprojectmaster.com>",
+          to:   staff.email,
+          subject: `New Job Reassigned — ${order.topic}`,
+          html: `
+            <div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:1.5rem;background:#fff;border-radius:14px;border:1px solid #BAE6FD;">
+              <h2 style="color:#0C1A2E;font-size:1.1rem;margin:0 0 .75rem;">📋 New Job Assigned to You</h2>
+              <p style="color:#5B7EA6;font-size:.85rem;line-height:1.6;">Hi ${staff.name}, a chapter for <strong>"${order.topic}"</strong> has been reassigned to you by admin. Please log in to check your pending jobs.</p>
+              <a href="${dashLink}" style="display:inline-block;margin-top:1rem;padding:.7rem 1.5rem;background:#38BDF8;color:#0C1A2E;font-weight:700;font-size:.85rem;border-radius:10px;text-decoration:none;">View Pending Jobs →</a>
+            </div>
+          `,
+        });
+      } catch (e) { console.error("[EMAIL] Reassign chapter notify:", e); }
+    }
+
     return NextResponse.json({ success: true, message: "Chapter reassigned." });
   }
 
@@ -223,6 +245,28 @@ export async function PATCH(req: NextRequest) {
         type:    "ACTION_REQUIRED",
       },
     });
+
+    if (qc.email) {
+      try {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY!);
+        const dashLink = isCorrection
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/qc/corrections/pending`
+          : `${process.env.NEXT_PUBLIC_APP_URL}/qc/checks/pending`;
+        await resend.emails.send({
+          from: "iProjectMaster <noreply@hire.iprojectmaster.com>",
+          to:   qc.email,
+          subject: `${isCorrection ? "Correction" : "QC Check"} Reassigned — ${order.topic}`,
+          html: `
+            <div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:1.5rem;background:#fff;border-radius:14px;border:1px solid #DDD6FE;">
+              <h2 style="color:#0C1A2E;font-size:1.1rem;margin:0 0 .75rem;">🔍 ${isCorrection ? "Correction" : "QC Check"} Reassigned to You</h2>
+              <p style="color:#5B7EA6;font-size:.85rem;line-height:1.6;">Hi ${qc.name}, ${(chapter as any).chapterLabel || "a chapter"} for <strong>"${order.topic}"</strong> has been reassigned to you by admin. Please log in to your ${isCorrection ? "Pending Corrections" : "Pending Checks"} tab.</p>
+              <a href="${dashLink}" style="display:inline-block;margin-top:1rem;padding:.7rem 1.5rem;background:#5B21B6;color:#fff;font-weight:700;font-size:.85rem;border-radius:10px;text-decoration:none;">View ${isCorrection ? "Corrections" : "Checks"} →</a>
+            </div>
+          `,
+        });
+      } catch (e) { console.error("[EMAIL] Reassign QC notify:", e); }
+    }
 
     return NextResponse.json({ success: true, message: `${isCorrection ? "Correction" : "QC check"} reassigned to ${qc.name}.` });
   }
