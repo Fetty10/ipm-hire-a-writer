@@ -11,7 +11,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ChapterStatus, PlanName, Role } from "@prisma/client";
 import { routeChapterToQC, deliverChapterToClient } from "@/lib/assignment";
-import { sendChapterDeliveredEmail, sendPrelimReadyEmail } from "@/lib/email";
+import { sendPrelimReadyEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -213,16 +213,9 @@ export async function POST(req: NextRequest) {
     });
   } else {
     // Basic / Standard → deliver directly to student
+    // (deliverChapterToClient already sends the delivery email internally
+    // — do NOT send a second one here, or the student gets duplicate mail)
     await deliverChapterToClient(chapterId, fileUrl);
-
-    // Send email to student
-    await sendChapterDeliveredEmail({
-      to:           chapter.order.client.email,
-      name:         chapter.order.client.name,
-      topic:        chapter.order.topic,
-      chapterLabel: chapter.chapterLabel,
-      orderId:      chapter.orderId,
-    });
 
     return NextResponse.json({
       success: true,
