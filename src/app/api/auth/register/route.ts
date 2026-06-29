@@ -23,6 +23,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Admin accounts cannot be self-registered." }, { status: 403 });
   }
 
+  // Students must provide a WhatsApp-reachable phone number — used for
+  // order updates and follow-ups (e.g. by Lina, our WhatsApp assistant)
+  if (requestedRole === Role.CLIENT && !phone?.trim()) {
+    return NextResponse.json({ error: "WhatsApp number is required." }, { status: 400 });
+  }
+
   const isStaff = ALLOWED_STAFF_ROLES.includes(requestedRole);
 
   // Staff must upload CV and work sample
