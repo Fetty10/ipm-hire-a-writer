@@ -81,7 +81,7 @@ function RegisterForm() {
         <div style={C.card}>
           <form onSubmit={handleSubmit}>
             <div style={C.fg}><label style={C.lbl}>Full Name</label><input style={C.inp} value={name} onChange={e=>setName(e.target.value)} required placeholder="Your full name" /></div>
-            <div style={C.fg}><label style={C.lbl}>Phone Number</label><input style={C.inp} value={phone} onChange={e=>setPhone(e.target.value)} required placeholder="08012345678" /></div>
+            <div style={C.fg}><label style={C.lbl}>WhatsApp Number <span style={{fontWeight:400,color:"#5B7EA6"}}>(required — we'll reach you here)</span></label><input style={C.inp} value={phone} onChange={e=>setPhone(e.target.value)} required placeholder="08012345678" /></div>
             <div style={C.fg}><label style={C.lbl}>Email Address</label><input style={C.inp} type="email" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="you@email.com" /></div>
             <div style={C.fg}><label style={C.lbl}>Password</label><input style={C.inp} type="password" value={password} onChange={e=>setPassword(e.target.value)} required placeholder="Min. 8 characters" /></div>
             <div style={C.fg}><label style={C.lbl}>Confirm Password</label><input style={C.inp} type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} required placeholder="Re-enter password" /></div>
