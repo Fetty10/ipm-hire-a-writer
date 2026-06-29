@@ -48,6 +48,21 @@ function wrap(content: string): string {
 }
 
 // ─────────────────────────────────────────
+// SHARED: "Browse ready-made projects" note
+// Framed as helpful info, not an ad — appears at the bottom of
+// student-facing delivery/correction emails.
+// ─────────────────────────────────────────
+function browseProjectsNote(): string {
+  return `
+    <div class="divider"></div>
+    <p class="text" style="font-size:.82rem;">
+      Know someone working on their own project? iProjectMaster also has a library of
+      <a href="https://www.iprojectmaster.com/" style="color:#0369A1;font-weight:700;text-decoration:none;">ready-made project topics</a>
+      across hundreds of departments — a useful starting point for research direction and structure.
+    </p>`;
+}
+
+// ─────────────────────────────────────────
 // EMAIL TYPES
 // ─────────────────────────────────────────
 
@@ -74,6 +89,7 @@ export async function sendChapterDeliveredEmail(opts: {
       <a href="${APP}/student/downloads" class="btn">⬇ Download My Chapter →</a>
       <div class="divider"></div>
       ${correctionSection}
+      ${browseProjectsNote()}
     `),
   });
 }
@@ -91,6 +107,7 @@ export async function sendCorrectionReadyEmail(opts: {
       <div class="highlight">${opts.topic}</div>
       <p class="text">has been completed. The corrected version is now available in your Downloads.</p>
       <a href="${APP}/student/dashboard" class="btn">Download Corrected Chapter →</a>
+      ${browseProjectsNote()}
     `),
   });
 }
