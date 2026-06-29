@@ -136,6 +136,9 @@ export async function GET(req: NextRequest) {
         writerNotes:        ch.writerNotes,
         correctionNotes:    ch.correctionNotes,
         qcEscalationNotes:  (ch as any).qcEscalationNotes || null,
+        supervisorNotesUrl: ch.adminNotes?.startsWith("supervisor_notes:")
+          ? ch.adminNotes.replace("supervisor_notes:", "")
+          : null,
         // Dates
         createdAt:          ch.createdAt,
         submittedAt:        ch.submittedAt,
