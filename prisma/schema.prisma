@@ -347,6 +347,7 @@ model Order {
   currency              String  @default("NGN")
   flutterwaveReference  String?
   flutterwaveStatus     String?
+  linaFollowedUpAt      DateTime?
 
   // Status
   status              OrderStatus @default(PENDING_PAYMENT)
@@ -516,6 +517,7 @@ model PendingChapterRequest {
   confirmedAt      DateTime?
   confirmedById    String?
   createdAt        DateTime  @default(now())
+  linaFollowedUpAt DateTime?
 }
 model CorrectionRotationState {
   id                String   @id @default("singleton")
