@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { WhatsAppWidget } from "@/components/WhatsAppWidget";
 
 const C = {
   wrap:  { minHeight:"100vh", background:"#F0F9FF", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem", fontFamily:"'DM Sans',sans-serif" },
@@ -74,6 +75,11 @@ function RegisterForm() {
   return (
     <div style={C.wrap}>
       <div style={C.box}>
+        <div style={{ textAlign:"center", marginBottom:"1.25rem" }}>
+          <div style={{ fontSize:"1.05rem", fontWeight:700, color:"#0C1A2E", lineHeight:1.4 }}>
+            Register now to hire an expert writer.
+          </div>
+        </div>
         <div style={C.logo}>
           <div style={C.lname}>iProject<span style={C.lspan}>Master</span></div>
           <div style={C.lsub}>Create your student account</div>
@@ -96,6 +102,7 @@ function RegisterForm() {
           </div>
         </div>
       </div>
+      <WhatsAppWidget message="Hi Lina, I need help creating my iProjectMaster account." />
     </div>
   );
 }
