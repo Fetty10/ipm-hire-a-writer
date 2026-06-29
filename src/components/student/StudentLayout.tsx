@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { WhatsAppWidget } from "@/components/WhatsAppWidget";
 
 const S = {
   wrap:    { display:"flex", minHeight:"100vh", background:"#F0F9FF", fontFamily:"'DM Sans',sans-serif" } as React.CSSProperties,
@@ -85,6 +86,8 @@ export function StudentLayout({ children, badges = {} }: { children:React.ReactN
           .ipm-sidebar.open { transform: translateX(0) !important; }
         }
       `}</style>
+
+      <WhatsAppWidget message="Hi Lina, I need help with my order on the Hire a Writer dashboard." />
     </div>
   );
 }
