@@ -348,6 +348,7 @@ model Order {
   flutterwaveReference  String?
   flutterwaveStatus     String?
   linaFollowedUpAt      DateTime?
+  linaFollowUpCount Int @default(0)
 
   // Status
   status              OrderStatus @default(PENDING_PAYMENT)
@@ -518,6 +519,7 @@ model PendingChapterRequest {
   confirmedById    String?
   createdAt        DateTime  @default(now())
   linaFollowedUpAt DateTime?
+  linaFollowUpCount Int @default(0)
 }
 model CorrectionRotationState {
   id                String   @id @default("singleton")
