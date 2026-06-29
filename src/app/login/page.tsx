@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
+import { WhatsAppWidget } from "@/components/WhatsAppWidget";
 
 function StudentLoginForm() {
   const router       = useRouter();
@@ -38,6 +39,13 @@ function StudentLoginForm() {
   return (
     <div style={{ minHeight:"100vh", background:"#F0F9FF", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem", fontFamily:"'DM Sans',sans-serif" }}>
       <div style={{ width:"100%", maxWidth:"420px" }}>
+
+        {/* Marketing headline */}
+        <div style={{ textAlign:"center", marginBottom:"1.25rem" }}>
+          <div style={{ fontSize:"1.05rem", fontWeight:700, color:"#0C1A2E", lineHeight:1.4 }}>
+            Login to hire an expert writer or see the progress of your work.
+          </div>
+        </div>
 
         {/* Logo */}
         <div style={{ textAlign:"center", marginBottom:"2rem" }}>
@@ -100,6 +108,7 @@ function StudentLoginForm() {
           </div>
         </div>
       </div>
+      <WhatsAppWidget message="Hi Lina, I'm having trouble logging in to my iProjectMaster account." />
     </div>
   );
 }
