@@ -70,13 +70,15 @@ export async function GET(req: NextRequest) {
   }
 
   // ── List fetch ──────────────────────────────────────────────
-  const status  = searchParams.get("status") as OrderStatus | "all" | null;
-  const search  = searchParams.get("search") || "";
-  const page    = parseInt(searchParams.get("page") || "1");
-  const perPage = 20;
+  const status   = searchParams.get("status") as OrderStatus | "all" | null;
+  const search   = searchParams.get("search") || "";
+  const clientId = searchParams.get("clientId") || "";
+  const page     = parseInt(searchParams.get("page") || "1");
+  const perPage  = 20;
 
   const where: any = {};
   if (status && status !== "all") where.status = status;
+  if (clientId) where.clientId = clientId;
   if (search) {
     where.OR = [
       { topic:              { contains: search, mode: "insensitive" } },
