@@ -10,6 +10,7 @@ const NAV = [
   { label: "All Orders",    icon: "📦", href: "/admin/orders",               section: "Overview"  },
   { label: "Approvals",     icon: "⏳", href: "/admin/staff/approvals",      section: "Staff"     },
   { label: "All Staff",     icon: "👥", href: "/admin/staff/list",           section: "Staff"     },
+  { label: "Students",      icon: "🎓", href: "/admin/students",             section: "Staff"     },
   { label: "Withdrawals",   icon: "💸", href: "/admin/withdrawals",          section: "Staff"     },
   { label: "Pay Rates",     icon: "💰", href: "/admin/settings/payrates",       section: "Settings"  },
   { label: "Plans & Pricing",icon:"💳", href: "/admin/settings/plans",          section: "Settings"  },
