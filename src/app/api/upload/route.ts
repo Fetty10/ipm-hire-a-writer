@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import {
   uploadToCloudinary,
   ALLOWED_MIME_TYPES,
+  ADMIN_LEGACY_MIME_TYPES,
   MAX_FILE_SIZE_BYTES,
   type UploadFolder,
 } from "@/lib/upload";
@@ -19,12 +20,14 @@ const ROLE_FOLDERS: Record<Role, UploadFolder[]> = {
   [Role.WRITER]:     ["chapters/submitted", "staff/cv", "staff/samples"],
   [Role.ANALYST]:    ["chapters/submitted", "staff/cv", "staff/samples"],
   [Role.QC]:         ["chapters/qc-cleared", "chapters/corrections", "staff/cv", "staff/samples"],
-  [Role.SUB_ADMIN]:  ["chapters/delivered"],
-  [Role.MAIN_ADMIN]: ["chapters/delivered"],
+  [Role.SUB_ADMIN]:  ["chapters/delivered", "admin/legacy-files"],
+  [Role.MAIN_ADMIN]: ["chapters/delivered", "admin/legacy-files"],
 };
 
 // Folders where images and audio are also allowed (corrections evidence)
 const RICH_MEDIA_FOLDERS = ["orders/corrections", "orders/supervisor-notes"];
+// Admin legacy folder accepts a much broader range of file types
+const ADMIN_LEGACY_FOLDER = "admin/legacy-files";
 
 const RICH_MEDIA_MIME_TYPES = [
   // Images
@@ -59,17 +62,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Allow images + audio for rich media folders, else PDF/Word only
+  // Allow images + audio for rich media folders, broader types for admin legacy
   const isRichFolder   = RICH_MEDIA_FOLDERS.includes(folder);
-  const allowedTypes   = isRichFolder
-    ? [...ALLOWED_MIME_TYPES, ...RICH_MEDIA_MIME_TYPES]
-    : ALLOWED_MIME_TYPES;
+  const isAdminLegacy  = folder === ADMIN_LEGACY_FOLDER;
+  const allowedTypes   = isAdminLegacy
+    ? ADMIN_LEGACY_MIME_TYPES
+    : isRichFolder
+      ? [...ALLOWED_MIME_TYPES, ...RICH_MEDIA_MIME_TYPES]
+      : ALLOWED_MIME_TYPES;
 
   if (!allowedTypes.includes(file.type)) {
     return NextResponse.json(
-      { error: isRichFolder
-          ? "Allowed: PDF, Word, images (JPG/PNG/GIF/WebP) and voice notes (MP3/M4A/WAV/OGG)."
-          : "Only PDF and Word (.docx) files are allowed." },
+      { error: isAdminLegacy
+          ? "Allowed: PDF, Word, Excel, PowerPoint, images (JPG/PNG/WebP), text files and ZIP archives."
+          : isRichFolder
+            ? "Allowed: PDF, Word, images (JPG/PNG/GIF/WebP) and voice notes (MP3/M4A/WAV/OGG)."
+            : "Only PDF and Word (.docx) files are allowed." },
       { status: 400 }
     );
   }
