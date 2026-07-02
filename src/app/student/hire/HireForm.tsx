@@ -298,10 +298,23 @@ export default function HireAWriter() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error); return; }
+      if (!res.ok) {
+        toast.error(data.error || "Something went wrong. Please try again.");
+        // Don't reset bankPending here — keep button disabled so student
+        // can't accidentally double-submit. They must close and reopen the modal.
+        setBankPending(false);
+        setShowBankModal(false); // close modal on error, forcing a fresh attempt
+        return;
+      }
       setBankDone({ reference: data.reference, amountNaira: data.amountNaira });
-    } catch { toast.error("Something went wrong. Please try again."); }
-    finally { setBankPending(false); }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+      setBankPending(false);
+      setShowBankModal(false);
+    } finally {
+      // Note: setBankPending(false) is handled in each branch above
+      // so it's NOT reset here automatically on error paths
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
