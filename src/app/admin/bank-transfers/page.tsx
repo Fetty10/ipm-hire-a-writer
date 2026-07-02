@@ -122,29 +122,21 @@ export default function AdminBankTransfers() {
   }
 
   async function deleteOrder(orderId: string, topic: string) {
-    toast((t) => (
-      <span style={{display:"flex",flexDirection:"column" as const,gap:".5rem",fontSize:".82rem"}}>
-        <span>⚠️ Delete <strong>"{topic}"</strong>?</span>
-        <span style={{fontSize:".75rem",color:"#5B7EA6"}}>Use this for unpaid/duplicate orders only. This cannot be undone.</span>
-        <div style={{display:"flex",gap:".5rem"}}>
-          <button style={{background:"#991B1B",color:"#fff",border:"none",padding:"5px 12px",borderRadius:"6px",cursor:"pointer",fontWeight:700}}
-            onClick={async()=>{
-              toast.dismiss(t.id);
-              setActing(orderId);
-              const res = await fetch("/api/admin/orders", {
-                method:"DELETE", headers:{"Content-Type":"application/json"},
-                body: JSON.stringify({ orderId }),
-              });
-              const data = await res.json();
-              if (res.ok) { toast.success("Order deleted."); loadOrders(); }
-              else toast.error(data.error || "Something went wrong");
-              setActing(null);
-            }}>Yes, Delete Order</button>
-          <button style={{background:"#F1F5F9",border:"none",padding:"5px 12px",borderRadius:"6px",cursor:"pointer"}}
-            onClick={()=>toast.dismiss(t.id)}>Cancel</button>
-        </div>
-      </span>
-    ), {duration:15000});
+    if (!window.confirm(`Delete "${topic}"?\n\nThis permanently removes the order from the system. Only use this for unpaid or duplicate orders. This cannot be undone.`)) return;
+    setActing(orderId);
+    try {
+      const res  = await fetch("/api/admin/orders", {
+        method: "DELETE", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      if (res.ok) { toast.success("Order deleted."); loadOrders(); }
+      else toast.error(data.error || "Something went wrong.");
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setActing(null);
+    }
   }
 
   async function saveAccount() {
