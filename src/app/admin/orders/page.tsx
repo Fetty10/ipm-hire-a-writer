@@ -341,6 +341,24 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
                 ✕ Cancel Order
               </button>
             )}
+            {["PENDING_PAYMENT","CANCELLED"].includes(order.status) && (
+              <button style={{ ...C.btnSm, background:"#7F1D1D", color:"#fff", padding:".5rem 1rem" }}
+                disabled={saving==="delete_order"}
+                onClick={async () => {
+                  if (!window.confirm(`Permanently delete "${order.topic}"?\n\nThis removes the order and all related data. Use only for unpaid or duplicate orders.`)) return;
+                  setSaving("delete_order");
+                  const res  = await fetch("/api/admin/orders", {
+                    method:"DELETE", headers:{"Content-Type":"application/json"},
+                    body: JSON.stringify({ orderId: order.id }),
+                  });
+                  const data = await res.json();
+                  if (res.ok) { toast.success("Order deleted."); onClose(); }
+                  else toast.error(data.error || "Something went wrong.");
+                  setSaving(null);
+                }}>
+                {saving==="delete_order" ? "Deleting..." : "🗑 Delete Order"}
+              </button>
+            )}
           </div>
         </div>
       </div>
