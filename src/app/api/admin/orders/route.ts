@@ -420,3 +420,51 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json({ error: "Unknown action." }, { status: 400 });
 }
+
+// ── DELETE — Admin removes an unpaid/duplicate order permanently ──
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || ![Role.MAIN_ADMIN, Role.SUB_ADMIN].includes(session.user.role as any)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { orderId } = await req.json();
+  if (!orderId) return NextResponse.json({ error: "orderId required." }, { status: 400 });
+
+  const order = await prisma.order.findUnique({
+    where:  { id: orderId },
+    select: { id: true, status: true, topic: true },
+  });
+
+  if (!order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
+
+  // Safety — only allow deleting orders that haven't been paid/confirmed yet
+  // to prevent accidentally removing real active orders
+  if (!["PENDING_PAYMENT", "CANCELLED"].includes(order.status)) {
+    return NextResponse.json({
+      error: "Only unpaid or cancelled orders can be deleted. This order is already active.",
+    }, { status: 403 });
+  }
+
+  // Delete in cascade order
+  const chapterIds = (await prisma.orderChapter.findMany({
+    where:  { orderId },
+    select: { id: true },
+  })).map(c => c.id);
+
+  if (chapterIds.length > 0) {
+    await (prisma as any).correctionHistory.deleteMany({
+      where: { orderChapterId: { in: chapterIds } },
+    });
+  }
+
+  await (prisma as any).pendingChapterRequest.deleteMany({ where: { orderId } });
+  await prisma.orderChapter.deleteMany({ where: { orderId } });
+  await prisma.notification.deleteMany({ where: { orderId } });
+  await prisma.order.delete({ where: { id: orderId } });
+
+  return NextResponse.json({
+    success: true,
+    message: `Order "${order.topic}" has been permanently deleted.`,
+  });
+}
