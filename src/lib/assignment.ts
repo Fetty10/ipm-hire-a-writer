@@ -3,7 +3,7 @@
 // Called after Paystack payment webhook confirms a payment
 
 import { prisma } from "@/lib/prisma";
-import { sendChapterDeliveredEmail, sendJobAssignedEmail, sendQCCheckAssignedEmail, sendPrelimReadyEmail } from "@/lib/email";
+import { sendChapterDeliveredEmail, sendJobAssignedEmail, sendQCCheckAssignedEmail, sendPrelimReadyEmail, sendLegacyCorrectionDeliveredEmail } from "@/lib/email";
 import { AssigneeRole, ChapterStatus, DegreeGroup, Role } from "@prisma/client";
 
 // ─────────────────────────────────────────────────────────────
@@ -509,16 +509,30 @@ export async function deliverChapterToClient(
     },
   });
 
-  // Send delivery email to student
+  // Send delivery email — legacy clients (lodged by admin) get a direct
+  // download link in their email so they don't need to find their dashboard.
+  // All other clients get the standard dashboard link.
+  const isLegacy = !!(chapter.order as any).adminNote?.includes("Legacy correction");
+
   try {
-    await sendChapterDeliveredEmail({
-      to:           chapter.order.client.email,
-      name:         chapter.order.client.name,
-      topic:        chapter.order.topic,
-      chapterLabel: chapter.chapterLabel,
-      orderId:      chapter.order.id,
-      planName:     chapter.order.plan.planName,
-    });
+    if (isLegacy) {
+      await sendLegacyCorrectionDeliveredEmail({
+        to:           chapter.order.client.email,
+        name:         chapter.order.client.name,
+        topic:        chapter.order.topic,
+        chapterLabel: chapter.chapterLabel,
+        fileUrl:      deliveredFileUrl,
+      });
+    } else {
+      await sendChapterDeliveredEmail({
+        to:           chapter.order.client.email,
+        name:         chapter.order.client.name,
+        topic:        chapter.order.topic,
+        chapterLabel: chapter.chapterLabel,
+        orderId:      chapter.order.id,
+        planName:     chapter.order.plan.planName,
+      });
+    }
   } catch (err) {
     console.error("[EMAIL] Failed to send chapter delivered email:", err);
   }
