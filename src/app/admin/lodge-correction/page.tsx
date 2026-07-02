@@ -128,8 +128,8 @@ export default function AdminLodgeCorrection() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.studentName || !form.topic || !form.chapterLabel || !form.degreeGroup || !form.correctionRequest) {
-      toast.error("Please fill all required fields.");
+    if (!form.studentName || !form.studentEmail || !form.topic || !form.chapterLabel || !form.degreeGroup || !form.correctionRequest) {
+      toast.error("Please fill all required fields including client email.");
       return;
     }
     const pending = files.filter(f => !f.done && !f.err);
@@ -184,6 +184,16 @@ export default function AdminLodgeCorrection() {
             <div style={C.sIcon}>✅</div>
             <div style={C.sTitle}>Correction Lodged Successfully</div>
             <div style={C.sSub}>{done.message}</div>
+            {done.accountCreated && (
+              <div style={{marginTop:".75rem",fontSize:".78rem",color:"#15803D",background:"#DCFCE7",borderRadius:"8px",padding:".6rem 1rem"}}>
+                📧 Account created — login credentials emailed to client. They'll also receive the corrected file directly by email once QC is done.
+              </div>
+            )}
+            {!done.accountCreated && (
+              <div style={{marginTop:".75rem",fontSize:".78rem",color:"#0369A1",background:"#E0F2FE",borderRadius:"8px",padding:".6rem 1rem"}}>
+                ℹ️ Existing account found — correction assigned. Client will be emailed when it's ready.
+              </div>
+            )}
             <button onClick={reset}
               style={{marginTop:"1rem",padding:".6rem 1.25rem",borderRadius:"10px",background:"#0C1A2E",color:"#38BDF8",fontWeight:700,border:"none",cursor:"pointer",fontSize:".83rem"}}>
               Lodge Another →
@@ -201,9 +211,9 @@ export default function AdminLodgeCorrection() {
               </div>
               <div style={C.grid}>
                 <div style={C.fg}>
-                  <label style={C.lbl}>Client Email <span style={{color:"#5B7EA6",fontWeight:400}}>(optional)</span></label>
-                  <input style={C.inp} type="email" value={form.studentEmail} onChange={e=>upd("studentEmail",e.target.value)} placeholder="john@email.com" />
-                  <div style={C.hint}>Links to existing account if found</div>
+                  <label style={C.lbl}>Client Email <span style={{color:"#EF4444"}}>*</span></label>
+                  <input style={C.inp} type="email" value={form.studentEmail} onChange={e=>upd("studentEmail",e.target.value)} placeholder="john@email.com" required />
+                  <div style={C.hint}>Login credentials will be emailed here. Corrected work will also be sent to this address.</div>
                 </div>
                 <div style={C.fg}>
                   <label style={C.lbl}>WhatsApp Number <span style={{color:"#5B7EA6",fontWeight:400}}>(optional)</span></label>
