@@ -16,6 +16,27 @@ export const ALLOWED_MIME_TYPES = [
   "application/msword",
 ];
 
+export const ADMIN_LEGACY_MIME_TYPES = [
+  // Documents
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
+  // Images
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/heic",
+  // Archives
+  "application/zip",
+  "application/x-zip-compressed",
+];
+
 export const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
 
 export type UploadFolder =
@@ -27,7 +48,8 @@ export type UploadFolder =
   | "staff/samples"
   | "orders/guidelines"
   | "orders/supervisor-notes"
-  | "orders/corrections";
+  | "orders/corrections"
+  | "admin/legacy-files";
 
 export interface UploadResult {
   url:       string;
