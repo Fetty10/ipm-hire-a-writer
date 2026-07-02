@@ -31,6 +31,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Topic and degree group are required." }, { status: 400 });
     }
 
+    // ── Duplicate submission guard ────────────────────────────
+    // If this student already has a PENDING_PAYMENT bank transfer order
+    // for the same topic created within the last 10 minutes, block the
+    // second submission — it was almost certainly an accidental retry.
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const duplicate = await prisma.order.findFirst({
+      where: {
+        clientId:      session.user.id,
+        status:        "PENDING_PAYMENT",
+        paymentMethod: "BANK_TRANSFER",
+        topic:         topic.trim(),
+        createdAt:     { gte: tenMinutesAgo },
+      } as any,
+    });
+    if (duplicate) {
+      return NextResponse.json({
+        error: "You already have a pending bank transfer for this order. Please use the reference you already received, or wait a few minutes before trying again.",
+        existingOrderId: duplicate.id,
+      }, { status: 409 });
+    }
+
     const isProjectService = planId && planId !== "flat";
     console.log("[BT] isProjectService:", isProjectService, "planId:", planId);
 
