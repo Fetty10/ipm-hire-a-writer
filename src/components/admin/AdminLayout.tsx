@@ -8,6 +8,7 @@ import { clsx } from "clsx";
 const NAV = [
   { label: "Overview",      icon: "📊", href: "/admin/dashboard",           section: "Overview"  },
   { label: "All Orders",    icon: "📦", href: "/admin/orders",               section: "Overview"  },
+  { label: "Lodge Correction",icon:"🔧",href: "/admin/lodge-correction",    section: "Overview"  },
   { label: "Approvals",     icon: "⏳", href: "/admin/staff/approvals",      section: "Staff"     },
   { label: "All Staff",     icon: "👥", href: "/admin/staff/list",           section: "Staff"     },
   { label: "Students",      icon: "🎓", href: "/admin/students",             section: "Staff"     },
