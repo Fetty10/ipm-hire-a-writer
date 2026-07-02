@@ -22,9 +22,8 @@ const PRELIM_REQUIRED_CHAPTER = 1;
 // FIND STAFF WITH FEWEST ACTIVE JOBS
 // ─────────────────────────────────────────────────────────────
 
-async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
+async function getStaffWithFewestJobs(role: Role, tiebreakSeed?: string): Promise<string | null> {
   // Get all approved, non-suspended staff of this role
-  // Order by createdAt so older staff get priority when counts are tied
   const staffList = await prisma.user.findMany({
     where: {
       role,
@@ -32,19 +31,20 @@ async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
       isSuspended: false,
     },
     select:  { id: true },
-    orderBy: { createdAt: "asc" }, // older staff first as tiebreaker
+    orderBy: { createdAt: "asc" }, // older staff first as base ordering
   });
 
   if (staffList.length === 0) return null;
+  if (staffList.length === 1) return staffList[0].id;
 
-  // Count active chapters per staff member (NOT_STARTED + IN_PROGRESS + SUBMITTED + QC_IN_PROGRESS)
+  // Count active chapters per staff member
+  // Include NOT_STARTED + IN_PROGRESS + PRELIM_SUBMITTED
   const activeCounts = await Promise.all(
     staffList.map(async (staff) => {
       const count = await prisma.orderChapter.count({
         where: {
           assignedToId: staff.id,
           status: {
-            // Only count jobs not yet delivered — once submitted, staff is free
             in: [
               ChapterStatus.NOT_STARTED,
               ChapterStatus.IN_PROGRESS,
@@ -60,9 +60,27 @@ async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
   // Sort ascending by count
   activeCounts.sort((a, b) => a.count - b.count);
 
-  // Among tied staff, pick randomly to avoid always picking oldest
   const minCount = activeCounts[0].count;
   const tied = activeCounts.filter(s => s.count === minCount);
+
+  if (tied.length === 1) return tied[0].id;
+
+  // If multiple writers are tied, use a deterministic but varied tiebreaker
+  // based on orderId (or current timestamp) so simultaneous orders that
+  // both see the same "fewest jobs" count still go to different writers.
+  // This avoids the race condition where two orders arrive before either
+  // chapter is written to the DB.
+  if (tiebreakSeed) {
+    // Use a simple hash of the seed to pick deterministically but spread evenly
+    let hash = 0;
+    for (let i = 0; i < tiebreakSeed.length; i++) {
+      hash = ((hash << 5) - hash) + tiebreakSeed.charCodeAt(i);
+      hash |= 0;
+    }
+    return tied[Math.abs(hash) % tied.length].id;
+  }
+
+  // No seed — fall back to random
   return tied[Math.floor(Math.random() * tied.length)].id;
 }
 
@@ -83,18 +101,17 @@ async function isExceptionDepartment(department: string): Promise<boolean> {
 // ─────────────────────────────────────────────────────────────
 // QC-SPECIFIC WORKLOAD COUNTER
 // QC workload = chapters they have actively started (routedToQcId set, not yet cleared)
-export async function getQCWithFewestJobs(): Promise<string | null> {
+export async function getQCWithFewestJobs(tiebreakSeed?: string): Promise<string | null> {
   const staffList = await prisma.user.findMany({
     where:   { role: Role.QC, isApproved: true, isSuspended: false },
     select:  { id: true },
     orderBy: { createdAt: "asc" },
   });
   if (staffList.length === 0) return null;
+  if (staffList.length === 1) return staffList[0].id;
 
   const counts = await Promise.all(
     staffList.map(async (staff) => {
-      // Count only jobs not yet cleared — QC_IN_PROGRESS means still working
-      // QC_DONE and DELIVERED mean cleared — don't count those
       const count = await prisma.orderChapter.count({
         where: {
           routedToQcId: staff.id,
@@ -105,10 +122,21 @@ export async function getQCWithFewestJobs(): Promise<string | null> {
     })
   );
 
-  // Sort ascending, random tiebreak
   counts.sort((a, b) => a.count - b.count);
   const minCount = counts[0].count;
   const tied = counts.filter(c => c.count === minCount);
+
+  if (tied.length === 1) return tied[0].id;
+
+  if (tiebreakSeed) {
+    let hash = 0;
+    for (let i = 0; i < tiebreakSeed.length; i++) {
+      hash = ((hash << 5) - hash) + tiebreakSeed.charCodeAt(i);
+      hash |= 0;
+    }
+    return tied[Math.abs(hash) % tied.length].id;
+  }
+
   return tied[Math.floor(Math.random() * tied.length)].id;
 }
 
@@ -242,8 +270,18 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   }
 
   // ── Find best staff for each role ────────────────────────
-  const writerId  = await getStaffWithFewestJobs(Role.WRITER);
-  const analystId = isException ? null : await getStaffWithFewestJobs(Role.ANALYST);
+  // Pass orderId as a tiebreak seed so simultaneous orders that see
+  // identical job counts still get distributed to different staff.
+  const writerId = await getStaffWithFewestJobs(Role.WRITER, orderId);
+
+  // Only fetch an analyst for project orders that actually have analyst
+  // chapters (Ch 3 & 4). Flat/other services and exception departments
+  // never need an analyst — fetching one here caused false notifications.
+  const needsAnalyst = !isException && isProjectService &&
+    ANALYST_CHAPTERS.some(n => requestedNums.includes(n));
+  const analystId = needsAnalyst
+    ? await getStaffWithFewestJobs(Role.ANALYST, orderId)
+    : null;
 
   // ── Create OrderChapter records ──────────────────────────
   for (const ch of chaptersToCreate) {
@@ -292,7 +330,9 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
     notified.add(writerId);
   }
 
-  if (analystId && !notified.has(analystId)) {
+  const analystHasChapters = chaptersToCreate.some(ch => ch.role === Role.ANALYST);
+
+  if (analystId && analystHasChapters && !notified.has(analystId)) {
     const analyst = await prisma.user.findUnique({ where: { id: analystId }, select: { email: true, name: true } });
     await prisma.notification.create({
       data: {
@@ -369,7 +409,7 @@ export async function routeChapterToQC(chapterId: string): Promise<void> {
   });
 
   // Use dedicated QC for this department, otherwise pick by fewest jobs
-  const qcUserId = (exceptionDept?.dedicatedQcId) || await getQCWithFewestJobs();
+  const qcUserId = (exceptionDept?.dedicatedQcId) || await getQCWithFewestJobs(chapterId);
   if (!qcUserId) return; // no QC available
 
   const checks: string[] = [];
