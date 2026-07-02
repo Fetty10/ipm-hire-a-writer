@@ -112,7 +112,51 @@ export async function sendCorrectionReadyEmail(opts: {
   });
 }
 
-/** Staff: new job assigned */
+/** Legacy client: account created when admin lodges a correction — send credentials */
+export async function sendLegacyAccountCreatedEmail(opts: {
+  to: string; name: string; tempPassword: string; topic: string;
+}) {
+  await resend.emails.send({
+    from: FROM, to: opts.to,
+    subject: `Your iProjectMaster account is ready — ${opts.topic.slice(0,50)}`,
+    html: wrap(`
+      <div class="title">Your Correction is Being Processed</div>
+      <p class="text">Hi ${opts.name}, we've received your correction request for:</p>
+      <div class="highlight">${opts.topic}</div>
+      <p class="text">Our QC team is working on it. We'll email you directly with your corrected file once it's ready — no action needed from you right now.</p>
+      <div class="divider"></div>
+      <p class="text" style="font-size:.82rem;">We've also created an account for you so you can track progress and download your work at any time:</p>
+      <table style="width:100%;font-size:.82rem;border-collapse:collapse;margin:.75rem 0;background:#F8FCFF;border-radius:8px;padding:.75rem;">
+        <tr><td style="padding:.4rem .75rem;color:#5B7EA6;width:120px;">Login Email</td><td style="padding:.4rem .75rem;font-weight:700;">${opts.to}</td></tr>
+        <tr><td style="padding:.4rem .75rem;color:#5B7EA6;">Password</td><td style="padding:.4rem .75rem;font-weight:700;font-family:monospace;">${opts.tempPassword}</td></tr>
+      </table>
+      <a href="${APP}/login" class="btn" style="background:#F0F9FF;color:#0369A1;border:1.5px solid #38BDF8;">Login to Dashboard →</a>
+      <p class="text" style="font-size:.75rem;color:#5B7EA6;margin-top:.75rem;">Please change your password after logging in. If you did not request this, please ignore this email.</p>
+    `),
+  });
+}
+
+/** Legacy client: QC has delivered — send file link directly so they don't need to log in */
+export async function sendLegacyCorrectionDeliveredEmail(opts: {
+  to: string; name: string; topic: string; chapterLabel: string; fileUrl: string;
+}) {
+  await resend.emails.send({
+    from: FROM, to: opts.to,
+    subject: `✅ Your corrected work is ready — ${opts.topic.slice(0,60)}`,
+    html: wrap(`
+      <div class="title">Your Correction is Ready!</div>
+      <p class="text">Hi ${opts.name}, great news! The correction for <strong>${opts.chapterLabel}</strong> on:</p>
+      <div class="highlight">${opts.topic}</div>
+      <p class="text">has been completed. Click the button below to download your corrected work directly:</p>
+      <a href="${opts.fileUrl}" class="btn">⬇ Download Corrected Work →</a>
+      <div class="divider"></div>
+      <p class="text" style="font-size:.82rem;">You can also log in to your dashboard at any time to access all your files:</p>
+      <a href="${APP}/student/downloads" class="btn" style="background:#F0F9FF;color:#0369A1;border:1.5px solid #38BDF8;font-size:.82rem;">Go to My Downloads →</a>
+      ${browseProjectsNote()}
+    `),
+  });
+}
+
 export async function sendJobAssignedEmail(opts: {
   to: string; name: string; role: string; topic: string; chapterLabel: string; department?: string;
 }) {
