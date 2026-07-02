@@ -121,6 +121,32 @@ export default function AdminBankTransfers() {
     setActing(null);
   }
 
+  async function deleteOrder(orderId: string, topic: string) {
+    toast((t) => (
+      <span style={{display:"flex",flexDirection:"column" as const,gap:".5rem",fontSize:".82rem"}}>
+        <span>⚠️ Delete <strong>"{topic}"</strong>?</span>
+        <span style={{fontSize:".75rem",color:"#5B7EA6"}}>Use this for unpaid/duplicate orders only. This cannot be undone.</span>
+        <div style={{display:"flex",gap:".5rem"}}>
+          <button style={{background:"#991B1B",color:"#fff",border:"none",padding:"5px 12px",borderRadius:"6px",cursor:"pointer",fontWeight:700}}
+            onClick={async()=>{
+              toast.dismiss(t.id);
+              setActing(orderId);
+              const res = await fetch("/api/admin/orders", {
+                method:"DELETE", headers:{"Content-Type":"application/json"},
+                body: JSON.stringify({ orderId }),
+              });
+              const data = await res.json();
+              if (res.ok) { toast.success("Order deleted."); loadOrders(); }
+              else toast.error(data.error || "Something went wrong");
+              setActing(null);
+            }}>Yes, Delete Order</button>
+          <button style={{background:"#F1F5F9",border:"none",padding:"5px 12px",borderRadius:"6px",cursor:"pointer"}}
+            onClick={()=>toast.dismiss(t.id)}>Cancel</button>
+        </div>
+      </span>
+    ), {duration:15000});
+  }
+
   async function saveAccount() {
     if (!acct.accountName || !acct.accountNumber || !acct.bankName) {
       toast.error("All fields are required."); return;
@@ -234,9 +260,14 @@ export default function AdminBankTransfers() {
                     <div style={C.meta}>{o.paidAt ? new Date(o.paidAt).toLocaleDateString("en-NG") : "Not paid yet"}</div>
                   </div>
                   {tab === "pending" ? (
-                    <button style={C.btnG} disabled={acting===o.id} onClick={()=>confirm(o.id)}>
-                      {acting===o.id ? "Confirming..." : "✓ Confirm Payment"}
-                    </button>
+                    <div style={{display:"flex",flexDirection:"column" as const,gap:".4rem",alignItems:"flex-end"}}>
+                      <button style={C.btnG} disabled={acting===o.id} onClick={()=>confirm(o.id)}>
+                        {acting===o.id ? "Confirming..." : "✓ Confirm Payment"}
+                      </button>
+                      <button style={C.btnR} disabled={acting===o.id} onClick={()=>deleteOrder(o.id, o.topic)}>
+                        🗑 Delete Order
+                      </button>
+                    </div>
                   ) : (
                     <span style={{fontSize:".75rem",color:"#065F46",fontWeight:700}}>✅ Confirmed</span>
                   )}
