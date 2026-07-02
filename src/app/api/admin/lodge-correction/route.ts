@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { ChapterStatus, Role } from "@prisma/client";
 import { Resend } from "resend";
 import { getNextQCForCorrectionRoundRobin } from "@/lib/assignment";
+import { sendLegacyAccountCreatedEmail } from "@/lib/email";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 const FROM   = "iProjectMaster <noreply@hire.iprojectmaster.com>";
@@ -53,24 +54,51 @@ export async function POST(req: NextRequest) {
   });
   if (!qc) return NextResponse.json({ error: "QC assignment failed." }, { status: 500 });
 
-  // ── Find or create a placeholder student account ─────────
-  let student = studentEmail
+  // ── Create student account (always) ──────────────────────
+  // For legacy clients — generate a readable temp password and email
+  // credentials so they can log in and track/download their work.
+  // If they already have an account with this email, reuse it.
+  const bcrypt = await import("bcryptjs");
+
+  // Generate a readable temp password: word + 4 digits
+  const words = ["Project","Correct","Quality","Study","Review","Writer","Master"];
+  const tempPassword = words[Math.floor(Math.random()*words.length)] + Math.floor(1000+Math.random()*9000);
+  const hash = await bcrypt.hash(tempPassword, 10);
+
+  let student = studentEmail?.trim()
     ? await prisma.user.findFirst({ where: { email: studentEmail.trim(), role: Role.CLIENT } })
     : null;
 
+  let isNewAccount = false;
   if (!student) {
-    const bcrypt = await import("bcryptjs");
-    const hash   = await bcrypt.hash(Math.random().toString(36), 10);
+    if (!studentEmail?.trim()) {
+      return NextResponse.json({
+        error: "Client email is required so we can send them their login credentials and the corrected work.",
+      }, { status: 400 });
+    }
     student = await prisma.user.create({
       data: {
         name:       studentName.trim(),
-        email:      studentEmail?.trim() || `legacy+${Date.now()}@iprojectmaster.com`,
+        email:      studentEmail.trim(),
         phone:      studentPhone?.trim() || null,
         password:   hash,
         role:       Role.CLIENT,
         isApproved: true,
       } as any,
     });
+    isNewAccount = true;
+  }
+
+  // ── Send welcome email with credentials (new accounts only) ─
+  if (isNewAccount) {
+    try {
+      await sendLegacyAccountCreatedEmail({
+        to:           student.email,
+        name:         student.name,
+        tempPassword: tempPassword,
+        topic:        topic.trim(),
+      });
+    } catch (e) { console.error("[EMAIL] Legacy account created:", e); }
   }
 
   // ── Placeholder plan ──────────────────────────────────────
@@ -148,10 +176,11 @@ export async function POST(req: NextRequest) {
   } catch (e) { console.error("[EMAIL] Lodge correction QC notify:", e); }
 
   return NextResponse.json({
-    success:   true,
-    message:   `Correction lodged and assigned to ${qc.name}.`,
+    success:    true,
+    message:    `Correction lodged and assigned to ${qc.name}. ${isNewAccount ? `Account created and credentials emailed to ${student.email}.` : `Existing account found for ${student.email}.`}`,
     assignedTo: qc.name,
-    orderId:   order.id,
-    chapterId: chapter.id,
+    orderId:    order.id,
+    chapterId:  chapter.id,
+    accountCreated: isNewAccount,
   });
 }
