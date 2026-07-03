@@ -379,7 +379,7 @@ function AdminOrdersContent() {
   const [staffList,setStaffList]= useState<any[]>([]);
 
   useEffect(() => {
-    fetch("/api/admin/staff?filter=approved")
+    fetch("/api/admin/staff?filter=active")
       .then(r => r.json())
       .then(d => { if (d.success) setStaffList(d.data); });
   }, []);
