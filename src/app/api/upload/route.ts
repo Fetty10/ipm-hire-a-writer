@@ -1,5 +1,7 @@
 export const dynamic = "force-dynamic";
 // src/app/api/upload/route.ts
+// Note: Vercel's default body size limit is 4.5MB.
+// We override this via next.config.js — see project root.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -20,8 +22,8 @@ const ROLE_FOLDERS: Record<Role, UploadFolder[]> = {
   [Role.WRITER]:     ["chapters/submitted", "staff/cv", "staff/samples"],
   [Role.ANALYST]:    ["chapters/submitted", "staff/cv", "staff/samples"],
   [Role.QC]:         ["chapters/qc-cleared", "chapters/corrections", "staff/cv", "staff/samples"],
-  [Role.SUB_ADMIN]:  ["chapters/delivered", "admin/legacy-files"],
-  [Role.MAIN_ADMIN]: ["chapters/delivered", "admin/legacy-files"],
+  [Role.SUB_ADMIN]:  ["chapters/delivered", "admin/legacy-files", "orders/guidelines"],
+  [Role.MAIN_ADMIN]: ["chapters/delivered", "admin/legacy-files", "orders/guidelines"],
 };
 
 // Folders where images and audio are also allowed (corrections evidence)
