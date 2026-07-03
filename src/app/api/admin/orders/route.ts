@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
         chapters: {
           select: {
             id: true, chapterLabel: true, chapterNumber: true, status: true,
-            assignedToId: true, assigneeRole: true,
+            assignedToId: true, assigneeRole: true, routedToQcId: true,
             assignedTo: { select: { id: true, name: true, role: true } },
           },
           orderBy: { chapterNumber: "asc" },
@@ -107,6 +107,15 @@ export async function GET(req: NextRequest) {
     }),
     prisma.order.count({ where }),
   ]);
+
+  // Resolve QC names for list view (routedToQcId has no Prisma relation)
+  const allQcIds = [...new Set(
+    orders.flatMap(o => o.chapters.map((ch: any) => ch.routedToQcId).filter(Boolean))
+  )] as string[];
+  const allQcUsers = allQcIds.length > 0
+    ? await prisma.user.findMany({ where: { id: { in: allQcIds } }, select: { id: true, name: true } })
+    : [];
+  const allQcMap = Object.fromEntries(allQcUsers.map(u => [u.id, u.name]));
 
   return NextResponse.json({
     success: true,
@@ -120,7 +129,10 @@ export async function GET(req: NextRequest) {
         requiresAiCheck: o.requiresAiCheck,
         student: o.client,
         client:  o.client,
-        chapters: o.chapters,
+        chapters: o.chapters.map((ch: any) => ({
+          ...ch,
+          qcName: ch.routedToQcId ? (allQcMap[ch.routedToQcId] || "Unknown") : null,
+        })),
         createdAt: o.createdAt, paidAt: o.paidAt,
         paymentMethod:         (o as any).paymentMethod || "PAYSTACK",
         bankTransferReference: (o as any).bankTransferReference || null,
