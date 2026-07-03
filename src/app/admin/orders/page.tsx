@@ -277,9 +277,9 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
               {reassign === ch.id && (
                 <div style={{ marginTop:".6rem", paddingTop:".6rem", borderTop:"1px dashed #BAE6FD" }}>
                   <select style={C.staffSel} value={newStaff} onChange={e => setNewStaff(e.target.value)}>
-                    <option value="">-- Select staff member --</option>
-                    {staffList.filter(s => ["WRITER","ANALYST"].includes(s.role)).map((s: any) => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                    <option value="">-- Select {ch.assigneeRole === "ANALYST" ? "Analyst" : "Writer"} --</option>
+                    {(ch.assigneeRole === "ANALYST" ? analystList : writerList).map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
                   <button style={{ ...C.btnSm, ...C.btnG }}
@@ -297,7 +297,7 @@ function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:
                   </p>
                   <select style={C.staffSel} value={newQcStaff} onChange={e => setNewQcStaff(e.target.value)}>
                     <option value="">-- Select QC staff --</option>
-                    {staffList.filter(s => s.role === "QC").map((s: any) => (
+                    {qcList.map((s: any) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
@@ -376,12 +376,20 @@ function AdminOrdersContent() {
   const [search,   setSearch]   = useState(searchParams.get("search")||"");
   const [status,   setStatus]   = useState(searchParams.get("status")||"all");
   const [selected, setSelected] = useState<string|null>(null);
-  const [staffList,setStaffList]= useState<any[]>([]);
+  const [writerList,  setWriterList]  = useState<any[]>([]);
+  const [analystList, setAnalystList] = useState<any[]>([]);
+  const [qcList,      setQcList]      = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("/api/admin/staff?filter=active")
-      .then(r => r.json())
-      .then(d => { if (d.success) setStaffList(d.data); });
+    Promise.all([
+      fetch("/api/admin/staff?role=WRITER&filter=active").then(r=>r.json()),
+      fetch("/api/admin/staff?role=ANALYST&filter=active").then(r=>r.json()),
+      fetch("/api/admin/staff?role=QC&filter=active").then(r=>r.json()),
+    ]).then(([w, a, q]) => {
+      if (w.success) setWriterList(w.data || []);
+      if (a.success) setAnalystList(a.data || []);
+      if (q.success) setQcList(q.data || []);
+    });
   }, []);
 
   useEffect(() => { setPage(1); }, [status, search]);
