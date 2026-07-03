@@ -22,7 +22,7 @@ const PRELIM_REQUIRED_CHAPTER = 1;
 // FIND STAFF WITH FEWEST ACTIVE JOBS
 // ─────────────────────────────────────────────────────────────
 
-async function getStaffWithFewestJobs(role: Role, tiebreakSeed?: string): Promise<string | null> {
+async function getStaffWithFewestJobs(role: Role): Promise<string | null> {
   // Get all approved, non-suspended staff of this role
   const staffList = await prisma.user.findMany({
     where: {
@@ -31,14 +31,13 @@ async function getStaffWithFewestJobs(role: Role, tiebreakSeed?: string): Promis
       isSuspended: false,
     },
     select:  { id: true },
-    orderBy: { createdAt: "asc" }, // older staff first as base ordering
+    orderBy: { createdAt: "asc" }, // consistent ordering is critical for rotation
   });
 
   if (staffList.length === 0) return null;
   if (staffList.length === 1) return staffList[0].id;
 
   // Count active chapters per staff member
-  // Include NOT_STARTED + IN_PROGRESS + PRELIM_SUBMITTED
   const activeCounts = await Promise.all(
     staffList.map(async (staff) => {
       const count = await prisma.orderChapter.count({
@@ -63,25 +62,38 @@ async function getStaffWithFewestJobs(role: Role, tiebreakSeed?: string): Promis
   const minCount = activeCounts[0].count;
   const tied = activeCounts.filter(s => s.count === minCount);
 
+  // Only one writer has the fewest — pick them directly
   if (tied.length === 1) return tied[0].id;
 
-  // If multiple writers are tied, use a deterministic but varied tiebreaker
-  // based on orderId (or current timestamp) so simultaneous orders that
-  // both see the same "fewest jobs" count still go to different writers.
-  // This avoids the race condition where two orders arrive before either
-  // chapter is written to the DB.
-  if (tiebreakSeed) {
-    // Use a simple hash of the seed to pick deterministically but spread evenly
-    let hash = 0;
-    for (let i = 0; i < tiebreakSeed.length; i++) {
-      hash = ((hash << 5) - hash) + tiebreakSeed.charCodeAt(i);
-      hash |= 0;
+  // Multiple writers tied — use persistent round-robin rotation so the
+  // same writer is never picked twice in a row when counts are equal.
+  // This is stored in the DB so it survives across separate requests.
+  const stateTable = role === Role.WRITER ? "writerRotationState" : "analystRotationState";
+  const lastKey    = role === Role.WRITER ? "lastAssignedWriterId" : "lastAssignedAnalystId";
+
+  const state = await (prisma as any)[stateTable]?.findUnique({ where: { id: "singleton" } }).catch(() => null);
+  const lastId = state?.[lastKey];
+
+  let nextIndex = 0;
+  if (lastId) {
+    const lastIndexInTied = tied.findIndex(s => s.id === lastId);
+    if (lastIndexInTied !== -1) {
+      nextIndex = (lastIndexInTied + 1) % tied.length;
     }
-    return tied[Math.abs(hash) % tied.length].id;
   }
 
-  // No seed — fall back to random
-  return tied[Math.floor(Math.random() * tied.length)].id;
+  const nextId = tied[nextIndex].id;
+
+  // Persist the rotation pointer for next order
+  try {
+    await (prisma as any)[stateTable]?.upsert({
+      where:  { id: "singleton" },
+      update: { [lastKey]: nextId, updatedAt: new Date() },
+      create: { id: "singleton", [lastKey]: nextId },
+    });
+  } catch { /* non-critical — rotation still works even if persist fails */ }
+
+  return nextId;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -272,15 +284,12 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   // ── Find best staff for each role ────────────────────────
   // Pass orderId as a tiebreak seed so simultaneous orders that see
   // identical job counts still get distributed to different staff.
-  const writerId = await getStaffWithFewestJobs(Role.WRITER, orderId);
+  const writerId = await getStaffWithFewestJobs(Role.WRITER);
 
-  // Only fetch an analyst for project orders that actually have analyst
-  // chapters (Ch 3 & 4). Flat/other services and exception departments
-  // never need an analyst — fetching one here caused false notifications.
   const needsAnalyst = !isException && isProjectService &&
     ANALYST_CHAPTERS.some(n => requestedNums.includes(n));
   const analystId = needsAnalyst
-    ? await getStaffWithFewestJobs(Role.ANALYST, orderId)
+    ? await getStaffWithFewestJobs(Role.ANALYST)
     : null;
 
   // ── Create OrderChapter records ──────────────────────────
