@@ -3,7 +3,7 @@
 // Floating WhatsApp chat bubble — links straight to Lina on WhatsApp.
 // Drop this into any layout/page where students might need quick help.
 
-const WHATSAPP_NUMBER = "2347051452411";
+const WHATSAPP_NUMBER = "2348132926373";
 const DEFAULT_MESSAGE = "Hi Lina, I need help with my order on iProjectMaster.";
 
 export function WhatsAppWidget({ message }: { message?: string }) {
