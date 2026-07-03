@@ -81,7 +81,7 @@ function StatusBadge({ status }: { status: string }) {
   return <span style={{ ...C.badge, ...s }}>{(status||"").replace(/_/g," ")}</span>;
 }
 
-function OrderDetail({ orderId, onClose, staffList }: { orderId:string, onClose:()=>void, staffList:any[] }) {
+function OrderDetail({ orderId, onClose, writerList, analystList, qcList }: { orderId:string, onClose:()=>void, writerList:any[], analystList:any[], qcList:any[] }) {
   const [order,    setOrder]    = useState<any>(null);
   const [loading,  setLoading]  = useState(true);
   const [note,     setNote]     = useState("");
@@ -481,7 +481,9 @@ function AdminOrdersContent() {
         <OrderDetail
           orderId={selected}
           onClose={() => setSelected(null)}
-          staffList={staffList}
+          writerList={writerList}
+          analystList={analystList}
+          qcList={qcList}
         />
       )}
     </AdminLayout>
