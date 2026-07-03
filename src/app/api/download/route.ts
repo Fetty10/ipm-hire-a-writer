@@ -60,6 +60,8 @@ export async function GET(req: NextRequest) {
   const chapterLabel = isProjectService ? chapter.chapterLabel : null;
 
   const downloadName = buildFileName(chapter.order.topic, chapterLabel, ext);
+  const asciiName    = downloadName.replace(/[^\x00-\x7F]/g, "_");
+  const encodedName  = encodeURIComponent(downloadName);
 
   const mimeMap: Record<string,string> = {
     pdf:  "application/pdf",
@@ -70,7 +72,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(arrayBuffer, {
     headers: {
       "Content-Type":        mimeMap[ext] || "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${downloadName.replace(/"/g,"")}"`,
+      "Content-Disposition": `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
     },
   });
 }
