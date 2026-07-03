@@ -543,3 +543,14 @@ model CorrectionHistory {
   resolvedAt     DateTime @default(now())
   resolvedById   String?
 }
+model WriterRotationState {
+  id                   String   @id @default("singleton")
+  lastAssignedWriterId String?
+  updatedAt            DateTime @updatedAt
+}
+
+model AnalystRotationState {
+  id                    String   @id @default("singleton")
+  lastAssignedAnalystId String?
+  updatedAt             DateTime @updatedAt
+}
