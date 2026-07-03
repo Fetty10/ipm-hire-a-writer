@@ -94,7 +94,8 @@ export async function GET(req: NextRequest) {
   }
 
   const arrayBuffer = await fileRes.arrayBuffer();
-  const cleanLabel  = label.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  const cleanLabel  = label.replace(/_/g, " ").replace(/\s+/g, " ").trim()
+    .replace(/[^\x00-\x7F]/g, ""); // strip non-ASCII chars (e.g. curly quotes)
   const downloadName = `${cleanLabel}.${ext}`.slice(0, 200);
 
   return new NextResponse(arrayBuffer, {
