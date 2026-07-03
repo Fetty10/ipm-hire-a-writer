@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
         department:       department?.trim() || "Not specified",
         degreeGroup,
         serviceType:      "HIRE_WRITER",
-        status:           "ACTIVE",
+        status:           "IN_PROGRESS",
         guidelineFileUrl: guidelineFileUrl || null,
         adminNote:        `Legacy correction lodged by admin ${session.user.name} on ${new Date().toLocaleDateString("en-NG")}`,
       } as any,
