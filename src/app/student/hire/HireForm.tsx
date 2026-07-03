@@ -605,12 +605,17 @@ export default function HireAWriter() {
                       if(!file) return;
                       if(file.size>20*1024*1024){toast.error("Max 20MB per file");return;}
                       setUploadingGuide(true);
-                      const fd=new FormData(); fd.append("file",file); fd.append("folder","orders/guidelines");
-                      const res=await fetch("/api/upload",{method:"POST",body:fd});
-                      const data=await res.json();
-                      if(res.ok) setGuidelineUrls(prev=>[...prev,{url:data.url,name:file.name}]);
-                      else toast.error(data.error||"Upload failed");
-                      setUploadingGuide(false);
+                      try {
+                        const fd=new FormData(); fd.append("file",file); fd.append("folder","orders/guidelines");
+                        const res=await fetch("/api/upload",{method:"POST",body:fd});
+                        const data=await res.json();
+                        if(res.ok) setGuidelineUrls(prev=>[...prev,{url:data.url,name:file.name}]);
+                        else toast.error(data.error||"Upload failed. Please try again.");
+                      } catch {
+                        toast.error("Upload failed — please check your connection and try again.");
+                      } finally {
+                        setUploadingGuide(false);
+                      }
                     };
                     inp.click();
                   }}
