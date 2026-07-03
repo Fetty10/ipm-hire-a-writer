@@ -97,9 +97,8 @@ function OrderDetail({ orderId, onClose, writerList, analystList, qcList }: { or
     try {
       const fd = new FormData();
       fd.append("file", file);
-      // Use admin/legacy-files folder since admin already has access to it
-      fd.append("folder", "admin/legacy-files");
-      const res  = await fetch("/api/upload", { method:"POST", body:fd });
+      // Use dedicated admin upload endpoint — no folder restriction issues
+      const res  = await fetch("/api/admin/upload", { method:"POST", body:fd });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || "Upload failed."); return; }
       const existing = order?.guidelineFileUrl ? order.guidelineFileUrl.split(",").map((u:string) => u.trim()).filter(Boolean) : [];
