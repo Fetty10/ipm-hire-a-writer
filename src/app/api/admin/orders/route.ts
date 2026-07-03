@@ -222,7 +222,15 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, message: "Chapter reassigned." });
   }
 
-  // ── Reassign a QC check/correction to a different QC staff member ──
+  // ── Update guideline file URL ─────────────────────────────
+  if (action === "update_guideline") {
+    const { guidelineFileUrl } = body;
+    await prisma.order.update({
+      where: { id: orderId },
+      data:  { guidelineFileUrl: guidelineFileUrl || null } as any,
+    });
+    return NextResponse.json({ success: true, message: "Guideline updated." });
+  }
   // Used when the originally assigned QC is unresponsive — admin can
   // hand the job to someone else without disturbing the chapter's status
   // (it stays QC_IN_PROGRESS) and resets qcStartedAt so it lands fresh
