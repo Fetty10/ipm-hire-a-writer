@@ -11,6 +11,7 @@ import { ChapterStatus, Role } from "@prisma/client";
 import { Resend } from "resend";
 import { getNextQCForCorrectionRoundRobin } from "@/lib/assignment";
 import { sendLegacyAccountCreatedEmail } from "@/lib/email";
+import bcrypt from "bcryptjs";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 const FROM   = "iProjectMaster <noreply@hire.iprojectmaster.com>";
@@ -55,12 +56,6 @@ export async function POST(req: NextRequest) {
   if (!qc) return NextResponse.json({ error: "QC assignment failed." }, { status: 500 });
 
   // ── Create student account (always) ──────────────────────
-  // For legacy clients — generate a readable temp password and email
-  // credentials so they can log in and track/download their work.
-  // If they already have an account with this email, reuse it.
-  const bcrypt = await import("bcryptjs");
-
-  // Generate a readable temp password: word + 4 digits
   const words = ["Project","Correct","Quality","Study","Review","Writer","Master"];
   const tempPassword = words[Math.floor(Math.random()*words.length)] + Math.floor(1000+Math.random()*9000);
   const hash = await bcrypt.hash(tempPassword, 10);
