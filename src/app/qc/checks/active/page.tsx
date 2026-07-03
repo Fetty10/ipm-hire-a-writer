@@ -77,12 +77,17 @@ export default function QCChecksActive() {
   async function handleUpload(jobId:string, file:File) {
     if (file.size > 20*1024*1024) { toast.error("Max 20MB"); return; }
     upd(jobId,"uploading",true);
-    const fd = new FormData(); fd.append("file",file); fd.append("folder","chapters/qc-cleared");
-    const res  = await fetch("/api/upload",{method:"POST",body:fd});
-    const data = await res.json();
-    if (res.ok) { upd(jobId,"fileUrl",data.url); upd(jobId,"fileName",data.fileName); }
-    else toast.error(data.error||"Upload failed" || "Something went wrong");
-    upd(jobId,"uploading",false);
+    try {
+      const fd = new FormData(); fd.append("file",file); fd.append("folder","chapters/qc-cleared");
+      const res  = await fetch("/api/upload",{method:"POST",body:fd});
+      const data = await res.json();
+      if (res.ok) { upd(jobId,"fileUrl",data.url); upd(jobId,"fileName",data.fileName); }
+      else toast.error(data.error||"Upload failed. Please try again.");
+    } catch {
+      toast.error("Upload failed — please check your connection and try again.");
+    } finally {
+      upd(jobId,"uploading",false);
+    }
   }
 
   async function handleClear(job:any) {
