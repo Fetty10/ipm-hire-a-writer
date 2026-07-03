@@ -133,9 +133,12 @@ export default function HireAWriter() {
   const isBasicPlan     = isProject && !!planId && selectedPlan?.planName === "BASIC";
 
   // Check if typed department matches any exception course (fuzzy)
-  const isExceptionDept = isProject && department.trim().length > 0 && exceptionCourses.some(exc => {
+  const isExceptionDept = isProject && department.trim().length >= 3 && exceptionCourses.some(exc => {
     const dept = department.toLowerCase().trim();
-    return dept.includes(exc) || exc.includes(dept);
+    const excLower = exc.toLowerCase();
+    // Only match if the department contains the exception course name (not vice versa)
+    // This prevents partial typing (e.g. "L") from matching "Law"
+    return dept.includes(excLower);
   });
 
   // Filter plans — exception departments only show Professional/PhD Professional
