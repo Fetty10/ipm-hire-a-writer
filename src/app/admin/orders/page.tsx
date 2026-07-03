@@ -90,6 +90,36 @@ function OrderDetail({ orderId, onClose, writerList, analystList, qcList }: { or
   const [newStaff, setNewStaff] = useState("");
   const [reassignQc, setReassignQc] = useState<string|null>(null);
   const [newQcStaff, setNewQcStaff] = useState("");
+  const [uploadingGuide, setUploadingGuide] = useState(false);
+
+  async function uploadGuideline(file: File) {
+    setUploadingGuide(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "orders/guidelines");
+      const res  = await fetch("/api/upload", { method:"POST", body:fd });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Upload failed."); return; }
+      const existing = order?.guidelineFileUrl ? order.guidelineFileUrl.split(",").map((u:string) => u.trim()).filter(Boolean) : [];
+      const updated  = [...existing, data.url].join(",");
+      const saveRes  = await fetch("/api/admin/orders", {
+        method:"PATCH", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ orderId, action:"update_guideline", guidelineFileUrl: updated }),
+      });
+      const saveData = await saveRes.json();
+      if (saveRes.ok) { toast.success("Guideline uploaded and saved."); load(); }
+      else toast.error(saveData.error || "Failed to save.");
+    } catch { toast.error("Upload failed — please try again."); }
+    finally { setUploadingGuide(false); }
+  }
+
+  function triggerGuidelineUpload() {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = ".pdf,.doc,.docx,.jpg,.jpeg,.png,.zip";
+    inp.onchange = (e) => { const f=(e.target as HTMLInputElement).files?.[0]; if(f) uploadGuideline(f); };
+    inp.click();
+  }
 
   async function load() {
     setLoading(true);
@@ -185,9 +215,17 @@ function OrderDetail({ orderId, onClose, writerList, analystList, qcList }: { or
         )}
 
         {/* Student's uploaded guideline files */}
-        {order.guidelineFileUrl && (
-          <div style={C.sect}>
-            <span style={C.sl}>Student's Uploaded Guideline{order.guidelineFileUrl.split(",").length>1?"s":""}</span>
+        <div style={C.sect}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:".5rem"}}>
+            <span style={C.sl}>Student's Uploaded Guideline{order.guidelineFileUrl && order.guidelineFileUrl.split(",").length>1?"s":""}</span>
+            <button
+              disabled={uploadingGuide}
+              onClick={triggerGuidelineUpload}
+              style={{padding:".35rem .75rem",borderRadius:"8px",background:"#F0F9FF",border:"1.5px solid #BAE6FD",color:"#0369A1",fontSize:".72rem",fontWeight:700,cursor:"pointer"}}>
+              {uploadingGuide ? "Uploading..." : "＋ Add File"}
+            </button>
+          </div>
+          {order.guidelineFileUrl ? (
             <div style={{display:"flex",flexDirection:"column" as const,gap:".4rem"}}>
               {order.guidelineFileUrl.split(",").map((u:string,i:number,arr:string[]) => (
                 <a key={i}
@@ -198,8 +236,10 @@ function OrderDetail({ orderId, onClose, writerList, analystList, qcList }: { or
                 </a>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <p style={{fontSize:".78rem",color:"#5B7EA6",fontStyle:"italic"}}>No guideline uploaded by student — use the button above to add one.</p>
+          )}
+        </div>
 
         {/* Chapters */}
         <div style={C.sect}>
