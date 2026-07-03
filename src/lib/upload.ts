@@ -100,7 +100,8 @@ export async function uploadToCloudinary(
 ): Promise<UploadResult> {
   const ext = mimeType ? mimeToExt(mimeType, fileName) : (fileName.split(".").pop()?.toLowerCase() || "bin");
   const baseName = sanitizeFileName(fileName);
-  const publicIdWithExt = `${baseName}.${ext}`;
+  const timestamp = Date.now();
+  const publicIdWithExt = `${baseName}_${timestamp}.${ext}`;
 
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -108,9 +109,11 @@ export async function uploadToCloudinary(
         folder,
         public_id:       publicIdWithExt,
         resource_type:   "raw",
-        use_filename:    false, // we set public_id explicitly with extension
-        unique_filename: true,
-        access_mode:     "authenticated",
+        use_filename:    false,
+        unique_filename: false,
+        // access_mode "public" — security comes from the randomised public_id,
+        // not Cloudinary's access control (which blocks raw .docx on some plans)
+        access_mode:     "public",
       },
       (error, result) => {
         if (error || !result) {
