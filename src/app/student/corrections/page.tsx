@@ -86,16 +86,21 @@ export default function StudentCorrections() {
     if(attachments.length>=10){ toast.error("Max 10 files."); return; }
     if(file.size>20*1024*1024){ toast.error("Max 20MB per file."); return; }
     setUploading(true);
-    const fd=new FormData(); fd.append("file",file); fd.append("folder","orders/corrections");
-    const res  = await fetch("/api/upload",{method:"POST",body:fd});
-    const data = await res.json();
-    if(res.ok){
-      const isImg   = file.type.startsWith("image/");
-      const isAudio = file.type.startsWith("audio/") || file.type === "video/webm";
-      const type    = isImg ? "image" : isAudio ? "audio" : "doc";
-      setAttachments(prev=>[...prev,{url:data.url,name:file.name,type}]);
-    } else toast.error(data.error||"Upload failed");
-    setUploading(false);
+    try {
+      const fd=new FormData(); fd.append("file",file); fd.append("folder","orders/corrections");
+      const res  = await fetch("/api/upload",{method:"POST",body:fd});
+      const data = await res.json();
+      if(res.ok){
+        const isImg   = file.type.startsWith("image/");
+        const isAudio = file.type.startsWith("audio/") || file.type === "video/webm";
+        const type    = isImg ? "image" : isAudio ? "audio" : "doc";
+        setAttachments(prev=>[...prev,{url:data.url,name:file.name,type}]);
+      } else toast.error(data.error||"Upload failed");
+    } catch {
+      toast.error("Upload failed — please check your connection and try again.");
+    } finally {
+      setUploading(false);
+    }
   }
   function openPicker(){
     const inp=document.createElement("input"); inp.type="file"; inp.multiple=true;
