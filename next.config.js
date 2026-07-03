@@ -10,6 +10,10 @@ const nextConfig = {
   images: {
     domains: ["res.cloudinary.com"],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "25mb",
+    },
+  },
 };
-
 module.exports = nextConfig;
