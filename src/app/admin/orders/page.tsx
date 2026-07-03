@@ -214,8 +214,12 @@ function OrderDetail({ orderId, onClose, writerList, analystList, qcList }: { or
                     {ch.isUrgent && <span style={{marginLeft:".5rem",fontSize:".65rem",fontWeight:800,color:"#991B1B",background:"#FEE2E2",padding:"1px 8px",borderRadius:"999px"}}>🚨 URGENT</span>}
                   </div>
                   <div style={C.chStaff}>
-                    {ch.assignedTo ? `${ch.assignedTo.name} (${ch.assignedTo.role})` : "Unassigned"}
-                    {ch.routedToQcId && ch.qcName ? ` → QC: ${ch.qcName}` : ""}
+                    {ch.assignedTo
+                      ? `${ch.assignedTo.name} (${ch.assignedTo.role})`
+                      : ch.qcName
+                        ? `QC: ${ch.qcName}`
+                        : "Unassigned"}
+                    {ch.assignedTo && ch.routedToQcId && ch.qcName ? ` → QC: ${ch.qcName}` : ""}
                   </div>
                 </div>
                 <StatusBadge status={ch.status} />
@@ -434,6 +438,14 @@ function AdminOrdersContent() {
               const writerNames = [...new Set(
                 o.chapters?.map((ch: any) => ch.assignedTo?.name).filter(Boolean)
               )] as string[];
+              const qcNames = [...new Set(
+                o.chapters?.map((ch: any) => !ch.assignedTo && ch.qcName ? `QC: ${ch.qcName}` : null).filter(Boolean)
+              )] as string[];
+              const staffDisplay = writerNames.length > 0
+                ? writerNames.join(", ")
+                : qcNames.length > 0
+                  ? qcNames.join(", ")
+                  : "Unassigned";
               const delivered = o.chapters?.filter((ch: any) => ch.status === "DELIVERED").length || 0;
               const total     = o.chapters?.length || 0;
               return (
@@ -449,7 +461,7 @@ function AdminOrdersContent() {
                     </div>
                     <div>
                       <div style={{ fontSize:".78rem", fontWeight:600, color:"#0C1A2E" }}>
-                        {writerNames.length > 0 ? writerNames.join(", ") : "Unassigned"}
+                        {staffDisplay}
                       </div>
                       <div style={C.rmeta}>{delivered}/{total} chapters delivered</div>
                     </div>
