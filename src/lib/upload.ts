@@ -1,112 +1,163 @@
-export const dynamic = "force-dynamic";
-// src/app/api/upload/route.ts
-// Note: Vercel's default body size limit is 4.5MB.
-// We override this via next.config.js — see project root.
+// src/lib/upload.ts
+// Cloudinary file upload helper for writer/analyst/QC chapter submissions
+// Accepts PDF and DOCX only, max 20MB
 
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import {
-  uploadToCloudinary,
-  ALLOWED_MIME_TYPES,
-  ADMIN_LEGACY_MIME_TYPES,
-  MAX_FILE_SIZE_BYTES,
-  type UploadFolder,
-} from "@/lib/upload";
-import { Role } from "@prisma/client";
+import { v2 as cloudinary } from "cloudinary";
 
-const PUBLIC_FOLDERS: UploadFolder[] = ["staff/cv", "staff/samples"];
+cloudinary.config({
+  cloud_name:  process.env.CLOUDINARY_CLOUD_NAME!,
+  api_key:     process.env.CLOUDINARY_API_KEY!,
+  api_secret:  process.env.CLOUDINARY_API_SECRET!,
+});
 
-const ROLE_FOLDERS: Record<Role, UploadFolder[]> = {
-  [Role.CLIENT]:     ["orders/guidelines", "orders/supervisor-notes", "orders/corrections"],
-  [Role.WRITER]:     ["chapters/submitted", "staff/cv", "staff/samples"],
-  [Role.ANALYST]:    ["chapters/submitted", "staff/cv", "staff/samples"],
-  [Role.QC]:         ["chapters/qc-cleared", "chapters/corrections", "staff/cv", "staff/samples"],
-  [Role.SUB_ADMIN]:  ["chapters/delivered", "admin/legacy-files", "orders/guidelines"],
-  [Role.MAIN_ADMIN]: ["chapters/delivered", "admin/legacy-files", "orders/guidelines"],
-};
-
-// Folders where images and audio are also allowed (corrections evidence)
-const RICH_MEDIA_FOLDERS = ["orders/corrections", "orders/supervisor-notes"];
-// Admin legacy folder accepts a much broader range of file types
-const ADMIN_LEGACY_FOLDER = "admin/legacy-files";
-
-const RICH_MEDIA_MIME_TYPES = [
-  // Images
-  "image/jpeg", "image/png", "image/gif", "image/webp",
-  // Audio / voice notes
-  "audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg",
-  "audio/aac", "audio/webm", "video/webm",
+export const ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
 ];
 
-export async function POST(req: NextRequest) {
-  const formData = await req.formData();
-  const file     = formData.get("file") as File | null;
-  const folder   = formData.get("folder") as UploadFolder | null;
+export const ADMIN_LEGACY_MIME_TYPES = [
+  // Documents
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
+  // Images
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/heic",
+  // Archives
+  "application/zip",
+  "application/x-zip-compressed",
+];
 
-  if (!file || !folder) {
-    return NextResponse.json({ error: "File and folder are required." }, { status: 400 });
-  }
+export const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
 
-  const isPublicFolder = PUBLIC_FOLDERS.includes(folder);
+export type UploadFolder =
+  | "chapters/submitted"
+  | "chapters/qc-cleared"
+  | "chapters/delivered"
+  | "chapters/corrections"
+  | "staff/cv"
+  | "staff/samples"
+  | "orders/guidelines"
+  | "orders/supervisor-notes"
+  | "orders/corrections"
+  | "admin/legacy-files";
 
-  if (!isPublicFolder) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const allowed = ROLE_FOLDERS[session.user.role] || [];
-    if (!allowed.includes(folder)) {
-      return NextResponse.json(
-        { error: "You are not allowed to upload to this folder." },
-        { status: 403 }
-      );
-    }
-  }
+export interface UploadResult {
+  url:       string;
+  publicId:  string;
+  fileName:  string;
+  sizeBytes: number;
+  format:    string;
+}
 
-  // Allow images + audio for rich media folders, broader types for admin legacy
-  const isRichFolder   = RICH_MEDIA_FOLDERS.includes(folder);
-  const isAdminLegacy  = folder === ADMIN_LEGACY_FOLDER;
-  const allowedTypes   = isAdminLegacy
-    ? ADMIN_LEGACY_MIME_TYPES
-    : isRichFolder
-      ? [...ALLOWED_MIME_TYPES, ...RICH_MEDIA_MIME_TYPES]
-      : ALLOWED_MIME_TYPES;
+/**
+ * Map a MIME type to its correct file extension.
+ * Critical: Cloudinary's "raw" resource type needs the extension preserved
+ * in the public_id so the served URL has the right extension, otherwise
+ * browsers default to text/plain when downloading.
+ */
+function mimeToExt(mime: string, originalName: string): string {
+  const map: Record<string,string> = {
+    "application/pdf": "pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/msword": "doc",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "audio/mpeg": "mp3",
+    "audio/mp4": "m4a",
+    "audio/wav": "wav",
+    "audio/ogg": "ogg",
+    "audio/aac": "aac",
+    "audio/webm": "webm",
+    "video/webm": "webm",
+  };
+  if (map[mime]) return map[mime];
+  // Fallback: try to infer from original filename
+  const fromName = originalName.split(".").pop()?.toLowerCase();
+  return fromName || "bin";
+}
 
-  if (!allowedTypes.includes(file.type)) {
-    return NextResponse.json(
-      { error: isAdminLegacy
-          ? "Allowed: PDF, Word, Excel, PowerPoint, images (JPG/PNG/WebP), text files and ZIP archives."
-          : isRichFolder
-            ? "Allowed: PDF, Word, images (JPG/PNG/GIF/WebP) and voice notes (MP3/M4A/WAV/OGG)."
-            : "Only PDF and Word (.docx) files are allowed." },
-      { status: 400 }
+/**
+ * Upload a Buffer to Cloudinary, preserving the correct file extension
+ * so downloads always have the right type and open correctly.
+ */
+export async function uploadToCloudinary(
+  buffer:   Buffer,
+  fileName: string,
+  folder:   UploadFolder,
+  mimeType?: string
+): Promise<UploadResult> {
+  const ext = mimeType ? mimeToExt(mimeType, fileName) : (fileName.split(".").pop()?.toLowerCase() || "bin");
+  const baseName = sanitizeFileName(fileName);
+  const timestamp = Date.now();
+  const publicIdWithExt = `${baseName}_${timestamp}.${ext}`;
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        public_id:       publicIdWithExt,
+        resource_type:   "raw",
+        use_filename:    false,
+        unique_filename: false,
+        // access_mode "public" — security comes from the randomised public_id,
+        // not Cloudinary's access control (which blocks raw .docx on some plans)
+        access_mode:     "public",
+      },
+      (error, result) => {
+        if (error || !result) {
+          reject(error || new Error("Upload failed"));
+          return;
+        }
+        resolve({
+          url:       result.secure_url,
+          publicId:  result.public_id,
+          fileName,
+          sizeBytes: result.bytes,
+          format:    ext,
+        });
+      }
     );
-  }
+    uploadStream.end(buffer);
+  });
+}
 
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return NextResponse.json(
-      { error: "File size must not exceed 20MB." },
-      { status: 400 }
-    );
-  }
+/**
+ * Generate a short-lived signed URL for secure download with a custom
+ * display filename via Cloudinary's `fl_attachment` flag.
+ */
+export function generateSignedUrl(
+  publicId: string,
+  expiresInSeconds = 3600,
+  downloadFileName?: string
+): string {
+  return cloudinary.url(publicId, {
+    resource_type: "raw",
+    sign_url:      true,
+    expires_at:    Math.floor(Date.now() / 1000) + expiresInSeconds,
+    flags:         downloadFileName ? `attachment:${encodeURIComponent(downloadFileName)}` : "attachment",
+  });
+}
 
-  try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await uploadToCloudinary(buffer, file.name, folder, file.type);
+export async function deleteFromCloudinary(publicId: string): Promise<void> {
+  await cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
+}
 
-    return NextResponse.json({
-      success:  true,
-      url:      result.url,
-      publicId: result.publicId,
-      fileName: result.fileName,
-      size:     result.sizeBytes,
-    });
-  } catch (err) {
-    console.error("[UPLOAD ERROR]", err);
-    return NextResponse.json(
-      { error: "Upload failed. Please try again." },
-      { status: 500 }
-    );
-  }
+// ── Helpers ──────────────────────────────────────────────────
+function sanitizeFileName(name: string): string {
+  return name
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .slice(0, 60);
 }
