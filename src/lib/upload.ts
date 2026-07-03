@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const allowed = ROLE_FOLDERS[session.user.role] || [];
+    console.log("[UPLOAD] role:", session.user.role, "folder:", folder, "allowed:", allowed);
     if (!allowed.includes(folder)) {
       return NextResponse.json(
         { error: "You are not allowed to upload to this folder." },
