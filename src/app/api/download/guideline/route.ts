@@ -52,21 +52,37 @@ export async function GET(req: NextRequest) {
   let fileRes = await fetch(url);
 
   // Step 2 — if direct fetch fails (authenticated/restricted file), generate
-  // a signed URL using Cloudinary SDK and try again
+  // a signed URL using Cloudinary SDK and try again with both delivery types
   if (!fileRes.ok) {
+    console.log("[GUIDELINE DOWNLOAD] Direct fetch failed:", fileRes.status, url);
     try {
-      // Extract the public_id from the Cloudinary URL
-      // URL format: https://res.cloudinary.com/{cloud}/{resource_type}/upload/{version}/{folder/filename.ext}
       const match = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
       if (match) {
         const publicId = match[1].replace(/\.[^.]+$/, ""); // strip extension
-        const signedUrl = cloudinary.url(publicId, {
+        const expiresAt = Math.floor(Date.now() / 1000) + 300;
+
+        // Try authenticated type first (for files uploaded with access_mode:'authenticated')
+        const signedAuthUrl = cloudinary.url(publicId, {
           resource_type: "raw",
           type:          "authenticated",
           sign_url:      true,
-          expires_at:    Math.floor(Date.now() / 1000) + 300, // valid for 5 minutes
+          expires_at:    expiresAt,
         });
-        fileRes = await fetch(signedUrl);
+        console.log("[GUIDELINE DOWNLOAD] Trying signed authenticated URL");
+        fileRes = await fetch(signedAuthUrl);
+
+        // If that fails too, try upload type with sign
+        if (!fileRes.ok) {
+          console.log("[GUIDELINE DOWNLOAD] Authenticated failed:", fileRes.status, "trying upload type");
+          const signedUploadUrl = cloudinary.url(publicId, {
+            resource_type: "raw",
+            type:          "upload",
+            sign_url:      true,
+            expires_at:    expiresAt,
+          });
+          fileRes = await fetch(signedUploadUrl);
+          console.log("[GUIDELINE DOWNLOAD] Upload type result:", fileRes.status);
+        }
       }
     } catch (e) {
       console.error("[GUIDELINE DOWNLOAD] Signed URL generation failed:", e);
