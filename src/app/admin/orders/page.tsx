@@ -97,7 +97,8 @@ function OrderDetail({ orderId, onClose, writerList, analystList, qcList }: { or
     try {
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("folder", "orders/guidelines");
+      // Use admin/legacy-files folder since admin already has access to it
+      fd.append("folder", "admin/legacy-files");
       const res  = await fetch("/api/upload", { method:"POST", body:fd });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || "Upload failed."); return; }
