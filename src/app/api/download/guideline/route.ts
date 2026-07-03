@@ -94,14 +94,18 @@ export async function GET(req: NextRequest) {
   }
 
   const arrayBuffer = await fileRes.arrayBuffer();
-  const cleanLabel  = label.replace(/_/g, " ").replace(/\s+/g, " ").trim()
-    .replace(/[^\x00-\x7F]/g, ""); // strip non-ASCII chars (e.g. curly quotes)
+  const cleanLabel   = label.replace(/_/g, " ").replace(/\s+/g, " ").trim();
   const downloadName = `${cleanLabel}.${ext}`.slice(0, 200);
+  // Use RFC 5987 encoding for the filename so any Unicode character
+  // (curly quotes, em dashes, accented letters etc.) is safely handled.
+  // Falls back to ASCII-only for older clients via the plain filename= part.
+  const asciiName    = downloadName.replace(/[^\x00-\x7F]/g, "_");
+  const encodedName  = encodeURIComponent(downloadName);
 
   return new NextResponse(arrayBuffer, {
     headers: {
       "Content-Type":        mimeMap[ext] || "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${downloadName.replace(/"/g, "")}"`,
+      "Content-Disposition": `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
     },
   });
 }
