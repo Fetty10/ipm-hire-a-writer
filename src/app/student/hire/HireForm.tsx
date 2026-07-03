@@ -608,11 +608,12 @@ export default function HireAWriter() {
                       try {
                         const fd=new FormData(); fd.append("file",file); fd.append("folder","orders/guidelines");
                         const res=await fetch("/api/upload",{method:"POST",body:fd});
-                        const data=await res.json();
+                        let data: any = {};
+                        try { data = await res.json(); } catch { data = {}; }
                         if(res.ok) setGuidelineUrls(prev=>[...prev,{url:data.url,name:file.name}]);
-                        else toast.error(data.error||"Upload failed. Please try again.");
-                      } catch {
-                        toast.error("Upload failed — please check your connection and try again.");
+                        else toast.error(data.error || `Upload failed (${res.status}). Please try again.`);
+                      } catch (err: any) {
+                        toast.error("Upload failed — " + (err?.message || "please check your connection and try again."));
                       } finally {
                         setUploadingGuide(false);
                       }
