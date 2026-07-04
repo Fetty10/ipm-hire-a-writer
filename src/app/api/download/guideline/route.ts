@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 // src/app/api/download/guideline/route.ts
-// Proxies a guideline/supervisor-notes/corrections file download with a clean filename.
-// Handles both public and authenticated Cloudinary files.
+// Proxies guideline/supervisor-notes/corrections file downloads with the
+// original filename preserved — no custom labelling needed.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -24,11 +24,9 @@ const mimeMap: Record<string,string> = {
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   txt:  "text/plain",
   jpg:  "image/jpeg", jpeg: "image/jpeg",
-  png:  "image/png",
-  gif:  "image/gif",
-  webp: "image/webp",
+  png:  "image/png", gif: "image/gif", webp: "image/webp",
   mp3:  "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav",
-  ogg:  "audio/ogg",  aac: "audio/aac", webm: "audio/webm",
+  ogg:  "audio/ogg", aac: "audio/aac", webm: "audio/webm",
   zip:  "application/zip",
 };
 
@@ -37,70 +35,48 @@ export async function GET(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const url   = searchParams.get("url");
-  const label = searchParams.get("label") || "Guideline File";
-
+  const url = searchParams.get("url");
   if (!url) return NextResponse.json({ error: "url required" }, { status: 400 });
 
   if (!url.includes("cloudinary.com")) {
     return NextResponse.json({ error: "Invalid file source." }, { status: 400 });
   }
 
-  const ext = url.split(".").pop()?.split("?")[0]?.toLowerCase() || "docx";
+  // Extract original filename from Cloudinary URL
+  // URL format: .../upload/v123456/folder/Original_Filename_1234567890.pdf
+  // We strip the timestamp suffix added during upload to restore original name
+  const urlPath     = url.split("?")[0];
+  const ext         = urlPath.split(".").pop()?.toLowerCase() || "pdf";
+  const rawFilename = urlPath.split("/").pop() || "file";
+  // Strip the _TIMESTAMP suffix we add during upload (e.g. "My_Doc_1783077117353.pdf" → "My Doc.pdf")
+  const nameNoExt   = rawFilename.replace(/\.[^.]+$/, "");
+  const nameClean   = nameNoExt.replace(/_\d{13}$/, "").replace(/_/g, " ").trim();
+  const downloadName = `${nameClean}.${ext}`;
 
-  // Step 1 — try fetching the URL directly (works for public files)
+  // Try direct fetch first (works for public files)
   let fileRes = await fetch(url);
 
-  // Step 2 — if direct fetch fails (authenticated/restricted file), generate
-  // a signed URL using Cloudinary SDK and try again with both delivery types
+  // Fallback: generate signed URL for authenticated files (uploaded before our public mode fix)
   if (!fileRes.ok) {
-    console.log("[GUIDELINE DOWNLOAD] Direct fetch failed:", fileRes.status, url);
     try {
       const match = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
       if (match) {
-        const publicId = match[1].replace(/\.[^.]+$/, ""); // strip extension
+        const publicId  = match[1].replace(/\.[^.]+$/, "");
         const expiresAt = Math.floor(Date.now() / 1000) + 300;
-
-        // Try authenticated type first (for files uploaded with access_mode:'authenticated')
-        const signedAuthUrl = cloudinary.url(publicId, {
-          resource_type: "raw",
-          type:          "authenticated",
-          sign_url:      true,
-          expires_at:    expiresAt,
-        });
-        console.log("[GUIDELINE DOWNLOAD] Trying signed authenticated URL");
-        fileRes = await fetch(signedAuthUrl);
-
-        // If that fails too, try upload type with sign
+        fileRes = await fetch(cloudinary.url(publicId, { resource_type:"raw", type:"authenticated", sign_url:true, expires_at:expiresAt }));
         if (!fileRes.ok) {
-          console.log("[GUIDELINE DOWNLOAD] Authenticated failed:", fileRes.status, "trying upload type");
-          const signedUploadUrl = cloudinary.url(publicId, {
-            resource_type: "raw",
-            type:          "upload",
-            sign_url:      true,
-            expires_at:    expiresAt,
-          });
-          fileRes = await fetch(signedUploadUrl);
-          console.log("[GUIDELINE DOWNLOAD] Upload type result:", fileRes.status);
+          fileRes = await fetch(cloudinary.url(publicId, { resource_type:"raw", type:"upload", sign_url:true, expires_at:expiresAt }));
         }
       }
-    } catch (e) {
-      console.error("[GUIDELINE DOWNLOAD] Signed URL generation failed:", e);
-    }
+    } catch (e) { console.error("[GUIDELINE DOWNLOAD] Signed URL failed:", e); }
   }
 
-  if (!fileRes.ok) {
-    return NextResponse.json({ error: "Could not retrieve file." }, { status: 502 });
-  }
+  if (!fileRes.ok) return NextResponse.json({ error: "Could not retrieve file." }, { status: 502 });
 
   const arrayBuffer = await fileRes.arrayBuffer();
-  const cleanLabel   = label.replace(/_/g, " ").replace(/\s+/g, " ").trim();
-  const downloadName = `${cleanLabel}.${ext}`.slice(0, 200);
-  // Use RFC 5987 encoding for the filename so any Unicode character
-  // (curly quotes, em dashes, accented letters etc.) is safely handled.
-  // Falls back to ASCII-only for older clients via the plain filename= part.
-  const asciiName    = downloadName.replace(/[^\x00-\x7F]/g, "_");
-  const encodedName  = encodeURIComponent(downloadName);
+  // RFC 5987 encoding handles any Unicode characters safely
+  const asciiName   = downloadName.replace(/[^\x00-\x7F]/g, "_");
+  const encodedName = encodeURIComponent(downloadName);
 
   return new NextResponse(arrayBuffer, {
     headers: {
