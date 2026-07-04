@@ -1,5 +1,6 @@
 "use client";
-// src/app/student/hire/page.tsx
+// src/app/student/hire/HireForm.tsx
+// Exported as HireForm for use on the register page, and as default HireAWriter for the student dashboard
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -10,7 +11,13 @@ import toast from "react-hot-toast";
 interface Plan { id:string; planName:string; degreeGroup:string; pricingType:string; priceKobo:number; priceGHS?:number|null; priceKES?:number|null; priceUSD?:number|null; priceGBP?:number|null; includesPlagiarismCheck:boolean; includesCorrections:boolean; includesFormat:boolean; }
 
 // Map service values to valid ServiceType enum values
-export default function HireAWriter() {
+export function HireForm({
+  mode = "student",
+  onPayload,
+}: {
+  mode?: "student" | "register";
+  onPayload?: (payload: any, paymentMethod: "PAYSTACK" | "BANK_TRANSFER" | "FLUTTERWAVE") => void;
+} = {}) {
   // ── Constants (defined inside component to avoid minification issues) ──
   const DEG_GROUPS = [
     { group:"Diploma / Certificate", options:[
@@ -241,33 +248,38 @@ export default function HireAWriter() {
     return Object.keys(e).length === 0;
   }
 
+  function buildPayload(paymentMethod?: string) {
+    return {
+      planId:            isProject ? planId : "flat",
+      topic:             service === "topic" ? `Topic Coining — ${department.trim()}` : topic.trim(),
+      department:        department.trim(),
+      degreeGroup,
+      specialInstructions: service === "topic"
+        ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
+        : instructions.trim() || undefined,
+      quantity:    (service === "topic" || service === "journal_sourcing") ? quantity : undefined,
+      requiresPlagiarismCheck: (!isProject && wantsPlagiarismCheck) || undefined,
+      guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
+      chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
+      serviceType:       toServiceType(service),
+      currency:          geoInfo.currency,
+      amount:            total,
+      paymentMethod,
+    };
+  }
+
   async function handleFlutterwave() {
     if (!validate()) return;
+    if (mode === "register" && onPayload) { onPayload(buildPayload("FLUTTERWAVE"), "FLUTTERWAVE"); return; }
     setLoading(true);
     try {
-      const payload = {
-        planId:            isProject ? planId : "flat",
-        topic:             service === "topic" ? `Topic Coining — ${department.trim()}` : topic.trim(),
-        department:        department.trim(),
-        degreeGroup,
-        specialInstructions: service === "topic"
-          ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
-          : instructions.trim() || undefined,
-        quantity:    (service === "topic" || service === "journal_sourcing") ? quantity : undefined,
-        requiresPlagiarismCheck: (!isProject && wantsPlagiarismCheck) || undefined,
-        guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map((f:any)=>f.url).join(",") : undefined,
-        chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
-        serviceType:       toServiceType(service),
-        currency:          geoInfo.currency,
-        amount:            total,
-      };
+      const payload = buildPayload();
       const res  = await fetch("/api/payments/flutterwave", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || "Payment initialization failed."); return; }
-      // Redirect to Flutterwave payment page
       window.location.href = data.paymentLink;
     } catch { toast.error("Something went wrong. Please try again."); }
     finally { setLoading(false); }
@@ -275,27 +287,17 @@ export default function HireAWriter() {
 
   async function handleBankTransfer() {
     if (!validate()) return;
-    // Just show the modal with bank details — order is created only after student confirms transfer
     setShowBankModal(true);
   }
 
   async function handleConfirmTransfer() {
+    if (mode === "register" && onPayload) {
+      onPayload(buildPayload("BANK_TRANSFER"), "BANK_TRANSFER");
+      return;
+    }
     setBankPending(true);
     try {
-      const payload = {
-        planId:            isProject ? planId : "flat",
-        topic:             service === "topic" ? `Topic Coining — ${department.trim()}` : topic.trim(),
-        department:        department.trim(),
-        degreeGroup,
-        specialInstructions: service === "topic"
-          ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
-          : instructions.trim() || undefined,
-        quantity:    (service === "topic" || service === "journal_sourcing") ? quantity : undefined,
-        requiresPlagiarismCheck: (!isProject && wantsPlagiarismCheck) || undefined,
-        guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
-        chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
-        serviceType:       toServiceType(service),
-      };
+      const payload = buildPayload();
       const res  = await fetch("/api/orders/bank-transfer", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -303,10 +305,8 @@ export default function HireAWriter() {
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || "Something went wrong. Please try again.");
-        // Don't reset bankPending here — keep button disabled so student
-        // can't accidentally double-submit. They must close and reopen the modal.
         setBankPending(false);
-        setShowBankModal(false); // close modal on error, forcing a fresh attempt
+        setShowBankModal(false);
         return;
       }
       setBankDone({ reference: data.reference, amountNaira: data.amountNaira });
@@ -315,40 +315,22 @@ export default function HireAWriter() {
       setBankPending(false);
       setShowBankModal(false);
     } finally {
-      // Note: setBankPending(false) is handled in each branch above
-      // so it's NOT reset here automatically on error paths
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
+    if (mode === "register" && onPayload) { onPayload(buildPayload("PAYSTACK"), "PAYSTACK"); return; }
     setLoading(true);
     try {
-      // If non-project service, use a fixed plan ID or handle differently
-      const payload = {
-        planId:            isProject ? planId : "flat",
-        topic:             service === "topic" ? `Topic Coining — ${department.trim()}` : topic.trim(),
-        department:        department.trim(),
-        degreeGroup,
-        specialInstructions: service === "topic"
-          ? `Course: ${department.trim()}. Area of Interest: ${areaOfInterest.trim()}.${instructions.trim() ? " " + instructions.trim() : ""}`
-          : instructions.trim() || undefined,
-        quantity:    (service === "topic" || service === "journal_sourcing") ? quantity : undefined,
-        requiresPlagiarismCheck: (!isProject && wantsPlagiarismCheck) || undefined,
-        guidelineFileUrl:  guidelineUrls.length > 0 ? guidelineUrls.map(f=>f.url).join(",") : undefined,
-        chaptersRequested: isProject && isPerChapter ? selChapters : undefined,
-        serviceType:       toServiceType(service),
-      };
-
+      const payload = buildPayload();
       const res  = await fetch("/api/orders", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error); return; }
-
-      // Redirect to Paystack
       window.location.href = data.paymentUrl;
     } catch { toast.error("Something went wrong. Please try again."); }
     finally { setLoading(false); }
@@ -370,11 +352,14 @@ export default function HireAWriter() {
     return d.toLocaleDateString("en-NG", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
   }
 
-  return (
-    <StudentLayout>
-      <div className="max-w-lg mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">Hire a Writer</h1>
-        <p className="text-sm text-navy-muted mb-5">Fill in the form and we'll assign the right expert to your work.</p>
+  const formContent = (
+    <div className={mode === "register" ? "" : "max-w-lg mx-auto"}>
+      {mode === "student" && (
+        <>
+          <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">Hire a Writer</h1>
+          <p className="text-sm text-navy-muted mb-5">Fill in the form and we'll assign the right expert to your work.</p>
+        </>
+      )}
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-sky-100 shadow-card p-5 flex flex-col gap-4">
 
@@ -769,6 +754,13 @@ export default function HireAWriter() {
           )}
         </form>
       </div>
-    </StudentLayout>
   );
+
+  if (mode === "register") return formContent;
+
+  return <StudentLayout>{formContent}</StudentLayout>;
+}
+
+export default function HireAWriter() {
+  return <HireForm mode="student" />;
 }
