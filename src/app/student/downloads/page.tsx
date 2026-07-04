@@ -90,7 +90,16 @@ export default function StudentDownloads() {
                     </div>
                   </div>
                   {d.fileUrl
-                    ? <button style={C.btnP} onClick={()=>window.open(`/api/download?chapterId=${d.id}`,"_blank")}>⬇ Download</button>
+                    ? d.fileUrl.includes(",")
+                      ? <div style={{display:"flex",flexDirection:"column" as const,gap:".4rem"}}>
+                          {d.fileUrl.split(",").map((url:string,i:number,arr:string[]) => (
+                            <button key={i} style={C.btnP}
+                              onClick={()=>window.open(`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=${encodeURIComponent(`${d.chapterLabel}${arr.length>1?` File ${i+1}`:""} ${d.topic}`)}`, "_blank")}>
+                              ⬇ {arr.length>1?`File ${i+1}`:"Download"}
+                            </button>
+                          ))}
+                        </div>
+                      : <button style={C.btnP} onClick={()=>window.open(`/api/download?chapterId=${d.id}`,"_blank")}>⬇ Download</button>
                     : <span style={{fontSize:".75rem",color:"#5B7EA6",flexShrink:0}}>Not available</span>}
                 </div>
 
