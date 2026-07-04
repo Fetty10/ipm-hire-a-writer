@@ -86,7 +86,7 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
   function openFilePicker() {
     const inp = document.createElement("input");
     inp.type = "file"; inp.multiple = true;
-    inp.accept = ".pdf,.doc,.docx";
+    inp.accept = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.webp,.mp3,.m4a,.wav,.ogg,.zip";
     inp.onchange = async (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
       for (const f of files) await handleUpload(f);
@@ -214,7 +214,7 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
                     <div style={C.upzone} onClick={openFilePicker}>
                       {uploading
                         ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
-                        : <div><div style={C.upi}>📎</div><div style={C.uplbl}>{guideFiles.length>0?"Add Another File":"Upload guideline"}</div><div style={C.upsub}>PDF or Word · Max 20MB · Up to 5 files</div></div>}
+                        : <div><div style={C.upi}>📎</div><div style={C.uplbl}>{guideFiles.length>0?"Add Another File":"Upload guideline"}</div><div style={C.upsub}>PDF, Word, Excel, PowerPoint, images, voice notes · Max 20MB · Up to 5 files</div></div>}
                     </div>
                   )}
 
