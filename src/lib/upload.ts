@@ -32,6 +32,13 @@ export const ADMIN_LEGACY_MIME_TYPES = [
   "image/gif",
   "image/webp",
   "image/heic",
+  // Audio / voice notes
+  "audio/mpeg",
+  "audio/mp4",
+  "audio/wav",
+  "audio/ogg",
+  "audio/aac",
+  "audio/webm",
   // Archives
   "application/zip",
   "application/x-zip-compressed",
