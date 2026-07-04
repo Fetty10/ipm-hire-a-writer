@@ -28,6 +28,8 @@ const ROLE_FOLDERS: Record<Role, UploadFolder[]> = {
 
 // Folders where images and audio are also allowed (corrections evidence)
 const RICH_MEDIA_FOLDERS = ["orders/corrections", "orders/supervisor-notes"];
+// Folders where all file types are allowed (student guidelines + admin legacy)
+const FULL_MEDIA_FOLDERS = ["orders/guidelines", "admin/legacy-files"];
 // Admin legacy folder accepts a much broader range of file types
 const ADMIN_LEGACY_FOLDER = "admin/legacy-files";
 
@@ -64,10 +66,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Allow images + audio for rich media folders, broader types for admin legacy
+  // Allow images + audio for rich media folders, all types for guidelines/legacy
   const isRichFolder   = RICH_MEDIA_FOLDERS.includes(folder);
-  const isAdminLegacy  = folder === ADMIN_LEGACY_FOLDER;
-  const allowedTypes   = isAdminLegacy
+  const isFullFolder   = FULL_MEDIA_FOLDERS.includes(folder);
+  const allowedTypes   = isFullFolder
     ? ADMIN_LEGACY_MIME_TYPES
     : isRichFolder
       ? [...ALLOWED_MIME_TYPES, ...RICH_MEDIA_MIME_TYPES]
@@ -75,8 +77,8 @@ export async function POST(req: NextRequest) {
 
   if (!allowedTypes.includes(file.type)) {
     return NextResponse.json(
-      { error: isAdminLegacy
-          ? "Allowed: PDF, Word, Excel, PowerPoint, images (JPG/PNG/WebP), text files and ZIP archives."
+      { error: isFullFolder
+          ? "Allowed: PDF, Word, Excel, PowerPoint, images (JPG/PNG/WebP), audio files (MP3/WAV) and ZIP."
           : isRichFolder
             ? "Allowed: PDF, Word, images (JPG/PNG/GIF/WebP) and voice notes (MP3/M4A/WAV/OGG)."
             : "Only PDF and Word (.docx) files are allowed." },
