@@ -57,7 +57,7 @@ export default function QCCorrectionsActive() {
     if (data.success) {
       setJobs(data.data);
       const init:any = {};
-      data.data.forEach((j:any) => { init[j.id] = { fileUrl:"", notes:"", uploading:false, submitting:false, escalateOpen:false, escType:"corrections", escNotes:"", escalating:false }; });
+      data.data.forEach((j:any) => { init[j.id] = { files:[], notes:"", uploading:false, submitting:false, escalateOpen:false, escType:"corrections", escNotes:"", escalating:false }; });
       setState(init);
     }
     setLoading(false);
@@ -71,22 +71,33 @@ export default function QCCorrectionsActive() {
 
   async function handleUpload(jobId:string, file:File) {
     if (file.size>20*1024*1024) { toast.error("Max 20MB"); return; }
+    const s = state[jobId];
+    if (s?.files?.length >= 10) { toast.error("Max 10 files per correction."); return; }
     upd(jobId,"uploading",true);
-    const fd=new FormData(); fd.append("file",file); fd.append("folder","chapters/corrections");
-    const res  = await fetch("/api/upload",{method:"POST",body:fd});
-    const data = await res.json();
-    if (res.ok) { upd(jobId,"fileUrl",data.url); upd(jobId,"fileName",data.fileName); }
-    else toast.error(data.error||"Upload failed" || "Something went wrong");
-    upd(jobId,"uploading",false);
+    try {
+      const fd=new FormData(); fd.append("file",file); fd.append("folder","chapters/corrections");
+      const res  = await fetch("/api/upload",{method:"POST",body:fd});
+      const data = await res.json();
+      if (res.ok) {
+        upd(jobId,"files",[...(s?.files||[]), { url: data.url, name: data.fileName||file.name }]);
+      } else toast.error(data.error||"Upload failed. Please try again.");
+    } catch { toast.error("Upload failed — please check your connection."); }
+    finally { upd(jobId,"uploading",false); }
+  }
+
+  function removeFile(jobId:string, idx:number) {
+    const s = state[jobId];
+    upd(jobId,"files", s.files.filter((_:any, i:number) => i !== idx));
   }
 
   async function handleSend(jobId:string) {
     const s = state[jobId];
-    if (!s?.fileUrl) { toast.error("Please upload the corrected file first."); return; }
+    if (!s?.files?.length) { toast.error("Please upload at least one corrected file first."); return; }
     upd(jobId,"submitting",true);
-    const res  = await fetch("/api/chapters/qc-clear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId:jobId,clearedFileUrl:s.fileUrl,qcNotes:s.notes||undefined,isCorrection:true})});
+    const clearedFileUrl = s.files.map((f:any) => f.url).join(",");
+    const res  = await fetch("/api/chapters/qc-clear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId:jobId,clearedFileUrl,qcNotes:s.notes||undefined,isCorrection:true})});
     const data = await res.json();
-    if (res.ok) { toast.error("Correction sent to student!"); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
+    if (res.ok) { toast.success("Correction sent to student!"); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
     else toast.error(data.error || "Something went wrong");
     upd(jobId,"submitting",false);
   }
@@ -156,17 +167,42 @@ export default function QCCorrectionsActive() {
                 <textarea style={C.ta} rows={3} placeholder="Describe what you corrected..." value={s.notes||""} onChange={e=>upd(job.id,"notes",e.target.value)} />
               </div>
 
-              {/* Upload corrected file */}
-              <div
-                style={s.fileUrl ? C.upzoneOk : C.upzone}
-                onClick={()=>{ const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};inp.click(); }}>
-                {s.uploading ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
-                : s.fileUrl  ? <div><div style={C.upi}>✅</div><div style={C.upok}>{s.fileName||"File uploaded"}</div><div style={C.upsub}>Tap to replace</div></div>
-                : <div><div style={C.upi}>📄</div><div style={C.uplbl}>Upload Corrected {job.chapterLabel}</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
-              </div>
+              {/* Upload corrected files — supports multiple */}
+              <div style={{marginBottom:"1rem"}}>
+                <div style={C.lbl}>Upload Corrected File(s) <span style={{fontWeight:400,color:"#5B7EA6"}}>(up to 10)</span></div>
 
+                {/* Uploaded files list */}
+                {s.files?.length > 0 && (
+                  <div style={{display:"flex",flexDirection:"column" as const,gap:".35rem",marginBottom:".6rem"}}>
+                    {s.files.map((f:any,i:number) => (
+                      <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:"8px",padding:".4rem .75rem",fontSize:".78rem"}}>
+                        <span style={{color:"#065F46",fontWeight:600}}>✅ {f.name}</span>
+                        <button onClick={()=>removeFile(job.id,i)} style={{background:"none",border:"none",cursor:"pointer",color:"#EF4444",fontSize:".85rem",padding:"0 .25rem"}}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add file button */}
+                {(!s.files?.length || s.files.length < 10) && (
+                  <div
+                    style={s.uploading ? {...C.upzone,opacity:.6} : C.upzone}
+                    onClick={()=>{
+                      if(s.uploading) return;
+                      const inp=document.createElement("input");
+                      inp.type="file"; inp.accept=".pdf,.doc,.docx";
+                      inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};
+                      inp.click();
+                    }}>
+                    {s.uploading
+                      ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
+                      : <div><div style={C.upi}>📎</div><div style={C.uplbl}>{s.files?.length ? "＋ Add Another File" : "Tap to Upload Corrected File"}</div></div>
+                    }
+                  </div>
+                )}
+              </div>
               {/* Send to student */}
-              <button style={{...C.btnP,...(!s.fileUrl?C.btnPd:{})}} disabled={!s.fileUrl||s.submitting} onClick={()=>handleSend(job.id)}>
+              <button style={{...C.btnP,...(!s.files?.length?C.btnPd:{})}} disabled={!s.files?.length||s.submitting} onClick={()=>handleSend(job.id)}>
                 {s.submitting?"Sending...":"✅ Send Correction to Student →"}
               </button>
 
