@@ -140,6 +140,10 @@ export async function sendLegacyAccountCreatedEmail(opts: {
 export async function sendLegacyCorrectionDeliveredEmail(opts: {
   to: string; name: string; topic: string; chapterLabel: string; fileUrl: string;
 }) {
+  const urls = opts.fileUrl.split(",").map((u:string) => u.trim()).filter(Boolean);
+  const fileButtons = urls.map((url:string, i:number) =>
+    `<a href="${url}" class="btn" style="display:block;margin-bottom:.5rem;">⬇ Download Corrected File${urls.length > 1 ? ` ${i + 1}` : ""} →</a>`
+  ).join("");
   await resend.emails.send({
     from: FROM, to: opts.to,
     subject: `✅ Your corrected work is ready — ${opts.topic.slice(0,60)}`,
@@ -147,8 +151,8 @@ export async function sendLegacyCorrectionDeliveredEmail(opts: {
       <div class="title">Your Correction is Ready!</div>
       <p class="text">Hi ${opts.name}, great news! The correction for <strong>${opts.chapterLabel}</strong> on:</p>
       <div class="highlight">${opts.topic}</div>
-      <p class="text">has been completed. Click the button below to download your corrected work directly:</p>
-      <a href="${opts.fileUrl}" class="btn">⬇ Download Corrected Work →</a>
+      <p class="text">has been completed. Click the button${urls.length > 1 ? "s" : ""} below to download your corrected work directly:</p>
+      ${fileButtons}
       <div class="divider"></div>
       <p class="text" style="font-size:.82rem;">You can also log in to your dashboard at any time to access all your files:</p>
       <a href="${APP}/student/downloads" class="btn" style="background:#F0F9FF;color:#0369A1;border:1.5px solid #38BDF8;font-size:.82rem;">Go to My Downloads →</a>
