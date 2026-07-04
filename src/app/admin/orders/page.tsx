@@ -279,7 +279,15 @@ function OrderDetail({ orderId, onClose, writerList, analystList, qcList }: { or
                   <a href={`/api/download?chapterId=${ch.id}`} target="_blank" rel="noreferrer" style={C.dlBtn}>📄 Submitted</a>
                 )}
                 {ch.deliveredFileUrl && (
-                  <a href={`/api/download?chapterId=${ch.id}`} target="_blank" rel="noreferrer" style={C.dlBtn}>✅ Delivered</a>
+                  ch.deliveredFileUrl.includes(",")
+                    ? ch.deliveredFileUrl.split(",").map((url:string, i:number, arr:string[]) => (
+                        <a key={i}
+                          href={`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=${encodeURIComponent(`${ch.chapterLabel}${arr.length>1?` File ${i+1}`:""} ${order.topic}`)}`}
+                          target="_blank" rel="noreferrer" style={C.dlBtn}>
+                          ✅ {arr.length>1?`Delivered File ${i+1}`:"Delivered"}
+                        </a>
+                      ))
+                    : <a href={`/api/download?chapterId=${ch.id}`} target="_blank" rel="noreferrer" style={C.dlBtn}>✅ Delivered</a>
                 )}
               </div>
 
