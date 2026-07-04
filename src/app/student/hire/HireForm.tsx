@@ -602,7 +602,7 @@ export default function HireAWriter() {
                   onClick={()=>{
                     if(uploadingGuide) return;
                     const inp=document.createElement("input");
-                    inp.type="file"; inp.accept=".pdf,.doc,.docx";
+                    inp.type="file"; inp.accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.webp,.mp3,.m4a,.wav,.ogg,.zip";
                     inp.onchange=async(e)=>{
                       const file=(e.target as HTMLInputElement).files?.[0];
                       if(!file) return;
@@ -627,7 +627,7 @@ export default function HireAWriter() {
                   {uploadingGuide
                     ? <p className="text-sm text-navy-muted">Uploading...</p>
                     : <><p className="text-sm font-600 text-navy-DEFAULT">📎 {guidelineUrls.length===0?"Upload Format/Guideline":"Add Another File"}</p>
-                       <p className="text-xs text-navy-muted mt-1">PDF or Word · Max 20MB · Up to 5 files</p></>}
+                       <p className="text-xs text-navy-muted mt-1">PDF, Word, Excel, PowerPoint, images, voice notes · Max 20MB · Up to 5 files</p></>}
                 </div>
               )}
               {guidelineUrls.length > 0 && (
