@@ -153,9 +153,9 @@ export default function PricingPage() {
                     </div>
                     <div style={{ fontSize:".72rem", color:meta.dark?"#94A3B8":"#5B7EA6", marginBottom:".75rem" }}>{meta.tag}</div>
 
-                    <div style={{ fontSize:".8rem", color:meta.dark?"#CBD5E1":"#5B7EA6", lineHeight:1.6, marginBottom:"1.25rem", flex:1 }}>{meta.desc}</div>
+                    <div style={{ fontSize:".8rem", color:meta.dark?"#CBD5E1":"#5B7EA6", lineHeight:1.6, marginBottom:"1.25rem" }}>{meta.desc}</div>
 
-                    <ul style={{ listStyle:"none", padding:0, margin:"0 0 1.25rem", display:"flex", flexDirection:"column", gap:".4rem" }}>
+                    <ul style={{ listStyle:"none", padding:0, margin:"0 0 1.25rem", display:"flex", flexDirection:"column", gap:".4rem", flex:1 }}>
                       {meta.features.map((f,i) => (
                         <li key={i} style={{ fontSize:".75rem", color:meta.dark?"#E2E8F0":"#0C1A2E", display:"flex", gap:".5rem" }}>
                           <span style={{color:"#22C55E",flexShrink:0}}>✓</span>{f}
