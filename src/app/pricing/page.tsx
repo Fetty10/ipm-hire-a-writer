@@ -38,13 +38,19 @@ export default function PricingPage() {
   const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
+    const degGroups = ["OND_HND_NCE","BSC_BED_BA","PGD_MSC_PHD","PHD"];
+    const countryOverride = new URLSearchParams(window.location.search).get("country");
+    const detectUrl = countryOverride ? `/api/detect-country?country=${countryOverride}` : "/api/detect-country";
     Promise.all([
-      fetch("/api/detect-country").then(r=>r.json()),
-      fetch("/api/plans").then(r=>r.json()),
+      fetch(detectUrl).then(r=>r.json()),
+      Promise.all(degGroups.map(dg =>
+        fetch(`/api/plans?degreeGroup=${dg}`).then(r=>r.json())
+      )),
       fetch("/api/other-services/public").then(r=>r.json()),
-    ]).then(([g, p, sv]) => {
+    ]).then(([g, planResults, sv]) => {
       if (g) setGeo({ currency:g.currency||"NGN", symbol:g.symbol||"₦", isNigeria:g.isNigeria!==false });
-      if (p.success)  setPlans(p.data);
+      const allPlans = planResults.flatMap((r:any) => r.success ? r.data : []);
+      setPlans(allPlans);
       if (sv.success) setServices(sv.data);
       setLoading(false);
     });
