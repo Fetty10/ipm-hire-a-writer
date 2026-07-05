@@ -90,13 +90,6 @@ export default function PricingPage() {
   }
 
   const uniquePlanNames = ["BASIC","STANDARD","PROFESSIONAL","PHD_PROFESSIONAL"];
-  // Use OND_HND_NCE plan as the representative for card display price
-  const planCards = uniquePlanNames.map(name => {
-    const rep = plans.find(p => p.planName === name && p.degreeGroup === "OND_HND_NCE")
-             || plans.find(p => p.planName === name && p.degreeGroup === "PHD")
-             || plans.find(p => p.planName === name);
-    return rep ? { ...rep, meta: PLAN_META[name] } : null;
-  }).filter(Boolean) as (Plan & { meta: typeof PLAN_META[string] })[];
 
   return (
     <div style={{ minHeight:"100vh", background:"#F0F9FF", fontFamily:"'DM Sans',sans-serif" }}>
@@ -128,41 +121,64 @@ export default function PricingPage() {
               📚 Project / Thesis / Dissertation Plans
             </h2>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))", gap:"1rem", marginBottom:"3rem" }}>
-              {planCards.map(p => {
-                const price = getPlanPrice(p);
+              {uniquePlanNames.map(planName => {
+                const meta = PLAN_META[planName];
+                // Get all plans for this name to show price range
+                const plansForName = plans.filter(p => p.planName === planName);
+                // Representative: OND for most plans, PHD for PhD Professional
+                const rep = plansForName.find(p => p.degreeGroup === "OND_HND_NCE")
+                         || plansForName.find(p => p.degreeGroup === "PHD")
+                         || plansForName[0];
+                if (!rep || !meta) return null;
+
+                const price = getPlanPrice(rep);
+                // Get highest price for range display
+                const allPrices = plansForName.map(p => getPlanPrice(p)).filter((v): v is number => v !== null);
+                const minPrice = allPrices.length ? Math.min(...allPrices) : null;
+                const maxPrice = allPrices.length ? Math.max(...allPrices) : null;
+                const showRange = minPrice !== null && maxPrice !== null && minPrice !== maxPrice;
+
                 return (
-                  <div key={p.planName} style={{ background:p.meta.dark?"#0C1A2E":"#fff", border:`2px solid ${p.meta.border}`, borderRadius:"16px", padding:"1.5rem", display:"flex", flexDirection:"column", position:"relative" }}>
-                    {p.meta.badge && (
-                      <div style={{ position:"absolute", top:"-12px", left:"50%", transform:"translateX(-50%)", background:p.meta.badgeBg, color:"#0C1A2E", fontSize:".65rem", fontWeight:700, padding:".2rem .75rem", borderRadius:"999px", whiteSpace:"nowrap" }}>
-                        {p.meta.badge}
+                  <div key={planName} style={{ background:meta.dark?"#0C1A2E":"#fff", border:`2px solid ${meta.border}`, borderRadius:"16px", padding:"1.5rem", display:"flex", flexDirection:"column", position:"relative" }}>
+                    {meta.badge && (
+                      <div style={{ position:"absolute", top:"-12px", left:"50%", transform:"translateX(-50%)", background:meta.badgeBg, color:"#0C1A2E", fontSize:".65rem", fontWeight:700, padding:".2rem .75rem", borderRadius:"999px", whiteSpace:"nowrap" }}>
+                        {meta.badge}
                       </div>
                     )}
-                    <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"1.05rem", fontWeight:800, color:p.meta.dark?"#fff":"#0C1A2E", marginBottom:".2rem" }}>
-                      {p.planName.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}
+                    <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"1.05rem", fontWeight:800, color:meta.dark?"#fff":"#0C1A2E", marginBottom:".2rem" }}>
+                      {planName === "PHD_PROFESSIONAL" ? "PhD Professional" : planName.charAt(0) + planName.slice(1).toLowerCase()}
                     </div>
-                    <div style={{ fontSize:".72rem", color:p.meta.dark?"#94A3B8":"#5B7EA6", marginBottom:".5rem" }}>{p.meta.tag}</div>
-                    {price !== null && (
-                      <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"1.1rem", fontWeight:800, color:p.meta.dark?"#38BDF8":"#0C1A2E", marginBottom:".25rem" }}>
-                        {fmt(price)}{p.pricingType==="PER_CHAPTER" ? <span style={{fontSize:".7rem",fontWeight:400,color:p.meta.dark?"#94A3B8":"#5B7EA6"}}>/chapter</span> : <span style={{fontSize:".7rem",fontWeight:400,color:p.meta.dark?"#94A3B8":"#5B7EA6"}}> flat</span>}
+                    <div style={{ fontSize:".72rem", color:meta.dark?"#94A3B8":"#5B7EA6", marginBottom:".5rem" }}>{meta.tag}</div>
+
+                    {/* Price display */}
+                    {minPrice !== null && (
+                      <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"1.1rem", fontWeight:800, color:meta.dark?"#38BDF8":"#0C1A2E", marginBottom:".75rem" }}>
+                        {showRange ? `${fmt(minPrice)} – ${fmt(maxPrice)}` : fmt(minPrice)}
+                        <span style={{ fontSize:".7rem", fontWeight:400, color:meta.dark?"#94A3B8":"#5B7EA6" }}>
+                          {rep.pricingType === "PER_CHAPTER" ? " /chapter" : " flat"}
+                        </span>
                       </div>
                     )}
-                    <div style={{ fontSize:".8rem", color:p.meta.dark?"#CBD5E1":"#5B7EA6", lineHeight:1.6, marginBottom:"1.25rem", flex:1 }}>{p.meta.desc}</div>
+
+                    <div style={{ fontSize:".8rem", color:meta.dark?"#CBD5E1":"#5B7EA6", lineHeight:1.6, marginBottom:"1.25rem", flex:1 }}>{meta.desc}</div>
+
                     <ul style={{ listStyle:"none", padding:0, margin:"0 0 1.25rem", display:"flex", flexDirection:"column", gap:".4rem" }}>
-                      {p.meta.features.map((f,i) => (
-                        <li key={i} style={{ fontSize:".75rem", color:p.meta.dark?"#E2E8F0":"#0C1A2E", display:"flex", gap:".5rem" }}>
+                      {meta.features.map((f,i) => (
+                        <li key={i} style={{ fontSize:".75rem", color:meta.dark?"#E2E8F0":"#0C1A2E", display:"flex", gap:".5rem" }}>
                           <span style={{color:"#22C55E",flexShrink:0}}>✓</span>{f}
                         </li>
                       ))}
-                      {p.meta.notIncluded.map((f,i) => (
+                      {meta.notIncluded.map((f,i) => (
                         <li key={i} style={{ fontSize:".75rem", color:"#94A3B8", display:"flex", gap:".5rem", textDecoration:"line-through" }}>
                           <span style={{flexShrink:0}}>✕</span>{f}
                         </li>
                       ))}
                     </ul>
-                    <button onClick={()=>router.push(`/register?plan=${p.planName}`)}
+
+                    <button onClick={()=>router.push(`/register?plan=${planName}`)}
                       style={{ padding:".7rem", borderRadius:"10px", border:"none", cursor:"pointer", fontWeight:700, fontSize:".82rem", fontFamily:"'DM Sans',sans-serif",
-                        background: p.meta.dark?"#38BDF8": p.planName==="PROFESSIONAL"?"#818CF8":"#0C1A2E",
-                        color: p.meta.dark?"#0C1A2E":"#fff" }}>
+                        background: meta.dark?"#38BDF8": planName==="PROFESSIONAL"?"#818CF8":"#0C1A2E",
+                        color: meta.dark?"#0C1A2E":"#fff" }}>
                       Get Started →
                     </button>
                   </div>
