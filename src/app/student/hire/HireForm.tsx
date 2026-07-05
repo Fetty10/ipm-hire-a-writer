@@ -2,7 +2,7 @@
 // src/app/student/hire/HireForm.tsx
 // Exported as HireForm for use on the register page, and as default HireAWriter for the student dashboard
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StudentLayout } from "@/components/student/StudentLayout";
 import { Spinner } from "@/components/ui";
@@ -14,9 +14,11 @@ interface Plan { id:string; planName:string; degreeGroup:string; pricingType:str
 export function HireForm({
   mode = "student",
   onPayload,
+  accountFields,
 }: {
   mode?: "student" | "register";
   onPayload?: (payload: any, paymentMethod: "PAYSTACK" | "BANK_TRANSFER" | "FLUTTERWAVE") => void;
+  accountFields?: React.ReactNode;
 } = {}) {
   // ── Constants (defined inside component to avoid minification issues) ──
   const DEG_GROUPS = [
@@ -657,6 +659,9 @@ export function HireForm({
               </div>
             </div>
           )}
+
+          {/* Account fields injected here in register mode */}
+          {accountFields && accountFields}
 
           {/* Pay with Paystack (Nigeria) or Flutterwave (International) */}
           {geoInfo.isNigeria ? (
