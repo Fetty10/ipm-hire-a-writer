@@ -129,20 +129,11 @@ export default function PricingPage() {
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))", gap:"1rem", marginBottom:"3rem" }}>
               {uniquePlanNames.map(planName => {
                 const meta = PLAN_META[planName];
-                // Get all plans for this name to show price range
                 const plansForName = plans.filter(p => p.planName === planName);
-                // Representative: OND for most plans, PHD for PhD Professional
                 const rep = plansForName.find(p => p.degreeGroup === "OND_HND_NCE")
                          || plansForName.find(p => p.degreeGroup === "PHD")
                          || plansForName[0];
                 if (!rep || !meta) return null;
-
-                const price = getPlanPrice(rep);
-                // Get highest price for range display
-                const allPrices = plansForName.map(p => getPlanPrice(p)).filter((v): v is number => v !== null);
-                const minPrice = allPrices.length ? Math.min(...allPrices) : null;
-                const maxPrice = allPrices.length ? Math.max(...allPrices) : null;
-                const showRange = minPrice !== null && maxPrice !== null && minPrice !== maxPrice;
 
                 return (
                   <div key={planName} style={{ background:meta.dark?"#0C1A2E":"#fff", border:`2px solid ${meta.border}`, borderRadius:"16px", padding:"1.5rem", display:"flex", flexDirection:"column", position:"relative" }}>
@@ -154,17 +145,7 @@ export default function PricingPage() {
                     <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"1.05rem", fontWeight:800, color:meta.dark?"#fff":"#0C1A2E", marginBottom:".2rem" }}>
                       {planName === "PHD_PROFESSIONAL" ? "PhD Professional" : planName.charAt(0) + planName.slice(1).toLowerCase()}
                     </div>
-                    <div style={{ fontSize:".72rem", color:meta.dark?"#94A3B8":"#5B7EA6", marginBottom:".5rem" }}>{meta.tag}</div>
-
-                    {/* Price display */}
-                    {minPrice !== null && (
-                      <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"1.1rem", fontWeight:800, color:meta.dark?"#38BDF8":"#0C1A2E", marginBottom:".75rem" }}>
-                        {showRange ? `${fmt(minPrice)} – ${fmt(maxPrice)}` : fmt(minPrice)}
-                        <span style={{ fontSize:".7rem", fontWeight:400, color:meta.dark?"#94A3B8":"#5B7EA6" }}>
-                          {rep.pricingType === "PER_CHAPTER" ? " /chapter" : " flat"}
-                        </span>
-                      </div>
-                    )}
+                    <div style={{ fontSize:".72rem", color:meta.dark?"#94A3B8":"#5B7EA6", marginBottom:".75rem" }}>{meta.tag}</div>
 
                     <div style={{ fontSize:".8rem", color:meta.dark?"#CBD5E1":"#5B7EA6", lineHeight:1.6, marginBottom:"1.25rem", flex:1 }}>{meta.desc}</div>
 
