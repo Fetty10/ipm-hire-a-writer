@@ -243,7 +243,7 @@ function RegisterAndOrder() {
 
       <div style={C.inner}>
         <div style={C.headline}>
-          <h1 style={C.h1}>Register now to hire an expert writer.</h1>
+          <h1 style={C.h1}>Hire an Expert Writer Today.</h1>
           <p style={C.sub}>Fill in your order details and pay — your account is created automatically.</p>
         </div>
 
