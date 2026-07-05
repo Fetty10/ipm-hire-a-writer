@@ -2,15 +2,12 @@
 export const dynamic = "force-dynamic";
 import { Suspense, useState, useRef } from "react";
 import { WhatsAppWidget } from "@/components/WhatsAppWidget";
+import { PublicNav } from "@/components/PublicNav";
 import { HireForm } from "@/app/student/hire/HireForm";
 import toast from "react-hot-toast";
 
 const C = {
   page:    { minHeight:"100vh", background:"#F0F9FF", fontFamily:"'DM Sans',sans-serif" },
-  header:  { background:"#0C1A2E", padding:"1rem 1.5rem", display:"flex", alignItems:"center", justifyContent:"space-between" },
-  logo:    { fontFamily:"'Syne',sans-serif", fontSize:"1.1rem", fontWeight:800, color:"#fff" },
-  logoSpan:{ color:"#38BDF8" },
-  signIn:  { fontSize:".8rem", color:"#38BDF8", fontWeight:600, textDecoration:"none" },
   inner:   { maxWidth:"560px", margin:"0 auto", padding:"2rem 1.5rem" },
   headline:{ textAlign:"center" as const, marginBottom:"1.75rem" },
   h1:      { fontFamily:"'Syne',sans-serif", fontSize:"1.4rem", fontWeight:800, color:"#0C1A2E", marginBottom:".35rem" },
@@ -180,10 +177,7 @@ function RegisterAndOrder() {
 
   return (
     <div style={C.page}>
-      <div style={C.header}>
-        <div style={C.logo}>iProject<span style={C.logoSpan}>Master</span></div>
-        <a href="/login" style={C.signIn}>Already have an account? Sign in →</a>
-      </div>
+      <PublicNav />
 
       <div style={C.inner}>
         <div style={C.headline}>
