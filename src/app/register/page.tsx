@@ -1,7 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { Suspense, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { WhatsAppWidget } from "@/components/WhatsAppWidget";
 import { HireForm } from "@/app/student/hire/HireForm";
 import toast from "react-hot-toast";
@@ -12,29 +11,29 @@ const C = {
   logo:    { fontFamily:"'Syne',sans-serif", fontSize:"1.1rem", fontWeight:800, color:"#fff" },
   logoSpan:{ color:"#38BDF8" },
   signIn:  { fontSize:".8rem", color:"#38BDF8", fontWeight:600, textDecoration:"none" },
-  inner:   { maxWidth:"1100px", margin:"0 auto", padding:"2rem 1.5rem" },
-  headline:{ textAlign:"center" as const, marginBottom:"2rem" },
-  h1:      { fontFamily:"'Syne',sans-serif", fontSize:"1.6rem", fontWeight:800, color:"#0C1A2E", marginBottom:".4rem" },
-  sub:     { fontSize:".88rem", color:"#5B7EA6" },
-  cols:    { display:"grid", gridTemplateColumns:"3fr 2fr", gap:"1.5rem", alignItems:"start" } as any,
-  acctCard:{ background:"#fff", borderRadius:"20px", border:"1.5px solid #E0F2FE", boxShadow:"0 4px 24px rgba(14,165,233,.08)", padding:"1.5rem", position:"sticky" as const, top:"1.5rem" },
-  cardTitle:{ fontFamily:"'Syne',sans-serif", fontSize:"1rem", fontWeight:800, color:"#0C1A2E", marginBottom:"1.25rem" },
-  fg:      { marginBottom:".85rem" },
-  lbl:     { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0C1A2E", display:"block", marginBottom:".4rem" },
+  inner:   { maxWidth:"560px", margin:"0 auto", padding:"2rem 1.5rem" },
+  headline:{ textAlign:"center" as const, marginBottom:"1.75rem" },
+  h1:      { fontFamily:"'Syne',sans-serif", fontSize:"1.4rem", fontWeight:800, color:"#0C1A2E", marginBottom:".35rem" },
+  sub:     { fontSize:".85rem", color:"#5B7EA6" },
+  // Account section
+  acctBox: { background:"#F8FCFF", border:"1.5px solid #BAE6FD", borderRadius:"14px", padding:"1.25rem", marginBottom:"1rem" },
+  acctNote:{ fontSize:".78rem", color:"#0369A1", fontWeight:600, marginBottom:"1rem", display:"flex", alignItems:"center", gap:".4rem" },
+  fg:      { marginBottom:".75rem" },
+  lbl:     { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0C1A2E", display:"block", marginBottom:".35rem" },
   inp:     { width:"100%", padding:".65rem .9rem", borderRadius:"10px", border:"1.5px solid #BAE6FD", fontSize:".83rem", fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" as const },
   inpErr:  { width:"100%", padding:".65rem .9rem", borderRadius:"10px", border:"1.5px solid #FCA5A5", fontSize:".83rem", fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" as const },
+  row2:    { display:"grid", gridTemplateColumns:"1fr 1fr", gap:".6rem" },
   err:     { fontSize:".72rem", color:"#EF4444", fontWeight:600, marginTop:".3rem" },
   hint:    { fontSize:".7rem", color:"#5B7EA6", marginTop:".25rem" },
-  divider: { borderTop:"1px solid #E0F2FE", margin:"1rem 0" },
-  btnPrimary:{ width:"100%", padding:".85rem", borderRadius:"12px", border:"none", background:"#0C1A2E", color:"#38BDF8", fontSize:".88rem", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
-  btnDisabled:{ opacity:.5, cursor:"not-allowed" as const },
   foot:    { textAlign:"center" as const, fontSize:".82rem", color:"#5B7EA6", marginTop:"1rem" },
+  // Modal
   modal:   { position:"fixed" as const, inset:0, background:"rgba(12,26,46,.6)", zIndex:50, display:"flex", alignItems:"center", justifyContent:"center", padding:"1rem" },
   modalBox:{ background:"#fff", borderRadius:"16px", padding:"1.5rem", maxWidth:"420px", width:"100%" },
+  btnPrimary:{ width:"100%", padding:".85rem", borderRadius:"12px", border:"none", background:"#0C1A2E", color:"#38BDF8", fontSize:".88rem", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  btnDisabled:{ opacity:.5, cursor:"not-allowed" as const },
 };
 
 function RegisterAndOrder() {
-  // ── Account state ─────────────────────────────────────────
   const [name,     setName]     = useState("");
   const [email,    setEmail]    = useState("");
   const [phone,    setPhone]    = useState("");
@@ -44,7 +43,6 @@ function RegisterAndOrder() {
   const [checking, setChecking] = useState(false);
   const [loading,  setLoading]  = useState(false);
 
-  // ── Bank transfer state ───────────────────────────────────
   const [pendingPayload, setPendingPayload] = useState<any>(null);
   const [showBankModal,  setShowBankModal]  = useState(false);
   const [bankPending,    setBankPending]    = useState(false);
@@ -52,7 +50,6 @@ function RegisterAndOrder() {
 
   const emailTimer = useRef<any>(null);
 
-  // ── Email duplicate check ─────────────────────────────────
   function handleEmailChange(val: string) {
     setEmail(val); setEmailErr("");
     clearTimeout(emailTimer.current);
@@ -66,7 +63,6 @@ function RegisterAndOrder() {
     }, 600);
   }
 
-  // ── Account validation ────────────────────────────────────
   function validateAccount(): string {
     if (!name.trim())         return "Please enter your full name.";
     if (!phone.trim())        return "Please enter your WhatsApp number.";
@@ -77,7 +73,6 @@ function RegisterAndOrder() {
     return "";
   }
 
-  // ── Called by HireForm when student hits a payment button ─
   async function handlePayload(orderPayload: any, paymentMethod: "PAYSTACK" | "BANK_TRANSFER" | "FLUTTERWAVE") {
     const err = validateAccount();
     if (err) { toast.error(err); return; }
@@ -93,7 +88,7 @@ function RegisterAndOrder() {
     setLoading(true);
     try {
       const res  = await fetch("/api/auth/register-and-order", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify(fullPayload),
       });
       const data = await res.json();
@@ -111,13 +106,12 @@ function RegisterAndOrder() {
     finally { setLoading(false); }
   }
 
-  // ── Bank transfer confirm ─────────────────────────────────
   async function confirmBankTransfer() {
     if (!pendingPayload) return;
     setBankPending(true);
     try {
       const res  = await fetch("/api/auth/register-and-order", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify(pendingPayload),
       });
       const data = await res.json();
@@ -135,9 +129,57 @@ function RegisterAndOrder() {
     }
   }
 
+  // ── Account fields to inject into HireForm ────────────────
+  const accountSection = (
+    <div style={C.acctBox}>
+      <div style={C.acctNote}>
+        👤 Create your account to track your project progress at any time.
+      </div>
+
+      <div style={C.fg}>
+        <label style={C.lbl}>Full Name <span style={{color:"#EF4444"}}>*</span></label>
+        <input style={C.inp} value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name" />
+      </div>
+
+      <div style={C.fg}>
+        <label style={C.lbl}>WhatsApp Number <span style={{color:"#EF4444"}}>*</span></label>
+        <input style={C.inp} value={phone} onChange={e=>setPhone(e.target.value)} placeholder="08012345678" />
+        <div style={C.hint}>We'll send order updates here</div>
+      </div>
+
+      <div style={C.fg}>
+        <label style={C.lbl}>Email Address <span style={{color:"#EF4444"}}>*</span></label>
+        <input style={emailErr?C.inpErr:C.inp} type="email" value={email}
+          onChange={e=>handleEmailChange(e.target.value)} placeholder="you@email.com" />
+        {checking && <div style={{...C.hint,color:"#38BDF8"}}>Checking...</div>}
+        {emailErr && (
+          <div style={C.err}>
+            {emailErr}{" "}<a href="/login" style={{color:"#0369A1",fontWeight:700}}>Sign in →</a>
+          </div>
+        )}
+      </div>
+
+      <div style={C.row2}>
+        <div style={C.fg}>
+          <label style={C.lbl}>Password <span style={{color:"#EF4444"}}>*</span></label>
+          <input style={C.inp} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Min. 8 characters" />
+        </div>
+        <div style={C.fg}>
+          <label style={C.lbl}>Confirm Password <span style={{color:"#EF4444"}}>*</span></label>
+          <input style={C.inp} type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="Re-enter" />
+          {confirm && password!==confirm && <div style={C.err}>Passwords do not match.</div>}
+        </div>
+      </div>
+
+      <div style={C.foot}>
+        Already have an account?{" "}
+        <a href="/login" style={{color:"#0369A1",fontWeight:700}}>Sign in →</a>
+      </div>
+    </div>
+  );
+
   return (
     <div style={C.page}>
-      {/* Header */}
       <div style={C.header}>
         <div style={C.logo}>iProject<span style={C.logoSpan}>Master</span></div>
         <a href="/login" style={C.signIn}>Already have an account? Sign in →</a>
@@ -146,77 +188,23 @@ function RegisterAndOrder() {
       <div style={C.inner}>
         <div style={C.headline}>
           <h1 style={C.h1}>Register now to hire an expert writer.</h1>
-          <p style={C.sub}>Fill in your order details, create your account, and pay — all in one step.</p>
+          <p style={C.sub}>Fill in your order details and pay — your account is created automatically.</p>
         </div>
 
-        <div style={C.cols}>
-          {/* ── LEFT: Full HireForm ── */}
-          <div>
-            <HireForm mode="register" onPayload={handlePayload} />
-          </div>
-
-          {/* ── RIGHT: Account details ── */}
-          <div style={C.acctCard}>
-            <div style={C.cardTitle}>👤 Create Your Account</div>
-            <p style={{fontSize:".78rem",color:"#5B7EA6",marginBottom:"1rem",lineHeight:1.6}}>
-              Fill in your order on the left, then complete your account details here and click the payment button on the form to proceed.
-            </p>
-
-            <div style={C.fg}>
-              <label style={C.lbl}>Full Name <span style={{color:"#EF4444"}}>*</span></label>
-              <input style={C.inp} value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name" />
-            </div>
-
-            <div style={C.fg}>
-              <label style={C.lbl}>WhatsApp Number <span style={{color:"#EF4444"}}>*</span></label>
-              <input style={C.inp} value={phone} onChange={e=>setPhone(e.target.value)} placeholder="08012345678" />
-              <div style={C.hint}>We'll send order updates here</div>
-            </div>
-
-            <div style={C.fg}>
-              <label style={C.lbl}>Email Address <span style={{color:"#EF4444"}}>*</span></label>
-              <input style={emailErr ? C.inpErr : C.inp} type="email" value={email}
-                onChange={e=>handleEmailChange(e.target.value)} placeholder="you@email.com" />
-              {checking && <div style={{...C.hint,color:"#38BDF8"}}>Checking...</div>}
-              {emailErr && (
-                <div style={C.err}>
-                  {emailErr}{" "}<a href="/login" style={{color:"#0369A1",fontWeight:700}}>Sign in →</a>
-                </div>
-              )}
-            </div>
-
-            <div style={C.fg}>
-              <label style={C.lbl}>Password <span style={{color:"#EF4444"}}>*</span></label>
-              <input style={C.inp} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Min. 8 characters" />
-            </div>
-
-            <div style={C.fg}>
-              <label style={C.lbl}>Confirm Password <span style={{color:"#EF4444"}}>*</span></label>
-              <input style={C.inp} type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="Re-enter password" />
-              {confirm && password !== confirm && <div style={C.err}>Passwords do not match.</div>}
-            </div>
-
-            <div style={C.divider} />
-
-            <p style={{fontSize:".75rem",color:"#5B7EA6",textAlign:"center" as const,lineHeight:1.6}}>
-              After filling your order details on the left, the payment button will appear there. Click it to complete your registration and payment together.
-            </p>
-
-            <div style={C.foot}>
-              Already have an account?{" "}
-              <a href="/login" style={{color:"#0369A1",fontWeight:700}}>Sign in →</a>
-            </div>
-          </div>
-        </div>
+        <HireForm
+          mode="register"
+          onPayload={handlePayload}
+          accountFields={accountSection}
+        />
       </div>
 
-      {/* ── Bank Transfer Modal ── */}
+      {/* Bank Transfer Modal */}
       {showBankModal && !bankDone && (
         <div style={C.modal}>
           <div style={C.modalBox}>
             <div style={{fontFamily:"'Syne',sans-serif",fontSize:"1rem",fontWeight:800,marginBottom:".75rem"}}>🏦 Bank Transfer</div>
             <p style={{fontSize:".83rem",color:"#5B7EA6",marginBottom:"1rem",lineHeight:1.6}}>
-              Click below to create your account and get your unique payment reference. Transfer the exact amount to our account — your order will be activated once payment is confirmed.
+              Click below to create your account and get your unique payment reference. Transfer the exact amount to our account and your order activates once payment is confirmed.
             </p>
             <div style={{display:"flex",gap:".5rem"}}>
               <button disabled={bankPending} onClick={confirmBankTransfer}
@@ -232,7 +220,7 @@ function RegisterAndOrder() {
         </div>
       )}
 
-      {/* ── Bank Transfer Success ── */}
+      {/* Bank Transfer Success */}
       {bankDone && (
         <div style={C.modal}>
           <div style={C.modalBox}>
