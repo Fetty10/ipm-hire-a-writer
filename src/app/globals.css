@@ -29,7 +29,7 @@
   .border-sky-light { border-color: #BAE6FD !important; }
 
   /* Fonts */
-  .font-clash   { font-family: 'Syne', sans-serif !important; }
+  .font-clash { font-family: 'Syne', sans-serif !important; font-weight: 700 !important; }
   .font-satoshi { font-family: 'DM Sans', sans-serif !important; }
 
   /* Font weights */
@@ -187,4 +187,8 @@ tr:hover td { background: rgba(240,249,255,.6); }
   .frow { grid-template-columns: 1fr; }
   .sgrid { grid-template-columns: 1fr 1fr; }
   .planrow { grid-template-columns: 1fr; }
+}
+[style*="font-family: 'Syne'"],
+[style*="font-family: Syne"] {
+  font-weight: 700 !important;
 }
