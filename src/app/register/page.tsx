@@ -30,6 +30,68 @@ const C = {
   btnDisabled:{ opacity:.5, cursor:"not-allowed" as const },
 };
 
+const testimonials = [
+  { name:"Chidinma O.", course:"BSc Business Administration", text:"I was sceptical at first but my Chapter 1 came back exactly how my supervisor wanted it — properly referenced and well structured. Ordered Chapter 2 immediately after.", stars:5 },
+  { name:"James A.", course:"MSc Public Health", text:"Tight deadline, complex methodology chapter. The analyst delivered something I genuinely couldn't have done better myself. Quality was impressive.", stars:5 },
+  { name:"Fatima K.", course:"HND Secretarial Studies", text:"The seminar paper was ready before my deadline and my lecturer had no complaints. Very smooth process from start to finish.", stars:5 },
+  { name:"Emmanuel T.", course:"BSc Computer Science", text:"I uploaded my school's format and they followed it to the letter. Even the table of contents was formatted correctly. Worth every kobo.", stars:5 },
+  { name:"Adaeze N.", course:"PGD Mass Communication", text:"My supervisor returned corrections twice and they handled both rounds without any extra charge. That alone made the Professional plan worth it.", stars:5 },
+  { name:"Samuel B.", course:"BSc Nursing", text:"Dashboard is easy to use and I could see exactly what stage my work was at. Got notified the moment my chapter was ready to download.", stars:5 },
+];
+
+function TestimonialsCarousel() {
+  const [active, setActive] = useState(0);
+  const count = testimonials.length;
+
+  function prev() { setActive(a => (a - 1 + count) % count); }
+  function next() { setActive(a => (a + 1) % count); }
+
+  const t = testimonials[active];
+
+  return (
+    <div style={{ background:"#0C1A2E", padding:"3rem 1.5rem", marginTop:"2rem" }}>
+      <div style={{ maxWidth:"560px", margin:"0 auto", textAlign:"center" }}>
+        <div style={{ fontSize:".68rem", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase" as const, color:"#38BDF8", marginBottom:"1.25rem" }}>
+          What Students Say
+        </div>
+
+        {/* Card */}
+        <div style={{ background:"rgba(255,255,255,.05)", border:"1px solid rgba(56,189,248,.2)", borderRadius:"16px", padding:"1.75rem", marginBottom:"1.5rem", minHeight:"160px", display:"flex", flexDirection:"column" as const, alignItems:"center", justifyContent:"center" }}>
+          <div style={{ color:"#F59E0B", fontSize:"1rem", letterSpacing:"2px", marginBottom:"1rem" }}>
+            {"★".repeat(t.stars)}
+          </div>
+          <p style={{ color:"#E2E8F0", fontSize:".88rem", lineHeight:1.8, marginBottom:"1.25rem", fontStyle:"italic" }}>
+            "{t.text}"
+          </p>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:"#fff", fontSize:".85rem" }}>{t.name}</div>
+          <div style={{ fontSize:".72rem", color:"#94A3B8", marginTop:".2rem" }}>{t.course}</div>
+        </div>
+
+        {/* Controls */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:"1rem" }}>
+          <button onClick={prev}
+            style={{ width:"36px", height:"36px", borderRadius:"50%", border:"1px solid rgba(56,189,248,.3)", background:"none", color:"#38BDF8", cursor:"pointer", fontSize:"1rem", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            ‹
+          </button>
+
+          {/* Dots */}
+          <div style={{ display:"flex", gap:".4rem" }}>
+            {testimonials.map((_,i) => (
+              <button key={i} onClick={() => setActive(i)}
+                style={{ width: i===active?"20px":"8px", height:"8px", borderRadius:"999px", border:"none", cursor:"pointer", transition:"width .2s", background: i===active?"#38BDF8":"rgba(255,255,255,.2)", padding:0 }} />
+            ))}
+          </div>
+
+          <button onClick={next}
+            style={{ width:"36px", height:"36px", borderRadius:"50%", border:"1px solid rgba(56,189,248,.3)", background:"none", color:"#38BDF8", cursor:"pointer", fontSize:"1rem", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            ›
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RegisterAndOrder() {
   const [name,     setName]     = useState("");
   const [email,    setEmail]    = useState("");
@@ -241,6 +303,8 @@ function RegisterAndOrder() {
           </div>
         </div>
       )}
+
+      <TestimonialsCarousel />
 
       <WhatsAppWidget message="Hi Lina, I need help placing an order on iProjectMaster." />
     </div>
