@@ -1,31 +1,73 @@
 export const dynamic = "force-dynamic";
 // src/app/api/auth/register-and-order/route.ts
-// Combined registration + order placement for new students arriving from iprojectmaster.com
-// Creates account, places order, initializes payment — all in one request
+// Combined registration + order placement for new students.
+// For Paystack/Flutterwave: stores registration data in payment metadata,
+// account is created in the webhook AFTER payment succeeds.
+// For Bank Transfer: creates account immediately since admin manually confirms.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+// ── Quick email check (GET) ───────────────────────────────────
+export async function GET(req: NextRequest) {
+  const email = new URL(req.url).searchParams.get("email");
+  if (!email) return NextResponse.json({ exists: false });
+  const user = await prisma.user.findUnique({
+    where:  { email: email.trim().toLowerCase() },
+    select: { id: true },
+  });
+  return NextResponse.json({ exists: !!user });
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+async function resolveAmountKobo(planId: string, serviceType: string, degreeGroup: string, chaptersRequested: number[], requiresPlagiarismCheck: boolean) {
+  const isProjectService = !!(planId && planId !== "flat");
+
+  if (isProjectService) {
+    const plan = await prisma.plan.findUnique({ where: { id: planId } });
+    if (!plan || !plan.isActive) throw new Error("Selected plan is not available.");
+    let amount = plan.priceKobo;
+    if (plan.pricingType === "PER_CHAPTER" && chaptersRequested?.length) {
+      amount = plan.priceKobo * chaptersRequested.length;
+    }
+    return { plan, amount };
+  }
+
+  const plan = await prisma.plan.findFirst({ orderBy: { updatedAt: "asc" } });
+  if (!plan) throw new Error("No plans configured.");
+
+  const svcValueMap: Record<string,string> = {
+    PROPOSAL_SEMINAR:"seminar", JOURNAL_WRITING:"journal",
+    JOURNAL_SOURCING:"journal_sourcing", TOPIC_SUGGESTION:"topic",
+    HIRE_WRITER:"assignment",
+  };
+  const svcValue = svcValueMap[serviceType] || serviceType?.toLowerCase();
+  const svc = await (prisma as any).otherService.findFirst({ where: { value: svcValue, isActive: true } });
+  const degKey: Record<string,string> = { OND_HND_NCE:"OND", BSC_BED_BA:"BSC", PGD_MSC_PHD:"PGD", PHD:"PHD" };
+  const dk = degKey[degreeGroup] || "BSC";
+  let amount = (svc?.[`price${dk}`] || 0);
+  if (requiresPlagiarismCheck && svc) amount += (svc[`plagiarismAddOn${dk}`] || 0);
+  return { plan, amount };
+}
+
+// ── Main POST ─────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
+    const body = await req.json();
     const {
-      // Account fields
       name, email, phone, password,
-      // Order fields
       planId, topic, department, degreeGroup,
       specialInstructions, guidelineFileUrl,
       chaptersRequested, serviceType,
       requiresPlagiarismCheck, quantity,
-      // Payment method
-      paymentMethod, // "PAYSTACK" | "BANK_TRANSFER" | "FLUTTERWAVE"
-      currency,      // for Flutterwave
-    } = await req.json();
+      paymentMethod, currency,
+    } = body;
 
-    // ── Validate account fields ───────────────────────────────
+    // ── Validate ──────────────────────────────────────────────
     if (!name?.trim() || !email?.trim() || !phone?.trim() || !password) {
-      return NextResponse.json({ error: "Name, email, WhatsApp number and password are required." }, { status: 400 });
+      return NextResponse.json({ error: "Name, email, WhatsApp and password are required." }, { status: 400 });
     }
     if (password.length < 8) {
       return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
@@ -34,93 +76,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Topic and degree level are required." }, { status: 400 });
     }
 
-    // ── Check for existing email ──────────────────────────────
-    const existing = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
-    if (existing) {
-      return NextResponse.json({ error: "EMAIL_EXISTS" }, { status: 409 });
-    }
+    const cleanEmail = email.trim().toLowerCase();
 
-    // ── Create account ────────────────────────────────────────
-    const hash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: {
-        name:       name.trim(),
-        email:      email.trim().toLowerCase(),
-        phone:      phone.trim(),
-        password:   hash,
-        role:       Role.CLIENT,
-        isApproved: true,
-      } as any,
-    });
+    // ── Email check ───────────────────────────────────────────
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail }, select: { id: true } });
+    if (existing) return NextResponse.json({ error: "EMAIL_EXISTS" }, { status: 409 });
 
-    // ── Find plan ─────────────────────────────────────────────
+    // ── Resolve plan + amount ─────────────────────────────────
+    const { plan, amount: amountKobo } = await resolveAmountKobo(
+      planId, serviceType, degreeGroup, chaptersRequested || [], !!requiresPlagiarismCheck
+    );
     const isProjectService = !!(planId && planId !== "flat");
-    let plan: any = null;
-    let amountKobo = 0;
-    let finalServiceType = serviceType || "HIRE_WRITER";
 
-    if (isProjectService) {
-      plan = await prisma.plan.findUnique({ where: { id: planId } });
-      if (!plan || !plan.isActive) {
-        await prisma.user.delete({ where: { id: user.id } });
-        return NextResponse.json({ error: "Selected plan is not available." }, { status: 404 });
-      }
-      amountKobo = plan.priceKobo;
-      if (plan.pricingType === "PER_CHAPTER" && chaptersRequested?.length) {
-        amountKobo = plan.priceKobo * chaptersRequested.length;
-      }
-    } else {
-      // Flat service
-      plan = await prisma.plan.findFirst({ orderBy: { updatedAt: "asc" } });
-      if (!plan) { await prisma.user.delete({ where: { id: user.id } }); return NextResponse.json({ error: "No plans configured." }, { status: 400 }); }
-
-      const svcValueMap: Record<string,string> = {
-        PROPOSAL_SEMINAR: "seminar", JOURNAL_WRITING: "journal",
-        JOURNAL_SOURCING: "journal_sourcing", TOPIC_SUGGESTION: "topic",
-        HIRE_WRITER: "assignment",
-      };
-      const svcValue = svcValueMap[finalServiceType] || finalServiceType?.toLowerCase();
-      const svc = await (prisma as any).otherService.findFirst({ where: { value: svcValue, isActive: true } });
-      const priceMap: Record<string,number> = {
-        OND_HND_NCE: svc?.priceOND || 0, BSC_BED_BA: svc?.priceBSC || 0,
-        PGD_MSC_PHD: svc?.pricePGD || 0, PHD: svc?.pricePHD || svc?.pricePGD || 0,
-      };
-      amountKobo = priceMap[degreeGroup] || 0;
-      if (requiresPlagiarismCheck && svc) {
-        const addOnMap: Record<string,number> = {
-          OND_HND_NCE: svc.plagiarismAddOnOND || 0, BSC_BED_BA: svc.plagiarismAddOnBSC || 0,
-          PGD_MSC_PHD: svc.plagiarismAddOnPGD || 0, PHD: svc.plagiarismAddOnPHD || 0,
-        };
-        amountKobo += addOnMap[degreeGroup] || 0;
-      }
-    }
-
-    // ── Bank Transfer ─────────────────────────────────────────
+    // ── BANK TRANSFER — create account + order immediately ────
     if (paymentMethod === "BANK_TRANSFER") {
+      const hash      = await bcrypt.hash(password, 10);
+      const user      = await prisma.user.create({
+        data: { name:name.trim(), email:cleanEmail, phone:phone.trim(), password:hash, role:Role.CLIENT, isApproved:true } as any,
+      });
+
       const reference = `IPM-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
       const order = await prisma.order.create({
         data: {
-          clientId: user.id, planId: plan.id,
-          topic: topic.trim(), department: department?.trim() || "",
-          degreeGroup, specialInstructions: specialInstructions?.trim() || null,
-          guidelineFileUrl: guidelineFileUrl || null,
-          selectedChapters: chaptersRequested?.length ? chaptersRequested.sort().join(",") : null,
-          serviceType: isProjectService ? "HIRE_WRITER" : finalServiceType,
-          status: "PENDING_PAYMENT", paymentMethod: "BANK_TRANSFER",
-          bankTransferReference: reference, amountPaidKobo: amountKobo,
+          clientId:              user.id, planId: plan.id,
+          topic:                 topic.trim(), department: department?.trim() || "",
+          degreeGroup,
+          specialInstructions:   specialInstructions?.trim() || null,
+          guidelineFileUrl:      guidelineFileUrl || null,
+          selectedChapters:      chaptersRequested?.length ? chaptersRequested.sort().join(",") : null,
+          serviceType:           isProjectService ? "HIRE_WRITER" : serviceType,
+          status:                "PENDING_PAYMENT",
+          paymentMethod:         "BANK_TRANSFER",
+          bankTransferReference: reference,
+          amountPaidKobo:        amountKobo,
           requiresPlagiarismCheck: isProjectService ? plan.includesPlagiarismCheck : !!requiresPlagiarismCheck,
-          requiresAiCheck: isProjectService ? plan.includesPlagiarismCheck : !!requiresPlagiarismCheck,
+          requiresAiCheck:       isProjectService ? plan.includesPlagiarismCheck : !!requiresPlagiarismCheck,
         } as any,
       });
 
-      // Get bank account details
-      const bankAccount = await (prisma as any).bankAccount.findFirst();
-
       // Notify admin
-      const admins = await prisma.user.findMany({ where: { role: { in: [Role.MAIN_ADMIN, Role.SUB_ADMIN] } }, select: { id: true } });
+      const admins = await prisma.user.findMany({ where: { role: { in: [Role.MAIN_ADMIN, Role.SUB_ADMIN] } }, select: { id:true } });
       if (admins.length > 0) {
         await prisma.notification.createMany({
-          data: admins.map(a => ({ userId: a.id, orderId: order.id, title: "🏦 New Bank Transfer Order", message: `"${topic.trim()}" — Ref: ${reference}. Amount: ₦${(amountKobo/100).toLocaleString()}.`, type: "ACTION_REQUIRED" as const })),
+          data: admins.map(a => ({ userId:a.id, orderId:order.id, title:"🏦 New Bank Transfer Order", message:`"${topic.trim()}" — Ref: ${reference}. Amount: ₦${(amountKobo/100).toLocaleString()}.`, type:"ACTION_REQUIRED" as const })),
         });
       }
       try {
@@ -128,94 +126,64 @@ export async function POST(req: NextRequest) {
         const resend = new Resend(process.env.RESEND_API_KEY!);
         await resend.emails.send({
           from: "iProjectMaster <noreply@hire.iprojectmaster.com>",
-          to: "payment.iprojectmaster@gmail.com",
+          to:   "payment.iprojectmaster@gmail.com",
           subject: `🏦 New Bank Transfer — ₦${(amountKobo/100).toLocaleString()} (Ref: ${reference})`,
-          html: `<div style="font-family:sans-serif;padding:1.5rem;"><h2>🏦 New Bank Transfer Order</h2><p><strong>Topic:</strong> ${topic.trim()}</p><p><strong>Amount:</strong> ₦${(amountKobo/100).toLocaleString()}</p><p><strong>Reference:</strong> ${reference}</p><p><strong>Student:</strong> ${name.trim()} (${email.trim()})</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/bank-transfers" style="display:inline-block;margin-top:1rem;padding:.7rem 1.5rem;background:#38BDF8;color:#0C1A2E;font-weight:700;border-radius:10px;text-decoration:none;">Go to Bank Transfers →</a></div>`,
+          html: `<div style="font-family:sans-serif;padding:1.5rem;"><h2>🏦 New Bank Transfer Order</h2><p><b>Topic:</b> ${topic.trim()}</p><p><b>Amount:</b> ₦${(amountKobo/100).toLocaleString()}</p><p><b>Ref:</b> ${reference}</p><p><b>Student:</b> ${name.trim()} (${cleanEmail})</p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/bank-transfers" style="display:inline-block;margin-top:1rem;padding:.7rem 1.5rem;background:#38BDF8;color:#0C1A2E;font-weight:700;border-radius:10px;text-decoration:none;">Go to Bank Transfers →</a></div>`,
         });
-      } catch (e) { console.error("[EMAIL] Bank transfer admin notify:", e); }
+      } catch (e) { console.error("[EMAIL] Bank transfer notify:", e); }
 
-      return NextResponse.json({ success: true, paymentMethod: "BANK_TRANSFER", reference, amountNaira: amountKobo / 100, bankAccount, orderId: order.id, userId: user.id });
+      const bankAccount = await (prisma as any).bankAccount.findFirst();
+      return NextResponse.json({ success:true, paymentMethod:"BANK_TRANSFER", reference, amountNaira:amountKobo/100, bankAccount, orderId:order.id });
     }
 
-    // ── Flutterwave (international) ───────────────────────────
-    if (paymentMethod === "FLUTTERWAVE") {
-      const order = await prisma.order.create({
-        data: {
-          clientId: user.id, planId: plan.id, topic: topic.trim(),
-          department: department?.trim() || "", degreeGroup,
-          specialInstructions: specialInstructions?.trim() || null,
-          guidelineFileUrl: guidelineFileUrl || null,
-          selectedChapters: chaptersRequested?.length ? chaptersRequested.sort().join(",") : null,
-          serviceType: isProjectService ? "HIRE_WRITER" : finalServiceType,
-          status: "PENDING_PAYMENT", currency: currency || "USD",
-          requiresPlagiarismCheck: isProjectService ? plan.includesPlagiarismCheck : false,
-          requiresAiCheck: isProjectService ? plan.includesPlagiarismCheck : false,
-        } as any,
-      });
+    // ── PAYSTACK / FLUTTERWAVE — store reg data in metadata ───
+    // Account is NOT created yet — it's created in the webhook after payment succeeds.
+    // This prevents orphaned accounts when students cancel payment.
+    const regData = {
+      name: name.trim(), email: cleanEmail, phone: phone.trim(), password,
+      planId, topic: topic.trim(), department: department?.trim() || "",
+      degreeGroup, specialInstructions: specialInstructions?.trim() || null,
+      guidelineFileUrl: guidelineFileUrl || null,
+      selectedChapters: chaptersRequested?.length ? chaptersRequested.sort().join(",") : null,
+      serviceType: isProjectService ? "HIRE_WRITER" : serviceType,
+      requiresPlagiarismCheck: isProjectService ? plan.includesPlagiarismCheck : !!requiresPlagiarismCheck,
+      amountKobo,
+      isNewRegistration: true,
+    };
 
-      const tx_ref = `IPM-FLW-${order.id}-${Date.now()}`;
-      const flutterwaveRes = await fetch("https://api.flutterwave.com/v3/payments", {
+    if (paymentMethod === "FLUTTERWAVE") {
+      const tx_ref = `IPM-REG-FLW-${Date.now()}`;
+      const flwRes = await fetch("https://api.flutterwave.com/v3/payments", {
         method: "POST",
-        headers: { Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`, "Content-Type": "application/json" },
+        headers: { Authorization:`Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`, "Content-Type":"application/json" },
         body: JSON.stringify({
           tx_ref, amount: amountKobo / 100, currency: currency || "USD",
           redirect_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/flutterwave/callback`,
-          customer: { email: email.trim(), name: name.trim() },
-          meta: { orderId: order.id },
+          customer: { email: cleanEmail, name: name.trim() },
+          meta: { ...regData, tx_ref },
         }),
       });
-      const flutterwaveData = await flutterwaveRes.json();
-      if (flutterwaveData.status !== "success") {
-        await prisma.order.delete({ where: { id: order.id } });
-        await prisma.user.delete({ where: { id: user.id } });
-        return NextResponse.json({ error: "Payment initialization failed." }, { status: 500 });
-      }
-      return NextResponse.json({ success: true, paymentMethod: "FLUTTERWAVE", paymentUrl: flutterwaveData.data.link, orderId: order.id, userId: user.id });
+      const flwData = await flwRes.json();
+      if (flwData.status !== "success") return NextResponse.json({ error:"Payment initialization failed." }, { status:500 });
+      return NextResponse.json({ success:true, paymentMethod:"FLUTTERWAVE", paymentUrl:flwData.data.link });
     }
 
-    // ── Paystack (default, NGN) ────────────────────────────────
-    const order = await prisma.order.create({
-      data: {
-        clientId: user.id, planId: plan.id, topic: topic.trim(),
-        department: department?.trim() || "", degreeGroup,
-        specialInstructions: specialInstructions?.trim() || null,
-        guidelineFileUrl: guidelineFileUrl || null,
-        selectedChapters: chaptersRequested?.length ? chaptersRequested.sort().join(",") : null,
-        serviceType: isProjectService ? "HIRE_WRITER" : finalServiceType,
-        status: "PENDING_PAYMENT",
-        requiresPlagiarismCheck: isProjectService ? plan.includesPlagiarismCheck : !!requiresPlagiarismCheck,
-        requiresAiCheck: isProjectService ? plan.includesPlagiarismCheck : !!requiresPlagiarismCheck,
-      } as any,
-    });
-
-    const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
+    // Paystack (default)
+    const psRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
-      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization:`Bearer ${process.env.PAYSTACK_SECRET_KEY}`, "Content-Type":"application/json" },
       body: JSON.stringify({
-        email: email.trim(), amount: amountKobo, currency: "NGN",
-        metadata: { orderId: order.id, studentName: name.trim(), topic, chaptersRequested: chaptersRequested || [] },
+        email: cleanEmail, amount: amountKobo, currency: "NGN",
+        metadata: { ...regData, studentName: name.trim() },
         callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/inprogress`,
       }),
     });
-    const paystackData = await paystackRes.json();
-    if (!paystackData.status) {
-      await prisma.order.delete({ where: { id: order.id } });
-      await prisma.user.delete({ where: { id: user.id } });
-      return NextResponse.json({ error: "Payment initialization failed. Please try again." }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, paymentMethod: "PAYSTACK", paymentUrl: paystackData.data.authorization_url, reference: paystackData.data.reference, orderId: order.id, userId: user.id });
+    const psData = await psRes.json();
+    if (!psData.status) return NextResponse.json({ error:"Payment initialization failed. Please try again." }, { status:500 });
+    return NextResponse.json({ success:true, paymentMethod:"PAYSTACK", paymentUrl:psData.data.authorization_url, reference:psData.data.reference });
 
   } catch (err: any) {
     console.error("[REGISTER-AND-ORDER]", err?.message);
-    return NextResponse.json({ error: err?.message || "Something went wrong." }, { status: 500 });
+    return NextResponse.json({ error: err?.message || "Something went wrong." }, { status:500 });
   }
-}
-
-// ── Quick email check endpoint ────────────────────────────────
-export async function GET(req: NextRequest) {
-  const email = new URL(req.url).searchParams.get("email");
-  if (!email) return NextResponse.json({ exists: false });
-  const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() }, select: { id: true } });
-  return NextResponse.json({ exists: !!user });
 }
