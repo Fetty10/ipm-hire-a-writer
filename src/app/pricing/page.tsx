@@ -44,12 +44,18 @@ export default function PricingPage() {
     Promise.all([
       fetch(detectUrl).then(r=>r.json()),
       Promise.all(degGroups.map(dg =>
-        fetch(`/api/plans?degreeGroup=${dg}`).then(r=>r.json())
+        fetch(`/api/plans?degreeGroup=${dg}`).then(r=>r.json()).then(r => ({
+          degreeGroup: dg,
+          plans: r.success ? r.data : [],
+        }))
       )),
       fetch("/api/other-services/public").then(r=>r.json()),
     ]).then(([g, planResults, sv]) => {
       if (g) setGeo({ currency:g.currency||"NGN", symbol:g.symbol||"₦", isNigeria:g.isNigeria!==false });
-      const allPlans = planResults.flatMap((r:any) => r.success ? r.data : []);
+      // Attach degreeGroup to each plan since the API doesn't return it
+      const allPlans = planResults.flatMap(({ degreeGroup, plans }: any) =>
+        plans.map((p: any) => ({ ...p, degreeGroup }))
+      );
       setPlans(allPlans);
       if (sv.success) setServices(sv.data);
       setLoading(false);
@@ -89,9 +95,9 @@ export default function PricingPage() {
     if (planName === "PHD_PROFESSIONAL" && degKey !== "PHD") return "—";
     if (planName !== "PHD_PROFESSIONAL" && degKey === "PHD") return "—";
     const plan = getPlanForDeg(planName, degKey);
-    if (!plan) return `(${planName}/${degKey}?)`;
+    if (!plan) return "—";
     const price = getPlanPrice(plan);
-    if (!price) return `(${plan.priceKobo}?)`;
+    if (!price) return "—";
     return `${fmt(price)}${plan.pricingType === "PER_CHAPTER" ? "/ch" : " (flat)"}`;
   }
 
