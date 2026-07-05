@@ -89,9 +89,9 @@ export default function PricingPage() {
     if (planName === "PHD_PROFESSIONAL" && degKey !== "PHD") return "—";
     if (planName !== "PHD_PROFESSIONAL" && degKey === "PHD") return "—";
     const plan = getPlanForDeg(planName, degKey);
-    if (!plan) return "—";
+    if (!plan) return `(${planName}/${degKey}?)`;
     const price = getPlanPrice(plan);
-    if (!price) return "Contact us";
+    if (!price) return `(${plan.priceKobo}?)`;
     return `${fmt(price)}${plan.pricingType === "PER_CHAPTER" ? "/ch" : " (flat)"}`;
   }
 
