@@ -287,6 +287,10 @@ export function HireForm({
 
   async function handleBankTransfer() {
     if (!validate()) return;
+    if (mode === "register" && onPayload) {
+      onPayload(buildPayload("BANK_TRANSFER"), "BANK_TRANSFER");
+      return;
+    }
     setShowBankModal(true);
   }
 
