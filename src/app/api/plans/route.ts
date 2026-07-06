@@ -11,21 +11,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "degreeGroup required" }, { status: 400 });
   }
 
-  const plans = await prisma.plan.findMany({
-    where:   { degreeGroup: degreeGroup as any, isActive: true },
-    orderBy: { planName: "asc" },
-  });
+  // Use raw query to include international price fields which may not be
+  // in the Prisma-generated client if schema wasn't migrated with them
+  const plans = await prisma.$queryRaw<any[]>`
+    SELECT
+      id, "planName", "pricingType", "priceKobo",
+      "priceGHS", "priceKES", "priceUSD", "priceGBP",
+      "includesCorrections", "includesFormat", "includesPlagiarismCheck"
+    FROM "Plan"
+    WHERE "degreeGroup" = ${degreeGroup}
+      AND "isActive" = true
+    ORDER BY "planName" ASC
+  `;
 
-  // Return with international prices
   const data = plans.map(p => ({
     id:                      p.id,
     planName:                p.planName,
     pricingType:             p.pricingType,
-    priceKobo:               p.priceKobo,
-    priceGHS:                (p as any).priceGHS || null,
-    priceKES:                (p as any).priceKES || null,
-    priceUSD:                (p as any).priceUSD || null,
-    priceGBP:                (p as any).priceGBP || null,
+    priceKobo:               Number(p.priceKobo),
+    priceGHS:                p.priceGHS ? Number(p.priceGHS) : null,
+    priceKES:                p.priceKES ? Number(p.priceKES) : null,
+    priceUSD:                p.priceUSD ? Number(p.priceUSD) : null,
+    priceGBP:                p.priceGBP ? Number(p.priceGBP) : null,
     includesCorrections:     p.includesCorrections,
     includesFormat:          p.includesFormat,
     includesPlagiarismCheck: p.includesPlagiarismCheck,
