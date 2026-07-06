@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   // in the Prisma-generated client if schema wasn't migrated with them
   const plans = await prisma.$queryRaw<any[]>`
     SELECT
-      id, "planName", "pricingType", "priceKobo",
+      id, "planName", "degreeGroup", "pricingType", "priceKobo",
       "priceGHS", "priceKES", "priceUSD", "priceGBP",
       "includesCorrections", "includesFormat", "includesPlagiarismCheck"
     FROM "Plan"
@@ -27,12 +27,13 @@ export async function GET(req: NextRequest) {
   const data = plans.map(p => ({
     id:                      p.id,
     planName:                p.planName,
+    degreeGroup:             p.degreeGroup,
     pricingType:             p.pricingType,
     priceKobo:               Number(p.priceKobo),
-    priceGHS:                p.priceGHS ? Number(p.priceGHS) : null,
-    priceKES:                p.priceKES ? Number(p.priceKES) : null,
-    priceUSD:                p.priceUSD ? Number(p.priceUSD) : null,
-    priceGBP:                p.priceGBP ? Number(p.priceGBP) : null,
+    priceGHS:                p.priceGHS != null ? Number(p.priceGHS) : null,
+    priceKES:                p.priceKES != null ? Number(p.priceKES) : null,
+    priceUSD:                p.priceUSD != null ? Number(p.priceUSD) : null,
+    priceGBP:                p.priceGBP != null ? Number(p.priceGBP) : null,
     includesCorrections:     p.includesCorrections,
     includesFormat:          p.includesFormat,
     includesPlagiarismCheck: p.includesPlagiarismCheck,
