@@ -22,15 +22,31 @@ export async function GET(req: NextRequest) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────
-async function resolveAmountKobo(planId: string, serviceType: string, degreeGroup: string, chaptersRequested: number[], requiresPlagiarismCheck: boolean) {
+async function resolveAmountKobo(planId: string, serviceType: string, degreeGroup: string, chaptersRequested: number[], requiresPlagiarismCheck: boolean, currency: string = "NGN") {
   const isProjectService = !!(planId && planId !== "flat");
 
   if (isProjectService) {
-    const plan = await prisma.plan.findUnique({ where: { id: planId } });
+    // Use raw query to get international prices
+    const plans = await prisma.$queryRaw<any[]>`
+      SELECT id, "planName", "pricingType", "priceKobo", "isActive",
+        "priceGHS"::integer, "priceKES"::integer, "priceUSD"::integer, "priceGBP"::integer,
+        "includesPlagiarismCheck"
+      FROM "Plan" WHERE id = ${planId} LIMIT 1
+    `;
+    const plan = plans[0];
     if (!plan || !plan.isActive) throw new Error("Selected plan is not available.");
-    let amount = plan.priceKobo;
+
+    // Use international price if available, otherwise fall back to priceKobo
+    let unitAmount = plan.priceKobo;
+    if (currency !== "NGN") {
+      const intlKey = `price${currency}`;
+      const intlVal = plan[intlKey];
+      if (intlVal) unitAmount = intlVal;
+    }
+
+    let amount = unitAmount;
     if (plan.pricingType === "PER_CHAPTER" && chaptersRequested?.length) {
-      amount = plan.priceKobo * chaptersRequested.length;
+      amount = unitAmount * chaptersRequested.length;
     }
     return { plan, amount };
   }
@@ -47,8 +63,18 @@ async function resolveAmountKobo(planId: string, serviceType: string, degreeGrou
   const svc = await (prisma as any).otherService.findFirst({ where: { value: svcValue, isActive: true } });
   const degKey: Record<string,string> = { OND_HND_NCE:"OND", BSC_BED_BA:"BSC", PGD_MSC_PHD:"PGD", PHD:"PHD" };
   const dk = degKey[degreeGroup] || "BSC";
-  let amount = (svc?.[`price${dk}`] || 0);
-  if (requiresPlagiarismCheck && svc) amount += (svc[`plagiarismAddOn${dk}`] || 0);
+
+  // Use international price if available
+  let amount = 0;
+  if (currency !== "NGN" && svc) {
+    const intlKey = `price${currency}${dk}`;
+    const intlVal = svc[intlKey];
+    if (intlVal) { amount = intlVal; }
+  }
+  if (!amount && svc) amount = (svc[`price${dk}`] || 0);
+  if (requiresPlagiarismCheck && svc && currency === "NGN") {
+    amount += (svc[`plagiarismAddOn${dk}`] || 0);
+  }
   return { plan, amount };
 }
 
@@ -84,7 +110,7 @@ export async function POST(req: NextRequest) {
 
     // ── Resolve plan + amount ─────────────────────────────────
     const { plan, amount: amountKobo } = await resolveAmountKobo(
-      planId, serviceType, degreeGroup, chaptersRequested || [], !!requiresPlagiarismCheck
+      planId, serviceType, degreeGroup, chaptersRequested || [], !!requiresPlagiarismCheck, currency || "NGN"
     );
     const isProjectService = !!(planId && planId !== "flat");
 
@@ -153,6 +179,7 @@ export async function POST(req: NextRequest) {
 
     if (paymentMethod === "FLUTTERWAVE") {
       const tx_ref = `IPM-REG-FLW-${Date.now()}`;
+      console.log("[REG-FLW] amountKobo:", amountKobo, "currency:", currency, "amount to FLW:", amountKobo / 100);
       const flwRes = await fetch("https://api.flutterwave.com/v3/payments", {
         method: "POST",
         headers: { Authorization:`Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`, "Content-Type":"application/json" },
