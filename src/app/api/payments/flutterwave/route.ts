@@ -27,15 +27,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
   }
 
-  // Resolve plan
+  // Resolve plan using raw query to get international prices
   let plan: any = null;
   if (planId && planId !== "flat") {
-    plan = await prisma.plan.findUnique({ where: { id: planId } });
+    const plans = await prisma.$queryRaw<any[]>`
+      SELECT id, "planName", "pricingType", "priceKobo",
+        "priceGHS"::integer, "priceKES"::integer, "priceUSD"::integer, "priceGBP"::integer,
+        "includesPlagiarismCheck"
+      FROM "Plan" WHERE id = ${planId} LIMIT 1
+    `;
+    plan = plans[0] || null;
   }
   if (!plan) {
-    plan = await prisma.plan.findFirst({ orderBy: { updatedAt: "asc" } });
+    const plans = await prisma.$queryRaw<any[]>`
+      SELECT id, "planName", "pricingType", "priceKobo",
+        "priceGHS"::integer, "priceKES"::integer, "priceUSD"::integer, "priceGBP"::integer,
+        "includesPlagiarismCheck"
+      FROM "Plan" WHERE "isActive" = true ORDER BY "updatedAt" ASC LIMIT 1
+    `;
+    plan = plans[0] || null;
   }
   if (!plan) return NextResponse.json({ error: "No plan found." }, { status: 400 });
+
+  // Calculate correct amount for the currency
+  // Always recalculate server-side to avoid frontend currency detection issues
+  const isNGN = currency === "NGN";
+  let calculatedAmount = amount; // fallback to frontend-provided amount
+
+  if (!isNGN && planId && planId !== "flat") {
+    const intlKey = `price${currency}` as string;
+    const intlVal = plan[intlKey];
+    if (intlVal) {
+      const unitPrice = intlVal / 100;
+      calculatedAmount = chaptersRequested?.length
+        ? unitPrice * chaptersRequested.length
+        : unitPrice;
+    }
+  }
 
   // Create order first
   const tx_ref = `IPM-FLW-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
@@ -70,7 +98,7 @@ export async function POST(req: NextRequest) {
     },
     body: JSON.stringify({
       tx_ref,
-      amount,
+      amount: calculatedAmount,
       currency,
       redirect_url: `${APP_URL}/api/payments/flutterwave/callback`,
       customer: {
