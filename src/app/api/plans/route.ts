@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       "priceGHS", "priceKES", "priceUSD", "priceGBP",
       "includesCorrections", "includesFormat", "includesPlagiarismCheck"
     FROM "Plan"
-    WHERE "degreeGroup" = ${degreeGroup}
+    WHERE "degreeGroup" = ${degreeGroup}::"DegreeGroup"
       AND "isActive" = true
     ORDER BY "planName" ASC
   `;
