@@ -179,7 +179,6 @@ export async function POST(req: NextRequest) {
 
     if (paymentMethod === "FLUTTERWAVE") {
       const tx_ref = `IPM-REG-FLW-${Date.now()}`;
-      console.log("[REG-FLW] amountKobo:", amountKobo, "currency:", currency, "amount to FLW:", amountKobo / 100);
       const flwRes = await fetch("https://api.flutterwave.com/v3/payments", {
         method: "POST",
         headers: { Authorization:`Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`, "Content-Type":"application/json" },
