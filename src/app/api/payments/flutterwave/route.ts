@@ -57,7 +57,6 @@ export async function POST(req: NextRequest) {
   if (!isNGN && planId && planId !== "flat") {
     const intlKey = `price${currency}` as string;
     const intlVal = plan[intlKey];
-    console.log("[FLW] currency:", currency, "intlKey:", intlKey, "intlVal:", intlVal, "plan keys:", Object.keys(plan));
     if (intlVal) {
       const unitPrice = intlVal / 100;
       calculatedAmount = chaptersRequested?.length
@@ -65,7 +64,6 @@ export async function POST(req: NextRequest) {
         : unitPrice;
     }
   }
-  console.log("[FLW] amount from frontend:", amount, "calculatedAmount:", calculatedAmount, "currency:", currency);
 
   // Create order first
   const tx_ref = `IPM-FLW-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
