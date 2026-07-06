@@ -15,8 +15,12 @@ export async function GET(req: NextRequest) {
   // in the Prisma-generated client if schema wasn't migrated with them
   const plans = await prisma.$queryRaw<any[]>`
     SELECT
-      id, "planName", "degreeGroup", "pricingType", "priceKobo",
-      "priceGHS", "priceKES", "priceUSD", "priceGBP",
+      id, "planName", "degreeGroup", "pricingType",
+      "priceKobo"::integer AS "priceKobo",
+      "priceGHS"::integer AS "priceGHS",
+      "priceKES"::integer AS "priceKES",
+      "priceUSD"::integer AS "priceUSD",
+      "priceGBP"::integer AS "priceGBP",
       "includesCorrections", "includesFormat", "includesPlagiarismCheck"
     FROM "Plan"
     WHERE "degreeGroup" = ${degreeGroup}::"DegreeGroup"
@@ -29,11 +33,11 @@ export async function GET(req: NextRequest) {
     planName:                p.planName,
     degreeGroup:             p.degreeGroup,
     pricingType:             p.pricingType,
-    priceKobo:               Number(p.priceKobo),
-    priceGHS:                p.priceGHS != null ? Number(p.priceGHS) : null,
-    priceKES:                p.priceKES != null ? Number(p.priceKES) : null,
-    priceUSD:                p.priceUSD != null ? Number(p.priceUSD) : null,
-    priceGBP:                p.priceGBP != null ? Number(p.priceGBP) : null,
+    priceKobo:               p.priceKobo,
+    priceGHS:                p.priceGHS ?? null,
+    priceKES:                p.priceKES ?? null,
+    priceUSD:                p.priceUSD ?? null,
+    priceGBP:                p.priceGBP ?? null,
     includesCorrections:     p.includesCorrections,
     includesFormat:          p.includesFormat,
     includesPlagiarismCheck: p.includesPlagiarismCheck,
