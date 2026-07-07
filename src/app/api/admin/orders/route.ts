@@ -222,7 +222,26 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, message: "Chapter reassigned." });
   }
 
-  // ── Update guideline file URL ─────────────────────────────
+  // ── Edit order details (before confirming bank transfer) ──
+  if (action === "edit_order") {
+    const { topic, department, degreeGroup, planId, selectedChapters, specialInstructions, guidelineFileUrl } = body;
+    if (!topic?.trim() || !degreeGroup || !planId) {
+      return NextResponse.json({ error: "Topic, degree level and plan are required." }, { status: 400 });
+    }
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        topic:               topic.trim(),
+        department:          department?.trim() || "",
+        degreeGroup:         degreeGroup as any,
+        planId,
+        selectedChapters:    selectedChapters || null,
+        specialInstructions: specialInstructions || null,
+        guidelineFileUrl:    guidelineFileUrl || null,
+      } as any,
+    });
+    return NextResponse.json({ success: true, message: "Order updated." });
+  }
   if (action === "update_guideline") {
     const { guidelineFileUrl } = body;
     await prisma.order.update({
