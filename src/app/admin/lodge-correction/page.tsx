@@ -47,10 +47,10 @@ const C = {
 };
 
 interface UploadedFile {
-  name: string;
-  url:  string;
-  done: boolean;
-  err?: string;
+  name:     string;
+  url:      string;
+  done:     boolean;
+  err?:     string;
   progress: number;
 }
 
@@ -92,7 +92,7 @@ export default function AdminLodgeCorrection() {
     }, 200);
 
     try {
-      const res  = await fetch("/api/upload", { method: "POST", body: formData });
+      const res  = await fetch("/api/admin/upload", { method: "POST", body: formData });
       const data = await res.json();
       clearInterval(interval);
       if (res.ok) {
