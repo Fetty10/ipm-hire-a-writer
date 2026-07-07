@@ -105,7 +105,8 @@ export function HireForm({
   const [planId,       setPlanId]       = useState("");
   const [selChapters,  setSelChapters]  = useState<number[]>([]);
   const [topic,        setTopic]        = useState("");
-  const [department,   setDepartment]   = useState("");
+  const [department,    setDepartment]    = useState("");
+  const [deptDebounced, setDeptDebounced] = useState("");
   const [instructions, setInstructions] = useState("");
   const [guidelineUrls, setGuidelineUrls] = useState<{url:string,name:string}[]>([]);
   const [uploadingGuide, setUploadingGuide] = useState(false);
@@ -142,7 +143,13 @@ export function HireForm({
   const isBasicPlan     = isProject && !!planId && selectedPlan?.planName === "BASIC";
 
   // Check if typed department matches any exception course (fuzzy)
-  const isExceptionDept = isProject && department.trim().length >= 3 && exceptionCourses.some(exc => {
+  // Debounce department input so exception check doesn't fire on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => setDeptDebounced(department), 500);
+    return () => clearTimeout(timer);
+  }, [department]);
+
+  const isExceptionDept = isProject && deptDebounced.trim().length >= 3 && exceptionCourses.some(exc => {
     const dept = department.toLowerCase().trim();
     const excLower = exc.toLowerCase();
     // Only match if the department contains the exception course name (not vice versa)
@@ -160,13 +167,13 @@ export function HireForm({
   // department (e.g. student had Basic selected, then typed "Law" — Basic
   // isn't allowed for exception depts). Don't reset on every keystroke.
   useEffect(() => {
-    if (!planId || !selectedPlan) return;
+    if (!planId || !selectedPlan) return; // nothing selected, nothing to reset
     const stillValid = !isExceptionDept || selectedPlan.planName === "PROFESSIONAL" || selectedPlan.planName === "PHD_PROFESSIONAL";
     if (!stillValid) {
       setPlanId("");
       setSelChapters([]);
     }
-  }, [isExceptionDept]);
+  }, [isExceptionDept]); // eslint-disable-line
 
   // Calculate total
   function calcUnitPrice(): number {
