@@ -171,19 +171,23 @@ export default function AdminBankTransfers() {
 
   // Open edit modal — load plans for the order's degree group
   async function openEdit(order: any) {
-    const degRes  = await fetch(`/api/plans?degreeGroup=${order.degreeGroup}`);
+    // Always use latest from local orders array in case it was already edited
+    const latest = orders.find(o => o.id === order.id) || order;
+    const degRes  = await fetch(`/api/plans?degreeGroup=${latest.degreeGroup}`);
     const degData = await degRes.json();
     setPlans(degData.success ? degData.data : []);
     setEditForm({
-      topic:               order.topic || "",
-      department:          order.department || "",
-      degreeGroup:         order.degreeGroup || "",
-      planId:              order.chapters?.[0]?.planId || "",
-      selectedChapters:    order.chapters?.map((ch:any) => ch.chapterNumber).filter(Boolean) || [],
-      specialInstructions: order.specialInstructions || "",
-      guidelineFileUrl:    order.guidelineFileUrl || "",
+      topic:               latest.topic || "",
+      department:          latest.department || "",
+      degreeGroup:         latest.degreeGroup || "",
+      planId:              latest.planId || latest.chapters?.[0]?.planId || "",
+      selectedChapters:    latest.selectedChapters
+        ? latest.selectedChapters.split(",").map(Number).filter(Boolean)
+        : latest.chapters?.map((ch:any) => ch.chapterNumber).filter(Boolean) || [],
+      specialInstructions: latest.specialInstructions || "",
+      guidelineFileUrl:    latest.guidelineFileUrl || "",
     });
-    setEditOrder(order);
+    setEditOrder(latest);
   }
 
   async function handleDegreeChange(dg: string) {
@@ -216,8 +220,26 @@ export default function AdminBankTransfers() {
       const data = await res.json();
       if (res.ok) {
         toast.success("Order updated successfully.");
-        setEditOrder(null);
-        loadOrders();
+        // Update local orders array so reopening edit shows latest values
+        setOrders(prev => prev.map(o => o.id === editOrder.id ? {
+          ...o,
+          topic:               editForm.topic.trim(),
+          department:          editForm.department.trim(),
+          degreeGroup:         editForm.degreeGroup,
+          planId:              editForm.planId,
+          selectedChapters:    editForm.selectedChapters.sort().join(","),
+          specialInstructions: editForm.specialInstructions.trim() || null,
+          guidelineFileUrl:    editForm.guidelineFileUrl.trim() || null,
+          amountPaid:          data.amountPaidKobo / 100,
+        } : o));
+        // Keep modal open with current form state — admin may want to confirm immediately
+        setEditOrder(prev => prev ? {...prev,
+          topic:               editForm.topic.trim(),
+          department:          editForm.department.trim(),
+          degreeGroup:         editForm.degreeGroup,
+          guidelineFileUrl:    editForm.guidelineFileUrl.trim() || null,
+          specialInstructions: editForm.specialInstructions.trim() || null,
+        } : null);
       } else {
         toast.error(data.error || "Failed to save changes.");
       }
