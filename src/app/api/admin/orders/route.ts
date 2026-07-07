@@ -228,6 +228,21 @@ export async function PATCH(req: NextRequest) {
     if (!topic?.trim() || !degreeGroup || !planId) {
       return NextResponse.json({ error: "Topic, degree level and plan are required." }, { status: 400 });
     }
+
+    // Recalculate amount based on new plan + chapters
+    const plans = await prisma.$queryRaw<any[]>`
+      SELECT id, "pricingType", "priceKobo"
+      FROM "Plan" WHERE id = ${planId} LIMIT 1
+    `;
+    const plan = plans[0];
+    if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 404 });
+
+    const chapters = selectedChapters ? selectedChapters.split(",").filter(Boolean) : [];
+    let newAmount = Number(plan.priceKobo);
+    if (plan.pricingType === "PER_CHAPTER" && chapters.length > 0) {
+      newAmount = Number(plan.priceKobo) * chapters.length;
+    }
+
     await prisma.order.update({
       where: { id: orderId },
       data: {
@@ -238,9 +253,10 @@ export async function PATCH(req: NextRequest) {
         selectedChapters:    selectedChapters || null,
         specialInstructions: specialInstructions || null,
         guidelineFileUrl:    guidelineFileUrl || null,
+        amountPaidKobo:      newAmount,
       } as any,
     });
-    return NextResponse.json({ success: true, message: "Order updated." });
+    return NextResponse.json({ success: true, message: "Order updated.", amountPaidKobo: newAmount });
   }
   if (action === "update_guideline") {
     const { guidelineFileUrl } = body;
