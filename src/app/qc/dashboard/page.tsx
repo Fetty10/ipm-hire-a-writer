@@ -75,8 +75,8 @@ export default function QCDashboard() {
     return item;
   });
 
-  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
-  const name     = session?.user?.name?.split(" ")[0]||"QC";
+  const initials = (session?.user?.name||"QC").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
+  const name     = (session?.user?.name||"QC").split(" ")[0]||"QC";
 
   return (
     <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
