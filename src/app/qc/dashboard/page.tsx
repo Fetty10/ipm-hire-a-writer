@@ -67,7 +67,7 @@ export default function QCDashboard() {
     load();
   }, []);
 
-  const nav = QC_NAV.map(item => {
+  const nav = (QC_NAV || []).map(item => {
     if (item.href==="/qc/checks/pending")      return {...item, badge:counts.checksP};
     if (item.href==="/qc/checks/active")       return {...item, badge:counts.checksA};
     if (item.href==="/qc/corrections/pending") return {...item, badge:counts.corrP};
