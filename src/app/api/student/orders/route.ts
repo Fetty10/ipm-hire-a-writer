@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
       select: { orderId: true },
     });
     const pendingOrderIds = [...new Set(pendingReqs.map((r:any) => r.orderId))] as string[];
+    console.log("[STUDENT ORDERS] pendingReqs:", pendingReqs.length, "pendingOrderIds:", pendingOrderIds);
 
     where = {
       clientId: session.user.id,
