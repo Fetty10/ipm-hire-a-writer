@@ -45,7 +45,7 @@ export function StaffLayout({ children, navItems, role, initials }: {
         </div>
 
         <nav style={{display:"flex",flexDirection:"column",flex:1,overflowY:"auto",gap:"1px"}}>
-          {navItems.map(item=>{
+          {(navItems||[]).map(item=>{
             const active = pathname===item.href||pathname.startsWith(item.href+"/");
             return (
               <button key={item.href} style={{...S.navBtn,...(active?S.navActive:{})}}
