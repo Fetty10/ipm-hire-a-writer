@@ -40,13 +40,13 @@ export default function WriterEarnings() {
   const [page,     setPage]     = useState(1);
   const [pages,    setPages]    = useState(1);
   const [total,    setTotal]    = useState(0);
-  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
+  const initials = (session?.user?.name||"QC").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
 
   useEffect(()=>{
     setLoading(true);
     fetch(`/api/staff/earnings?page=${page}`).then(r=>r.json()).then(d=>{
       if(d.success){
-        setEarnings(d.data.earnings);
+        setEarnings(d.data.earnings||[]);
         setSummary(d.data.summary);
         setByCategory(d.data.byCategory || {});
         setTotal(d.data.total||0);
@@ -57,7 +57,7 @@ export default function WriterEarnings() {
   },[page]);
 
   return (
-    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={QC_NAV||[]} role="Quality Control" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>Earnings</h1>
         <p style={C.sub}>Your per-job earnings breakdown.</p>
