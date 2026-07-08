@@ -120,7 +120,7 @@ export default function QCCorrectionsActive() {
   }
 
   const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
-  const nav = QC_NAV.map(item=>item.href==="/qc/corrections/active"?{...item,badge:jobs.length}:item);
+  const nav = (QC_NAV||[]).map(item=>item.href==="/qc/corrections/active"?{...item,badge:jobs.length}:item);
 
   return (
     <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
