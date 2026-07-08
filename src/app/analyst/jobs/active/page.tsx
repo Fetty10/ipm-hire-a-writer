@@ -67,7 +67,7 @@ export default function AnalystActiveJobs() {
     const res  = await fetch(`/api/staff/jobs?status=active&search=${encodeURIComponent(search)}`);
     const data = await res.json();
     if (data.success) {
-      setJobs(data.data);
+      setJobs(data.data||[]);
       const init:any = {};
       data.data.forEach((j:any) => { init[j.id] = { fileUrl:"", notes:"", submitting:false, uploading:false, fileName:"" }; });
       setState(init);
@@ -111,7 +111,7 @@ export default function AnalystActiveJobs() {
     }
   }
 
-  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"AN";
+  const initials = (session?.user?.name||"AN").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"AN";
   const nav = NAV.map(item=>item.href==="/analyst/jobs/active"?{...item,badge:jobs.length}:item);
 
   return (
