@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
           select: {
             id:                  true,
             topic:               true,
+            serviceType:         true,
             department:          true,
             degreeGroup:         true,
             specialInstructions: true,
@@ -151,6 +152,7 @@ export async function GET(req: NextRequest) {
         topic:               ch.order.topic,
         department:          ch.order.department,
         degreeGroup:         ch.order.degreeGroup,
+        serviceType:         ch.order.serviceType,
         specialInstructions: ch.order.specialInstructions,
         guidelineFileUrl:    ch.order.guidelineFileUrl,
         planName:           ch.order.plan.planName, // for deadline calc only
