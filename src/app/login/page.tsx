@@ -1,122 +1,111 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useState, Suspense } from "react";
+import { Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import toast from "react-hot-toast";
-import { WhatsAppWidget } from "@/components/WhatsAppWidget";
+import { useSearchParams } from "next/navigation";
 
-function StudentLoginForm() {
+const C = {
+  wrap:  { minHeight:"100vh", background:"#F0F9FF", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem", fontFamily:"'DM Sans',sans-serif" },
+  box:   { width:"100%", maxWidth:"420px" },
+  logo:  { textAlign:"center" as const, marginBottom:"2rem" },
+  lname: { fontFamily:"'Syne',sans-serif", fontSize:"1.8rem", fontWeight:800, color:"#0C1A2E" },
+  lspan: { color:"#38BDF8" },
+  lsub:  { fontSize:".85rem", color:"#5B7EA6", marginTop:".3rem" },
+  card:  { background:"#fff", borderRadius:"20px", border:"1.5px solid #E0F2FE", boxShadow:"0 4px 24px rgba(14,165,233,.08)", padding:"1.75rem" },
+  fg:    { marginBottom:"1rem" },
+  lbl:   { fontSize:".68rem", fontWeight:700, textTransform:"uppercase" as const, letterSpacing:".08em", color:"#0C1A2E", display:"block", marginBottom:".4rem" },
+  inp:   { width:"100%", padding:".75rem 1rem", borderRadius:"12px", border:"1.5px solid #BAE6FD", fontSize:".85rem", fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" as const },
+  pw:    { position:"relative" as const },
+  eye:   { position:"absolute" as const, right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:"1rem" },
+  err:   { fontSize:".75rem", color:"#EF4444", fontWeight:600, marginBottom:".75rem" },
+  btn:   { width:"100%", padding:".85rem", borderRadius:"12px", border:"none", background:"#38BDF8", color:"#0C1A2E", fontSize:".88rem", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  btnD:  { opacity:.6, cursor:"not-allowed" as const },
+  foot:  { textAlign:"center" as const, marginTop:"1.25rem" },
+  flink: { background:"none", border:"none", color:"#0369A1", fontWeight:700, cursor:"pointer", fontSize:".82rem" },
+  div:   { textAlign:"center" as const, margin:"1.25rem 0", color:"#5B7EA6", fontSize:".78rem", position:"relative" as const },
+  staffBox: { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"12px", padding:"1rem 1.25rem", textAlign:"center" as const, marginTop:"1rem" },
+  staffTxt: { fontSize:".78rem", color:"#5B7EA6", marginBottom:".6rem" },
+  staffBtn: { display:"inline-flex", alignItems:"center", gap:".4rem", padding:".5rem 1.1rem", borderRadius:"10px", border:"1.5px solid #0C1A2E", background:"none", color:"#0C1A2E", fontSize:".78rem", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+};
+
+function LoginForm() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl  = searchParams.get("callbackUrl") || "/student/dashboard";
-
+  const callbackUrl  = searchParams.get("callbackUrl") || null;
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [showPw,   setShowPw]   = useState(false);
   const [loading,  setLoading]  = useState(false);
-  const [errMsg,   setErrMsg]   = useState("");
+  const [error,    setError]    = useState("");
+  const [showPw,   setShowPw]   = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setErrMsg("");
-    const result = await signIn("credentials", { email, password, portal:"student", redirect:false });
-    setLoading(false);
-
+    setLoading(true); setError("");
+    const result = await signIn("credentials", { redirect: false, email, password });
     if (result?.error) {
-      if (result.error === "WRONG_PORTAL_USE_STAFF_LOGIN") {
-        setErrMsg("This account is for staff. Please use the Staff Login page.");
-      } else {
-        setErrMsg("Incorrect email or password. Please try again.");
-      }
-      return;
+      setError(
+        result.error === "ACCOUNT_PENDING_APPROVAL" ? "Your account is pending admin approval." :
+        result.error === "ACCOUNT_SUSPENDED" ? "Your account has been suspended. Contact admin." :
+        "Invalid email or password."
+      );
+      setLoading(false); return;
     }
-    toast.success("Welcome back!");
-    router.push(callbackUrl);
+    router.push(callbackUrl || "/student/dashboard");
   }
 
   return (
-    <div style={{ minHeight:"100vh", background:"#F0F9FF", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem", fontFamily:"'DM Sans',sans-serif" }}>
-      <div style={{ width:"100%", maxWidth:"420px" }}>
-
-        {/* Marketing headline */}
-        <div style={{ textAlign:"center", marginBottom:"1.25rem" }}>
-          <div style={{ fontSize:"1.05rem", fontWeight:700, color:"#0C1A2E", lineHeight:1.4 }}>
-            Login to hire an expert writer or see the progress of your work.
-          </div>
+    <div style={C.wrap}>
+      <div style={C.box}>
+        <div style={C.logo}>
+          <div style={C.lname}>iProject<span style={C.lspan}>Master</span></div>
+          <div style={C.lsub}>Student Login</div>
         </div>
 
-        {/* Logo */}
-        <div style={{ textAlign:"center", marginBottom:"2rem" }}>
-          <div style={{ fontFamily:"'Syne',sans-serif", fontSize:"1.8rem", fontWeight:800, color:"#0C1A2E" }}>
-            iProject<span style={{ color:"#38BDF8" }}>Master</span>
-          </div>
-          <div style={{ fontSize:".85rem", color:"#5B7EA6", marginTop:".3rem" }}>Student Portal</div>
-        </div>
-
-        <div style={{ background:"#fff", borderRadius:"20px", border:"1.5px solid #E0F2FE", boxShadow:"0 4px 24px rgba(14,165,233,.08)", padding:"2rem" }}>
-
-          {errMsg && (
-            <div style={{ background:"#FEF9C3", border:"1px solid #FDE68A", borderRadius:"10px", padding:".75rem 1rem", fontSize:".78rem", color:"#92400E", marginBottom:"1rem", lineHeight:1.5 }}>
-              ⚠️ {errMsg}
-            </div>
-          )}
-
+        <div style={C.card}>
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom:"1.25rem" }}>
-              <label style={{ fontSize:".68rem", fontWeight:700, textTransform:"uppercase", letterSpacing:".08em", color:"#5B7EA6", display:"block", marginBottom:".4rem" }}>Email Address</label>
-              <input type="email" required placeholder="you@example.com" value={email}
-                onChange={e => setEmail(e.target.value)}
-                style={{ width:"100%", padding:".75rem 1rem", borderRadius:"12px", border:"1.5px solid #BAE6FD", fontSize:".85rem", outline:"none", boxSizing:"border-box", background:"#fff" }} />
+            <div style={C.fg}>
+              <label style={C.lbl}>Email or Phone</label>
+              <input style={C.inp} type="text" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="you@email.com or 08012345678" />
             </div>
-
-            <div style={{ marginBottom:"1rem" }}>
-              <label style={{ fontSize:".68rem", fontWeight:700, textTransform:"uppercase", letterSpacing:".08em", color:"#5B7EA6", display:"block", marginBottom:".4rem" }}>Password</label>
-              <div style={{ position:"relative" }}>
-                <input type={showPw ? "text" : "password"} required placeholder="••••••••" value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  style={{ width:"100%", padding:".75rem 1rem", borderRadius:"12px", border:"1.5px solid #BAE6FD", fontSize:".85rem", outline:"none", boxSizing:"border-box", background:"#fff" }} />
-                <button type="button" onClick={() => setShowPw(p => !p)}
-                  style={{ position:"absolute", right:"12px", top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:"1rem" }}>
-                  {showPw ? "🙈" : "👁"}
-                </button>
+            <div style={C.fg}>
+              <label style={C.lbl}>Password</label>
+              <div style={C.pw}>
+                <input style={C.inp} type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} required placeholder="••••••••" />
+                <button type="button" style={C.eye} onClick={()=>setShowPw(!showPw)}>{showPw?"🙈":"👁"}</button>
               </div>
             </div>
-
-            <div style={{ textAlign:"right", marginBottom:"1.25rem" }}>
-              <button type="button" onClick={() => router.push("/forgot-password")}
-                style={{ background:"none", border:"none", color:"#38BDF8", fontSize:".78rem", fontWeight:600, cursor:"pointer" }}>
-                Forgot password?
-              </button>
-            </div>
-
-            <button type="submit" disabled={loading}
-              style={{ width:"100%", padding:".85rem", borderRadius:"12px", border:"none", background:"#0C1A2E", color:"#38BDF8", fontSize:".88rem", fontWeight:700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, marginBottom:"1rem" }}>
+            {error && <p style={C.err}>{error}</p>}
+            <button type="submit" style={{...C.btn,...(loading?C.btnD:{})}} disabled={loading}>
               {loading ? "Signing in..." : "Sign In →"}
             </button>
           </form>
 
-          <div style={{ borderTop:"1px solid #E0F2FE", margin:"1.25rem 0" }} />
-          <div style={{ textAlign:"center", fontSize:".82rem", color:"#5B7EA6" }}>
-            <p>New here?{" "}
-              <button onClick={() => router.push("/register")}
-                style={{ background:"none", border:"none", color:"#38BDF8", fontWeight:700, cursor:"pointer", fontSize:".82rem" }}>
-                Create an account →
-              </button>
+          <div style={C.foot}>
+            <p style={{fontSize:".82rem", color:"#5B7EA6"}}>
+              New student?{" "}
+              <button style={C.flink} onClick={()=>router.push("/register")}>Create account</button>
             </p>
           </div>
         </div>
+
+        {/* Staff login link */}
+        <div style={C.staffBox}>
+          <p style={C.staffTxt}>Are you a writer, analyst, QC or admin?</p>
+          <button style={C.staffBtn} onClick={()=>router.push("/staff/login")}>
+            👤 Staff Login
+          </button>
+        </div>
       </div>
-      <WhatsAppWidget message="Hi Lina, I'm having trouble logging in to my iProjectMaster account." />
     </div>
   );
 }
 
-export default function StudentLoginPage() {
+export default function LoginPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", color:"#5B7EA6" }}>Loading...</div>}>
-      <StudentLoginForm />
+    <Suspense fallback={<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#5B7EA6"}}>Loading...</div>}>
+      <LoginForm />
     </Suspense>
   );
 }
