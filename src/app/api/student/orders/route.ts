@@ -18,12 +18,22 @@ export async function GET(req: NextRequest) {
   let where: any = { clientId: session.user.id };
 
   if (filter === "active") {
-    where.status = { in: [
-      OrderStatus.IN_PROGRESS,
-      OrderStatus.QC_REVIEW,
-      OrderStatus.PAYMENT_CONFIRMED,
-      OrderStatus.PENDING_PAYMENT,
-    ]};
+    // Also include DELIVERED orders that have pending chapter requests
+    const pendingReqs = await (prisma as any).pendingChapterRequest.findMany({
+      where:  { order: { clientId: session.user.id } },
+      select: { orderId: true },
+    });
+    const pendingOrderIds = [...new Set(pendingReqs.map((r:any) => r.orderId))];
+
+    where.OR = [
+      { status: { in: [
+        OrderStatus.IN_PROGRESS,
+        OrderStatus.QC_REVIEW,
+        OrderStatus.PAYMENT_CONFIRMED,
+        OrderStatus.PENDING_PAYMENT,
+      ]}},
+      ...(pendingOrderIds.length > 0 ? [{ id: { in: pendingOrderIds } }] : []),
+    ];
   } else if (filter === "completed") {
     where.OR = [
       { status: OrderStatus.DELIVERED },
