@@ -60,7 +60,7 @@ export default function QCChecksPending() {
     setStarting(null);
   }
 
-  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
+  const initials = (session?.user?.name||"QC").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
   const nav = (QC_NAV||[]).map(item=>item.href==="/qc/checks/pending"?{...item,badge:jobs.length}:item);
 
   return (
