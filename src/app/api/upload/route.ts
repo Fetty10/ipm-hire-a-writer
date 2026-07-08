@@ -15,7 +15,7 @@ import {
 } from "@/lib/upload";
 import { Role } from "@prisma/client";
 
-const PUBLIC_FOLDERS: UploadFolder[] = ["staff/cv", "staff/samples"];
+const PUBLIC_FOLDERS: UploadFolder[] = ["staff/cv", "staff/samples", "orders/guidelines"];
 
 const ROLE_FOLDERS: Record<Role, UploadFolder[]> = {
   [Role.CLIENT]:     ["orders/guidelines", "orders/supervisor-notes", "orders/corrections"],
