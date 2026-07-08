@@ -65,7 +65,7 @@ export default function WriterActiveJobs() {
     if (data.success) {
       setJobs(data.data);
       const init:any = {};
-      data.data.forEach((j:any) => { init[j.id] = { fileUrl:"", notes:"", obj:j.researchObjectives||"", hyp:j.hypotheses||"", scope:j.scopeOfStudy||"", submitting:false, uploading:false, fileName:"" }; });
+      data.data.forEach((j:any) => { init[j.id] = { files:[], notes:"", obj:j.researchObjectives||"", hyp:j.hypotheses||"", scope:j.scopeOfStudy||"", submitting:false, uploading:false }; });
       setState(init);
     }
     setLoading(false);
@@ -79,10 +79,11 @@ export default function WriterActiveJobs() {
 
   async function handleSubmit(job:any) {
     const s = state[job.id];
-    if (!s?.fileUrl) { toast.error("Please upload the file first."); return; }
+    if (!s?.files?.length) { toast.error("Please upload at least one file first."); return; }
     upd(job.id,"submitting",true);
+    const fileUrl = s.files.map((f:any) => f.url).join(",");
     const res = await fetch("/api/chapters/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      chapterId:job.id, fileUrl:s.fileUrl, writerNotes:s.notes||undefined,
+      chapterId:job.id, fileUrl, writerNotes:s.notes||undefined,
       researchObjectives:s.obj||undefined,
       hypotheses:s.hyp||undefined, scopeOfStudy:s.scope||undefined,
     })});
@@ -94,18 +95,26 @@ export default function WriterActiveJobs() {
 
   async function handleUpload(jobId:string, file:File) {
     if (file.size>20*1024*1024) { toast.error("Max 20MB"); return; }
+    const s = state[jobId];
+    if (s?.files?.length >= 10) { toast.error("Max 10 files."); return; }
     upd(jobId,"uploading",true);
     try {
       const fd=new FormData(); fd.append("file",file); fd.append("folder","chapters/submitted");
       const res  = await fetch("/api/upload",{method:"POST",body:fd});
       const data = await res.json();
-      if (res.ok) { upd(jobId,"fileUrl",data.url); upd(jobId,"fileName",data.fileName); }
-      else toast.error(data.error||"Upload failed. Please try again.");
+      if (res.ok) {
+        upd(jobId,"files",[...(s?.files||[]), { url: data.url, name: data.fileName||file.name }]);
+      } else toast.error(data.error||"Upload failed. Please try again.");
     } catch {
       toast.error("Upload failed — please check your connection and try again.");
     } finally {
       upd(jobId,"uploading",false);
     }
+  }
+
+  function removeFile(jobId:string, idx:number) {
+    const s = state[jobId];
+    upd(jobId,"files", (s?.files||[]).filter((_:any, i:number) => i !== idx));
   }
 
   const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
@@ -133,7 +142,6 @@ export default function WriterActiveJobs() {
         ) : jobs.map((job:any) => {
           const s = state[job.id]||{};
           const prelimOk = !job.requiresPrelim || !!job.prelimSubmittedAt || (s.obj&&s.hyp&&s.scope);
-          const canSubmit = s.fileUrl && prelimOk;
           return (
             <div key={job.id} style={C.card}>
               <div style={C.chead}>
@@ -214,13 +222,49 @@ export default function WriterActiveJobs() {
                 </div>
               )}
 
-              <div
-                style={s.fileUrl ? C.upzoneOk : C.upzone}
-                onClick={()=>{const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};inp.click();}}>
-                {s.uploading ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
-                : s.fileUrl  ? <div><div style={C.upi}>✅</div><div style={C.upok}>{s.fileName||"File uploaded"}</div><div style={C.upsub}>Tap to replace</div></div>
-                : <div><div style={C.upi}>📄</div><div style={C.uplbl}>Upload {job.chapterLabel}</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
-              </div>
+              {/* Upload zone — multi-file for journal sourcing, single file for everything else */}
+              {job.serviceType === "JOURNAL_SOURCING" ? (
+                <div>
+                  {s.files?.length > 0 && (
+                    <div style={{display:"flex",flexDirection:"column" as const,gap:".35rem",marginBottom:".6rem"}}>
+                      {s.files.map((f:any,i:number) => (
+                        <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:"8px",padding:".4rem .75rem",fontSize:".78rem"}}>
+                          <span style={{color:"#065F46",fontWeight:600}}>✅ {f.name}</span>
+                          <button onClick={()=>removeFile(job.id,i)} style={{background:"none",border:"none",cursor:"pointer",color:"#EF4444",fontSize:".85rem",padding:"0 .25rem"}}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {(!s.files?.length || s.files.length < 10) && (
+                    <div style={s.uploading ? {...C.upzone,opacity:.6} : C.upzone}
+                      onClick={()=>{
+                        if(s.uploading) return;
+                        const inp=document.createElement("input");
+                        inp.type="file"; inp.accept=".pdf,.doc,.docx";
+                        inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};
+                        inp.click();
+                      }}>
+                      {s.uploading
+                        ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
+                        : <div><div style={C.upi}>📄</div><div style={C.uplbl}>{s.files?.length ? "＋ Add Another Journal" : "Upload Journal Files"}</div><div style={C.upsub}>PDF or Word · Max 20MB · Up to 10 files</div></div>
+                      }
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  style={s.files?.length ? C.upzoneOk : C.upzone}
+                  onClick={()=>{
+                    const inp=document.createElement("input");
+                    inp.type="file"; inp.accept=".pdf,.doc,.docx";
+                    inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};
+                    inp.click();
+                  }}>
+                  {s.uploading ? <div><div style={C.upi}>⏳</div><div style={C.uplbl}>Uploading...</div></div>
+                  : s.files?.length ? <div><div style={C.upi}>✅</div><div style={C.upok}>{s.files[0].name}</div><div style={C.upsub}>Tap to replace</div></div>
+                  : <div><div style={C.upi}>📄</div><div style={C.uplbl}>Upload {job.chapterLabel}</div><div style={C.upsub}>PDF or Word · Max 20MB</div></div>}
+                </div>
+              )}
 
               {job.requiresPrelim && !prelimOk && <p style={C.lock}>🔒 Complete all preliminary fields above to unlock upload</p>}
 
@@ -229,7 +273,7 @@ export default function WriterActiveJobs() {
                 <textarea style={C.ta} rows={2} placeholder="Any notes about this chapter..." value={s.notes||""} onChange={e=>upd(job.id,"notes",e.target.value)} />
               </div>
 
-              <button style={{...C.btnP,...(!canSubmit?C.btnPd:{})}} disabled={!canSubmit||s.submitting} onClick={()=>handleSubmit(job)}>
+              <button style={{...C.btnP,...((!s.files?.length||!prelimOk||s.submitting)?C.btnPd:{})}} disabled={!s.files?.length||!prelimOk||s.submitting} onClick={()=>handleSubmit(job)}>
                 {s.submitting?"Submitting...":`Submit ${job.chapterLabel} →`}
               </button>
             </div>
