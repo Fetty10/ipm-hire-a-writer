@@ -252,7 +252,7 @@ export function HireForm({
     if (isProject && isPerChapter && selChapters.length === 0)
                                e.chapters    = "Please select at least one chapter.";
     if (!topic.trim() && service !== "topic" && service !== "journal_sourcing") e.topic = "Please enter your project topic.";
-    if (!department.trim() && service !== "topic") e.department = "Please enter your department.";
+    if (!department.trim() && service !== "topic" && service !== "journal_sourcing") e.department = "Please enter your department.";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
