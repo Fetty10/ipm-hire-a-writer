@@ -46,7 +46,7 @@ export default function AnalystDeliveredJobs() {
     const res  = await fetch(`/api/staff/jobs?status=delivered&search=${encodeURIComponent(search)}&page=${page}`);
     const data = await res.json();
     if (data.success) {
-      setJobs(data.data);
+      setJobs(data.data||[]);
       setTotal(data.total || 0);
       setPages(data.pages || 1);
     }
