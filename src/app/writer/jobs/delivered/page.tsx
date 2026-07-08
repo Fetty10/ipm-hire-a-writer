@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
-import { Card } from "@/components/ui/Card";
+
 import toast from "react-hot-toast";
 
 const DEG:Record<string,string> = { OND_HND_NCE:"HND/OND", BSC_BED_BA:"BSc/BEd", PGD_MSC_PHD:"PGD/MSc", PHD:"PhD" };
@@ -87,7 +87,7 @@ export default function WriterDelivered() {
           <>
             <div className="flex flex-col gap-3">
               {jobs.map(job => (
-                <Card key={job.id} className="flex items-center justify-between gap-3 p-4">
+                <div key={job.id} className="card flex items-center justify-between gap-3 p-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-xl bg-sky-100 flex items-center justify-center text-sky-700 font-800 font-clash text-sm flex-shrink-0">
                       {job.chapterLabel?.replace("Chapter ","Ch")||"?"}
@@ -116,7 +116,7 @@ export default function WriterDelivered() {
                       </button>
                     )}
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
 
