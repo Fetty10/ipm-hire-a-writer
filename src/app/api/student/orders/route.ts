@@ -18,13 +18,17 @@ export async function GET(req: NextRequest) {
   let where: any = { clientId: session.user.id };
 
   if (filter === "active") {
-    // Also include DELIVERED orders that have pending chapter requests
+    // Get all orderIds for this student first, then find pending chapter requests
+    const studentOrders = await prisma.order.findMany({
+      where:  { clientId: session.user.id },
+      select: { id: true },
+    });
+    const studentOrderIds = studentOrders.map((o:any) => o.id);
     const pendingReqs = await (prisma as any).pendingChapterRequest.findMany({
-      where:  { order: { clientId: session.user.id } },
+      where:  { orderId: { in: studentOrderIds } },
       select: { orderId: true },
     });
     const pendingOrderIds = [...new Set(pendingReqs.map((r:any) => r.orderId))] as string[];
-    console.log("[STUDENT ORDERS] pendingReqs:", pendingReqs.length, "pendingOrderIds:", pendingOrderIds);
 
     where = {
       clientId: session.user.id,
