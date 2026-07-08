@@ -23,17 +23,20 @@ export async function GET(req: NextRequest) {
       where:  { order: { clientId: session.user.id } },
       select: { orderId: true },
     });
-    const pendingOrderIds = [...new Set(pendingReqs.map((r:any) => r.orderId))];
+    const pendingOrderIds = [...new Set(pendingReqs.map((r:any) => r.orderId))] as string[];
 
-    where.OR = [
-      { status: { in: [
-        OrderStatus.IN_PROGRESS,
-        OrderStatus.QC_REVIEW,
-        OrderStatus.PAYMENT_CONFIRMED,
-        OrderStatus.PENDING_PAYMENT,
-      ]}},
-      ...(pendingOrderIds.length > 0 ? [{ id: { in: pendingOrderIds } }] : []),
-    ];
+    where = {
+      clientId: session.user.id,
+      OR: [
+        { status: { in: [
+          OrderStatus.IN_PROGRESS,
+          OrderStatus.QC_REVIEW,
+          OrderStatus.PAYMENT_CONFIRMED,
+          OrderStatus.PENDING_PAYMENT,
+        ]}},
+        ...(pendingOrderIds.length > 0 ? [{ id: { in: pendingOrderIds } }] : []),
+      ],
+    };
   } else if (filter === "completed") {
     where.OR = [
       { status: OrderStatus.DELIVERED },
