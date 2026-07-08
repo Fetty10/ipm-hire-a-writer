@@ -38,7 +38,7 @@ export default function WriterDelivered() {
     setLoading(true);
     const res  = await fetch(`/api/staff/jobs?status=delivered&search=${encodeURIComponent(search)}&page=${page}`);
     const data = await res.json();
-    if (data.success) { setJobs(data.data); setPages(data.pages||1); }
+    if (data.success) { setJobs(data.data||[]); setPages(data.pages||1); }
     setLoading(false);
   }, [search, page]);
 
