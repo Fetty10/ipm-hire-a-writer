@@ -86,7 +86,7 @@ export async function sendChapterDeliveredEmail(opts: {
       <p class="text">Hi ${opts.name}, great news! Your <strong>${opts.chapterLabel}</strong> for the project:</p>
       <div class="highlight">${opts.topic}</div>
       <p class="text">has been completed and is now available in your dashboard. Log in to download it.</p>
-      <a href="${APP}/student/downloads" class="btn">⬇ Download My Chapter →</a>
+      <a href="${APP}/login?callbackUrl=${encodeURIComponent('/student/downloads')}" class="btn">⬇ Download My Chapter →</a>
       <div class="divider"></div>
       ${correctionSection}
       ${browseProjectsNote()}
@@ -106,7 +106,7 @@ export async function sendCorrectionReadyEmail(opts: {
       <p class="text">Hi ${opts.name}, your requested correction for <strong>${opts.chapterLabel}</strong> on:</p>
       <div class="highlight">${opts.topic}</div>
       <p class="text">has been completed. The corrected version is now available in your Downloads.</p>
-      <a href="${APP}/student/dashboard" class="btn">Download Corrected Chapter →</a>
+      <a href="${APP}/login?callbackUrl=${encodeURIComponent('/student/downloads')}" class="btn">Download Corrected Chapter →</a>
       ${browseProjectsNote()}
     `),
   });
