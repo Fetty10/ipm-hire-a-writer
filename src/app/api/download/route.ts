@@ -43,8 +43,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const sourceUrl = chapter.deliveredFileUrl || chapter.qcFileUrl || chapter.submittedFileUrl;
-  if (!sourceUrl) return NextResponse.json({ error: "No file available." }, { status: 404 });
+  const rawSourceUrl = chapter.deliveredFileUrl || chapter.qcFileUrl || chapter.submittedFileUrl;
+  if (!rawSourceUrl) return NextResponse.json({ error: "No file available." }, { status: 404 });
+
+  // Handle comma-separated multi-file URLs (e.g. journal sourcing)
+  // The student downloads page handles multiple files — this route serves the first one
+  const sourceUrl = rawSourceUrl.split(",")[0].trim();
 
   // Fetch the actual file from Cloudinary
   const fileRes = await fetch(sourceUrl);
