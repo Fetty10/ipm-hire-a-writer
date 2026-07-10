@@ -36,10 +36,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This chapter has already been QC cleared and cannot be resubmitted." }, { status: 400 });
   }
 
-  // Update submitted file URL — keeps status as DELIVERED/SUBMITTED
+  // Update both submittedFileUrl and deliveredFileUrl so the new file is served everywhere
   await prisma.orderChapter.update({
     where: { id: chapterId },
-    data:  { submittedFileUrl: fileUrl } as any,
+    data:  { submittedFileUrl: fileUrl, deliveredFileUrl: fileUrl } as any,
   });
 
   // Notify admin
