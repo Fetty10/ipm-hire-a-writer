@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       const publicId = match[1].replace(/\.[^.]+$/, "");
       await cloudinary.uploader.explicit(publicId, {
         resource_type: "raw",
-        type: "authenticated",
+        type: "upload",
         access_mode: "public",
       });
       results.success++;
