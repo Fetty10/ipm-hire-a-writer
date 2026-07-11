@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
 
   // Try 1: direct fetch (works for public files)
   let fileRes = await fetch(url);
+  console.log("[DOWNLOAD] Try 1 direct:", fileRes.status, url.substring(0, 80));
 
   // Try 2: private_download_url — works regardless of access_mode
   if (!fileRes.ok) {
@@ -64,7 +65,9 @@ export async function GET(req: NextRequest) {
         expires_at:    Math.floor(Date.now() / 1000) + 300,
         attachment:    false,
       });
+      console.log("[DOWNLOAD] Try 2 privateUrl:", privateUrl.substring(0, 120));
       fileRes = await fetch(privateUrl);
+      console.log("[DOWNLOAD] Try 2 result:", fileRes.status);
     } catch(e) { console.error("[DOWNLOAD] private_download_url failed:", e); }
   }
 
@@ -77,7 +80,9 @@ export async function GET(req: NextRequest) {
         sign_url:      true,
         expires_at:    Math.floor(Date.now() / 1000) + 300,
       });
+      console.log("[DOWNLOAD] Try 3 signedUpload:", signedUrl.substring(0, 120));
       fileRes = await fetch(signedUrl);
+      console.log("[DOWNLOAD] Try 3 result:", fileRes.status);
     } catch(e) { console.error("[DOWNLOAD] signed upload url failed:", e); }
   }
 
@@ -90,7 +95,9 @@ export async function GET(req: NextRequest) {
         sign_url:      true,
         expires_at:    Math.floor(Date.now() / 1000) + 300,
       });
+      console.log("[DOWNLOAD] Try 4 signedAuth:", signedUrl.substring(0, 120));
       fileRes = await fetch(signedUrl);
+      console.log("[DOWNLOAD] Try 4 result:", fileRes.status);
     } catch(e) { console.error("[DOWNLOAD] signed authenticated url failed:", e); }
   }
 
