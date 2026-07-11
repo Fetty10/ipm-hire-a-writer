@@ -63,9 +63,22 @@ export async function GET(req: NextRequest) {
       if (match) {
         const publicId  = match[1].replace(/\.[^.]+$/, "");
         const expiresAt = Math.floor(Date.now() / 1000) + 300;
+
+        // Try authenticated type with signing
         fileRes = await fetch(cloudinary.url(publicId, { resource_type:"raw", type:"authenticated", sign_url:true, expires_at:expiresAt }));
+
+        // Try upload type with signing
         if (!fileRes.ok) {
           fileRes = await fetch(cloudinary.url(publicId, { resource_type:"raw", type:"upload", sign_url:true, expires_at:expiresAt }));
+        }
+
+        // Try using Cloudinary admin API to get a temporary download URL
+        if (!fileRes.ok) {
+          const privateDownloadUrl = cloudinary.utils.private_download_url(publicId, ext, {
+            resource_type: "raw",
+            expires_at: expiresAt,
+          });
+          fileRes = await fetch(privateDownloadUrl);
         }
       }
     } catch (e) { console.error("[GUIDELINE DOWNLOAD] Signed URL failed:", e); }
