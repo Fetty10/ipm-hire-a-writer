@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     try {
       const match = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
       if (!match) continue;
-      const publicId = match[1].replace(/\.[^.]+$/, "");
+      const publicId = match[1]; // Keep full path including extension for raw files
       await cloudinary.uploader.explicit(publicId, {
         resource_type: "raw",
         type: "upload",
