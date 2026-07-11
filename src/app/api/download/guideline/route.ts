@@ -1,7 +1,5 @@
 export const dynamic = "force-dynamic";
 // src/app/api/download/guideline/route.ts
-// Proxies guideline/supervisor-notes/corrections file downloads with the
-// original filename preserved — no custom labelling needed.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -23,10 +21,10 @@ const mimeMap: Record<string,string> = {
   ppt:  "application/vnd.ms-powerpoint",
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   txt:  "text/plain",
-  jpg:  "image/jpeg", jpeg: "image/jpeg",
-  png:  "image/png", gif: "image/gif", webp: "image/webp",
-  mp3:  "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav",
-  ogg:  "audio/ogg", aac: "audio/aac", webm: "audio/webm",
+  jpg:  "image/jpeg", jpeg:"image/jpeg",
+  png:  "image/png", gif:"image/gif", webp:"image/webp",
+  mp3:  "audio/mpeg", m4a:"audio/mp4", wav:"audio/wav",
+  ogg:  "audio/ogg", aac:"audio/aac", webm:"audio/webm",
   zip:  "application/zip",
 };
 
@@ -35,61 +33,73 @@ export async function GET(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const url = searchParams.get("url");
+  const url   = searchParams.get("url");
   if (!url) return NextResponse.json({ error: "url required" }, { status: 400 });
+  if (!url.includes("cloudinary.com")) return NextResponse.json({ error: "Invalid file source." }, { status: 400 });
 
-  if (!url.includes("cloudinary.com")) {
-    return NextResponse.json({ error: "Invalid file source." }, { status: 400 });
-  }
-
-  // Extract original filename from Cloudinary URL
-  // URL format: .../upload/v123456/folder/Original_Filename_1234567890.pdf
-  // We strip the timestamp suffix added during upload to restore original name
-  const urlPath     = url.split("?")[0];
-  const ext         = urlPath.split(".").pop()?.toLowerCase() || "pdf";
+  // Extract public ID and extension from URL
+  const urlPath  = url.split("?")[0];
+  const ext      = urlPath.split(".").pop()?.toLowerCase() || "pdf";
   const rawFilename = urlPath.split("/").pop() || "file";
-  // Strip the _TIMESTAMP suffix we add during upload (e.g. "My_Doc_1783077117353.pdf" → "My Doc.pdf")
   const nameNoExt   = rawFilename.replace(/\.[^.]+$/, "");
   const nameClean   = nameNoExt.replace(/_\d{13}$/, "").replace(/_/g, " ").trim();
   const downloadName = `${nameClean}.${ext}`;
+  const asciiName    = downloadName.replace(/[^\x00-\x7F]/g, "_");
+  const encodedName  = encodeURIComponent(downloadName);
 
-  // Try direct fetch first (works for public files)
+  // Extract public ID (with extension for raw files)
+  const match = url.match(/\/upload\/(?:s--[^-]+--)?\/?(?:v\d+\/)?(.+)$/);
+  if (!match) return NextResponse.json({ error: "Invalid Cloudinary URL." }, { status: 400 });
+  const publicIdWithExt = match[1];
+  const publicId        = publicIdWithExt.replace(/\.[^.]+$/, "");
+
+  // Try 1: direct fetch (works for public files)
   let fileRes = await fetch(url);
 
-  // Fallback: generate signed URL for authenticated files (uploaded before our public mode fix)
+  // Try 2: private_download_url — works regardless of access_mode
   if (!fileRes.ok) {
     try {
-      const match = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
-      if (match) {
-        const publicId  = match[1].replace(/\.[^.]+$/, "");
-        const expiresAt = Math.floor(Date.now() / 1000) + 300;
-
-        // Try authenticated type with signing
-        fileRes = await fetch(cloudinary.url(publicId, { resource_type:"raw", type:"authenticated", sign_url:true, expires_at:expiresAt }));
-
-        // Try upload type with signing
-        if (!fileRes.ok) {
-          fileRes = await fetch(cloudinary.url(publicId, { resource_type:"raw", type:"upload", sign_url:true, expires_at:expiresAt }));
-        }
-
-        // Try using Cloudinary admin API to get a temporary download URL
-        if (!fileRes.ok) {
-          const privateDownloadUrl = cloudinary.utils.private_download_url(publicId, ext, {
-            resource_type: "raw",
-            expires_at: expiresAt,
-          });
-          fileRes = await fetch(privateDownloadUrl);
-        }
-      }
-    } catch (e) { console.error("[GUIDELINE DOWNLOAD] Signed URL failed:", e); }
+      const privateUrl = cloudinary.utils.private_download_url(publicIdWithExt, ext, {
+        resource_type: "raw",
+        expires_at:    Math.floor(Date.now() / 1000) + 300,
+        attachment:    false,
+      });
+      fileRes = await fetch(privateUrl);
+    } catch(e) { console.error("[DOWNLOAD] private_download_url failed:", e); }
   }
 
-  if (!fileRes.ok) return NextResponse.json({ error: "Could not retrieve file." }, { status: 502 });
+  // Try 3: signed URL with upload type
+  if (!fileRes.ok) {
+    try {
+      const signedUrl = cloudinary.url(publicId, {
+        resource_type: "raw",
+        type:          "upload",
+        sign_url:      true,
+        expires_at:    Math.floor(Date.now() / 1000) + 300,
+      });
+      fileRes = await fetch(signedUrl);
+    } catch(e) { console.error("[DOWNLOAD] signed upload url failed:", e); }
+  }
+
+  // Try 4: signed URL with authenticated type
+  if (!fileRes.ok) {
+    try {
+      const signedUrl = cloudinary.url(publicId, {
+        resource_type: "raw",
+        type:          "authenticated",
+        sign_url:      true,
+        expires_at:    Math.floor(Date.now() / 1000) + 300,
+      });
+      fileRes = await fetch(signedUrl);
+    } catch(e) { console.error("[DOWNLOAD] signed authenticated url failed:", e); }
+  }
+
+  if (!fileRes.ok) {
+    console.error("[DOWNLOAD] All attempts failed for:", url, "status:", fileRes.status);
+    return NextResponse.json({ error: "Could not retrieve file." }, { status: 502 });
+  }
 
   const arrayBuffer = await fileRes.arrayBuffer();
-  // RFC 5987 encoding handles any Unicode characters safely
-  const asciiName   = downloadName.replace(/[^\x00-\x7F]/g, "_");
-  const encodedName = encodeURIComponent(downloadName);
 
   return new NextResponse(arrayBuffer, {
     headers: {
