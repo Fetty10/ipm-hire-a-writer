@@ -85,9 +85,10 @@ export async function POST(req: NextRequest) {
   // Other services (non-project) skip QC by default UNLESS the student
   // explicitly added the Plagiarism/AI Check add-on at order time.
   const isOtherService = chapter.order.serviceType !== "HIRE_WRITER" && !!chapter.order.serviceType;
+  const NO_QC_SERVICES = ["JOURNAL_SOURCING", "TOPIC_SUGGESTION"];
   const otherServiceNeedsQC = isOtherService && (
     chapter.order.requiresPlagiarismCheck || chapter.order.requiresAiCheck
-  );
+  ) && !NO_QC_SERVICES.includes(chapter.order.serviceType); // These services never go to QC
   const isProfessional = !isOtherService && (
     chapter.order.plan.planName === PlanName.PROFESSIONAL ||
     chapter.order.plan.planName === PlanName.PHD_PROFESSIONAL
