@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const role = session.user.role as Role;
-  if (![Role.WRITER, Role.ANALYST].includes(role)) {
-    return NextResponse.json({ error: "Only writers and analysts can resubmit." }, { status: 403 });
+  if (![Role.WRITER, Role.ANALYST, Role.QC].includes(role)) {
+    return NextResponse.json({ error: "Only writers, analysts and QC can resubmit." }, { status: 403 });
   }
 
   const { chapterId, fileUrl } = await req.json();
