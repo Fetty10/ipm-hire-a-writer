@@ -4,7 +4,8 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
-import { Card, Spinner } from "@/components/ui";
+import { Spinner } from "@/components/ui";
+import toast from "react-hot-toast";
 import { QC_NAV } from "../../_nav";
 
 const DEG: Record<string,string> = {
@@ -22,19 +23,46 @@ const C = {
 
 export default function QCChecksCleared() {
   const { data: session } = useSession();
-  const [jobs,    setJobs]    = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search,  setSearch]  = useState("");
-  const [page,    setPage]    = useState(1);
-  const [pages,   setPages]   = useState(1);
-  const [total,   setTotal]   = useState(0);
+  const [jobs,         setJobs]         = useState<any[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState("");
+  const [page,         setPage]         = useState(1);
+  const [pages,        setPages]        = useState(1);
+  const [total,        setTotal]        = useState(0);
+  const [resubmitting, setResubmitting] = useState<string|null>(null);
+
+  async function handleResubmit(job: any) {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = ".pdf,.doc,.docx";
+    inp.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      if (file.size > 20 * 1024 * 1024) { toast.error("Max 20MB"); return; }
+      setResubmitting(job.id);
+      try {
+        const fd = new FormData(); fd.append("file", file); fd.append("folder", "chapters/submitted");
+        const upRes  = await fetch("/api/upload", { method:"POST", body:fd });
+        const upData = await upRes.json();
+        if (!upRes.ok) { toast.error(upData.error || "Upload failed."); return; }
+        const res  = await fetch("/api/chapters/resubmit", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ chapterId: job.id, fileUrl: upData.url }),
+        });
+        const data = await res.json();
+        if (res.ok) { toast.success("Resubmitted successfully."); }
+        else toast.error(data.error || "Resubmit failed.");
+      } catch { toast.error("Something went wrong."); }
+      finally { setResubmitting(null); }
+    };
+    inp.click();
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
     const res  = await fetch(`/api/qc/jobs?flow=checks&status=cleared&search=${encodeURIComponent(search)}&page=${page}`);
     const data = await res.json();
     if (data.success) {
-      setJobs(data.data);
+      setJobs(data.data||[]);
       setTotal(data.total || 0);
       setPages(data.pages || 1);
     }
@@ -47,7 +75,7 @@ export default function QCChecksCleared() {
   const initials = (session?.user?.name||"QC").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
 
   return (
-    <StaffLayout navItems={QC_NAV} role="Quality Control" initials={initials}>
+    <StaffLayout navItems={QC_NAV||[]} role="Quality Control" initials={initials}>
       <div className="max-w-2xl mx-auto">
         <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">Cleared & Sent</h1>
         <p className="text-sm text-navy-muted mb-1">Chapters you've cleared and delivered to students.</p>
@@ -71,7 +99,7 @@ export default function QCChecksCleared() {
           <>
             <div className="flex flex-col gap-3">
               {jobs.map((job:any) => (
-                <Card key={job.id} className="p-4">
+                <div key={job.id} className="card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-700 text-navy-DEFAULT">{job.chapterLabel}</p>
@@ -92,11 +120,17 @@ export default function QCChecksCleared() {
                   {job.adminNotes && (
                     <p className="text-xs text-navy-muted mt-2 pt-2 border-t border-sky-100">📝 {job.adminNotes}</p>
                   )}
-                  <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer"
-                    className="inline-block mt-2 text-xs font-700 text-sky-600 hover:underline">
-                    ⬇ Download Cleared File
-                  </a>
-                </Card>
+                  <div className="flex items-center gap-2 mt-2">
+                    <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer"
+                      className="text-xs font-700 text-sky-600 hover:underline">
+                      ⬇ Download Cleared File
+                    </a>
+                    <button disabled={resubmitting === job.id} onClick={() => handleResubmit(job)}
+                      style={{fontSize:".72rem",fontWeight:700,color:"#5B21B6",background:"#EDE9FE",border:"none",borderRadius:"8px",padding:"3px 10px",cursor:"pointer",whiteSpace:"nowrap" as const,opacity:resubmitting===job.id?0.5:1}}>
+                      {resubmitting === job.id ? "Uploading..." : "↩ Resubmit"}
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
 
