@@ -1,125 +1,227 @@
-"use client";
-// src/app/analyst/jobs/jobs/delivered/page.tsx
 export const dynamic = "force-dynamic";
-import { useEffect, useState, useCallback } from "react";
-import { useSession } from "next-auth/react";
-import { StaffLayout } from "@/components/staff/StaffLayout";
-import { Card, Spinner } from "@/components/ui";
-import { StatusBadge } from "@/components/ui";
+// src/app/api/chapters/submit/route.ts
+// Called when a writer/analyst submits a completed chapter
+// Flow:
+//   Professional plan → route to QC
+//   Other plans       → deliver directly to student + create earning
 
-const NAV = [
-  { label: "Dashboard",     icon: "📊", href: "/analyst/dashboard"    },
-  { label: "Pending Jobs",  icon: "📋", href: "/analyst/jobs/pending"  },
-  { label: "Active Jobs",   icon: "✍️", href: "/analyst/jobs/active"   },
-  { label: "Corrections",   icon: "🔧", href: "/analyst/corrections"   },
-  { label: "Delivered",     icon: "✅", href: "/analyst/jobs/delivered" },
-  { label: "Earnings",      icon: "💰", href: "/analyst/earnings"      },
-  { label: "Withdraw",      icon: "🏦", href: "/analyst/withdraw"      },
-  { label: "Notifications", icon: "🔔", href: "/analyst/notifications" },
-  { label: "Profile",       icon: "👤", href: "/analyst/profile"       },
-];
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { ChapterStatus, PlanName, Role } from "@prisma/client";
+import { routeChapterToQC, deliverChapterToClient } from "@/lib/assignment";
+import { sendPrelimReadyEmail } from "@/lib/email";
 
-const DEG: Record<string,string> = {
-  OND_HND_NCE:"HND/OND/NCE", BSC_BED_BA:"BSc/BEd/BA",
-  PGD_MSC_PHD:"PGD/MSc", PHD:"PhD",
-};
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-const C = {
-  pg:   { display:"flex", gap:".5rem", justifyContent:"center", marginTop:"1.5rem", flexWrap:"wrap" as const },
-  pgBtn:{ padding:".4rem .9rem", borderRadius:"8px", border:"1.5px solid #BAE6FD", fontSize:".8rem",
-           fontWeight:700, cursor:"pointer", background:"#fff", color:"#0C1A2E" },
-  pgA:  { background:"#0C1A2E", color:"#38BDF8", borderColor:"#0C1A2E" },
-  pgD:  { opacity:.4, cursor:"not-allowed" as const },
-};
+  const role = session.user.role;
+  if (![Role.WRITER, Role.ANALYST].includes(role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
-export default function AnalystDeliveredJobs() {
-  const { data: session } = useSession();
-  const [jobs,    setJobs]    = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search,  setSearch]  = useState("");
-  const [page,    setPage]    = useState(1);
-  const [pages,   setPages]   = useState(1);
-  const [total,   setTotal]   = useState(0);
+  const body = await req.json();
+  const {
+    chapterId,
+    fileUrl,
+    writerNotes,
+    // Chapter 1 prelim fields
+    researchObjectives,
+    hypotheses,
+    scopeOfStudy,
+  } = body;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const res  = await fetch(`/api/staff/jobs?status=delivered&search=${encodeURIComponent(search)}&page=${page}`);
-    const data = await res.json();
-    if (data.success) {
-      setJobs(data.data||[]);
-      setTotal(data.total || 0);
-      setPages(data.pages || 1);
+  if (!chapterId || !fileUrl) {
+    return NextResponse.json(
+      { error: "chapterId and fileUrl are required." },
+      { status: 400 }
+    );
+  }
+
+  // Fetch and verify ownership
+  const chapter = await prisma.orderChapter.findFirst({
+    where: {
+      id:           chapterId,
+      assignedToId: session.user.id,
+      status:       { in: [ChapterStatus.IN_PROGRESS, ChapterStatus.PRELIM_SUBMITTED] },
+    },
+    include: {
+      order: {
+        include: {
+          plan:   true,
+          client: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
+  });
+
+  if (!chapter) {
+    return NextResponse.json(
+      { error: "Chapter not found or not in a submittable state." },
+      { status: 404 }
+    );
+  }
+
+  // ── Chapter 1: validate prelim fields ────────────────────
+  if (chapter.requiresPrelim) {
+    // If prelim not yet submitted, require all 4 fields
+    if (!chapter.prelimSubmittedAt) {
+      if (!researchObjectives || !hypotheses || !scopeOfStudy) {
+        return NextResponse.json(
+          {
+            error:
+              "Chapter 1 requires Research Objectives, Hypotheses and Scope of Study before submission.",
+          },
+          { status: 400 }
+        );
+      }
     }
-    setLoading(false);
-  }, [search, page]);
+  }
 
-  useEffect(() => { setPage(1); }, [search]);
-  useEffect(() => { load(); }, [load]);
-
-  const initials = session?.user?.name?.split(" ").map((n:string) => n[0]).join("").slice(0,2).toUpperCase() || "AN";
-
-  return (
-    <StaffLayout navItems={NAV} role="Analyst" initials={initials}>
-      <div className="max-w-2xl mx-auto">
-        <h1 className="font-clash text-2xl font-800 text-navy-DEFAULT tracking-tight mb-1">Submitted Jobs</h1>
-        <p className="text-sm text-navy-muted mb-1">All chapters you've submitted — including those awaiting QC or already delivered.</p>
-        {total > 0 && <p className="text-xs text-navy-muted mb-4">{total} chapter{total!==1?"s":""} total</p>}
-
-        <div className="relative mb-5">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-muted text-sm">🔍</span>
-          <input type="text" placeholder="Search by topic..." value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center py-12"><Spinner size="lg" /></div>
-        ) : jobs.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-4xl mb-3">📦</div>
-            <p className="text-navy-muted font-600">No submitted jobs yet.</p>
-          </div>
-        ) : (
-          <>
-            <div className="flex flex-col gap-3">
-              {jobs.map((job:any) => (
-                <Card key={job.id} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-green-50 text-green-700 font-clash font-800 text-xs flex items-center justify-center flex-shrink-0 border border-green-200">
-                      {job.chapterNumber}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-600 text-navy-DEFAULT truncate">{job.chapterLabel}</p>
-                      <p className="text-xs text-navy-muted truncate">{job.topic}</p>
-                      <p className="text-xs text-navy-muted">
-                        {job.department} · {DEG[job.degreeGroup]||job.degreeGroup} ·{" "}
-                        {job.deliveredAt ? new Date(job.deliveredAt).toLocaleDateString("en-NG") : job.submittedAt ? new Date(job.submittedAt).toLocaleDateString("en-NG") : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <StatusBadge status={job.status} qcStarted={job.qcStarted} />
-                    <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer"
-                      className="text-xs font-700 text-sky-600 hover:underline whitespace-nowrap">
-                      ⬇ Download
-                    </a>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            {pages > 1 && (
-              <div style={C.pg}>
-                <button style={{...C.pgBtn,...(page===1?C.pgD:{})}} disabled={page===1} onClick={()=>setPage(p=>p-1)}>← Prev</button>
-                {Array.from({length:pages},(_,i)=>i+1).map(p=>(
-                  <button key={p} style={{...C.pgBtn,...(p===page?C.pgA:{})}} onClick={()=>setPage(p)}>{p}</button>
-                ))}
-                <button style={{...C.pgBtn,...(page===pages?C.pgD:{})}} disabled={page===pages} onClick={()=>setPage(p=>p+1)}>Next →</button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </StaffLayout>
+  // Other services (non-project) skip QC by default UNLESS the student
+  // explicitly added the Plagiarism/AI Check add-on at order time.
+  const isOtherService = chapter.order.serviceType !== "HIRE_WRITER" && !!chapter.order.serviceType;
+  const NO_QC_SERVICES = ["JOURNAL_SOURCING", "TOPIC_SUGGESTION"];
+  const otherServiceNeedsQC = isOtherService && (
+    chapter.order.requiresPlagiarismCheck || chapter.order.requiresAiCheck
+  ) && !NO_QC_SERVICES.includes(chapter.order.serviceType); // These services never go to QC
+  const isProfessional = !isOtherService && (
+    chapter.order.plan.planName === PlanName.PROFESSIONAL ||
+    chapter.order.plan.planName === PlanName.PHD_PROFESSIONAL
   );
+  const goesToQC = isProfessional || otherServiceNeedsQC;
+
+  // ── Update chapter with submitted file + prelim data ─────
+  const wasEscalated = (chapter as any).isEscalatedCorrection;
+
+  await prisma.orderChapter.update({
+    where: { id: chapterId },
+    data: {
+      status:          ChapterStatus.SUBMITTED,
+      submittedFileUrl: fileUrl,
+      submittedAt:      new Date(),
+      writerNotes:      writerNotes || null,
+      isEscalatedCorrection: false, // no longer "with writer" — back with QC for re-check
+      // Save prelim fields if provided
+      ...(researchObjectives ? { researchObjectives } : {}),
+      ...(hypotheses         ? { hypotheses         } : {}),
+      ...(scopeOfStudy       ? { scopeOfStudy       } : {}),
+      ...(researchObjectives ? { prelimSubmittedAt: new Date() } : {}),
+    } as any,
+  });
+
+  // ── If this resolved an escalated correction, check if staff has any
+  // other pending corrections left — if not, unlock withdrawals ──────
+  if (wasEscalated) {
+    const stillPending = await prisma.orderChapter.count({
+      where: {
+        assignedToId: session.user.id,
+        isEscalatedCorrection: true,
+      } as any,
+    });
+    if (stillPending === 0) {
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data:  { hasPendingCorrections: false } as any,
+      });
+    }
+  }
+
+  // ── Notify analysts if Chapter 1 prelim fields just submitted ──
+  if (chapter.chapterNumber === 1 && researchObjectives && !chapter.prelimSubmittedAt) {
+    const analysts = await prisma.orderChapter.findMany({
+      where: {
+        orderId:      chapter.orderId,
+        chapterNumber: { in: [3, 4] },
+        assignedTo:   { role: Role.ANALYST },
+      },
+      include: { assignedTo: { select: { email: true, name: true } } },
+    });
+    const notifiedAnalysts = new Set<string>();
+    for (const ch of analysts) {
+      if (ch.assignedTo && !notifiedAnalysts.has(ch.assignedTo.email)) {
+        notifiedAnalysts.add(ch.assignedTo.email);
+        try {
+          await sendPrelimReadyEmail({
+            to:                 ch.assignedTo.email,
+            name:               ch.assignedTo.name,
+            topic:              chapter.order.topic,
+            researchObjectives: researchObjectives!,
+            hypotheses:         hypotheses!,
+            scopeOfStudy:       scopeOfStudy!,
+          });
+        } catch (e) { console.error("[EMAIL] Prelim ready:", e); }
+      }
+    }
+  }
+
+  // ── Calculate staff earning for this chapter ─────────────
+  let earnAmount = 0;
+
+  if (isOtherService) {
+    // For flat services, use pay rate from OtherService table
+    const svcValue = {
+      PROPOSAL_SEMINAR:      "seminar",
+      JOURNAL_WRITING:       "journal",
+      JOURNAL_SOURCING:      "journal_sourcing",
+      TOPIC_SUGGESTION:      "topic",
+      CASE_STUDY_ADJUSTMENT: "case_study",
+      COMPLETE_PROJECT:      "project",
+    }[chapter.order.serviceType] || chapter.order.serviceType?.toLowerCase();
+
+    const svc = await (prisma as any).otherService.findFirst({
+      where: { value: svcValue },
+    });
+
+    if (svc) {
+      earnAmount = svc.writerPayKobo || 0; // other services always go to writer
+    }
+  } else {
+    // For project chapters, use PayRate table
+    const payRate = await prisma.payRate.findFirst({
+      where: {
+        role:        role === Role.WRITER ? "WRITER" : "ANALYST",
+        degreeGroup: chapter.order.degreeGroup,
+        planName:    chapter.order.plan.planName,
+      },
+    });
+    earnAmount = payRate?.amountKobo ?? 0;
+  }
+
+  if (earnAmount > 0) {
+    await prisma.earning.create({
+      data: {
+        userId:         session.user.id,
+        orderChapterId: chapterId,
+        amountKobo:     earnAmount,
+        status:         "PENDING", // becomes AVAILABLE after delivery
+      },
+    });
+  }
+
+  // ── Route to QC or deliver directly ──────────────────────
+  if (goesToQC) {
+    // Professional plan, or other service with plagiarism/AI add-on → goes to QC first
+    await routeChapterToQC(chapterId);
+    return NextResponse.json({
+      success: true,
+      message: "Chapter submitted and routed to QC for plagiarism/AI check.",
+      routedToQC: true,
+    });
+  } else {
+    // Basic / Standard → deliver directly to student
+    // (deliverChapterToClient already sends the delivery email internally
+    // — do NOT send a second one here, or the student gets duplicate mail)
+    await deliverChapterToClient(chapterId, fileUrl);
+
+    return NextResponse.json({
+      success: true,
+      message: "Chapter submitted and delivered to student.",
+      routedToQC: false,
+    });
+  }
 }
