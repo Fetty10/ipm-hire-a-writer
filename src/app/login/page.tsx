@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import toast from "react-hot-toast";
 
 const C = {
   wrap:  { minHeight:"100vh", background:"#F0F9FF", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem", fontFamily:"'DM Sans',sans-serif" },
@@ -21,23 +22,39 @@ const C = {
   err:   { fontSize:".75rem", color:"#EF4444", fontWeight:600, marginBottom:".75rem" },
   btn:   { width:"100%", padding:".85rem", borderRadius:"12px", border:"none", background:"#38BDF8", color:"#0C1A2E", fontSize:".88rem", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
   btnD:  { opacity:.6, cursor:"not-allowed" as const },
+  btnGhost: { background:"none", border:"none", color:"#0369A1", fontWeight:700, cursor:"pointer", fontSize:".82rem", padding:0 },
   foot:  { textAlign:"center" as const, marginTop:"1.25rem" },
   flink: { background:"none", border:"none", color:"#0369A1", fontWeight:700, cursor:"pointer", fontSize:".82rem" },
-  div:   { textAlign:"center" as const, margin:"1.25rem 0", color:"#5B7EA6", fontSize:".78rem", position:"relative" as const },
+  div:   { textAlign:"center" as const, margin:"1.25rem 0", color:"#5B7EA6", fontSize:".78rem" },
   staffBox: { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"12px", padding:"1rem 1.25rem", textAlign:"center" as const, marginTop:"1rem" },
   staffTxt: { fontSize:".78rem", color:"#5B7EA6", marginBottom:".6rem" },
   staffBtn: { display:"inline-flex", alignItems:"center", gap:".4rem", padding:".5rem 1.1rem", borderRadius:"10px", border:"1.5px solid #0C1A2E", background:"none", color:"#0C1A2E", fontSize:".78rem", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
+  hint:  { fontSize:".75rem", color:"#5B7EA6", marginBottom:"1rem", lineHeight:1.5 },
+  otpRow:{ display:"flex", gap:".5rem" },
 };
+
+type ForgotStep = "idle" | "email" | "otp" | "done";
 
 function LoginForm() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl  = searchParams.get("callbackUrl") || null;
+
+  // Login state
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState("");
   const [showPw,   setShowPw]   = useState(false);
+
+  // Forgot password state
+  const [forgotStep,   setForgotStep]   = useState<ForgotStep>("idle");
+  const [fpEmail,      setFpEmail]      = useState("");
+  const [fpOtp,        setFpOtp]        = useState("");
+  const [fpNewPw,      setFpNewPw]      = useState("");
+  const [fpConfirmPw,  setFpConfirmPw]  = useState("");
+  const [fpLoading,    setFpLoading]    = useState(false);
+  const [maskedPhone,  setMaskedPhone]  = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,6 +71,119 @@ function LoginForm() {
     router.push(callbackUrl || "/student/dashboard");
   }
 
+  async function handleSendOtp() {
+    if (!fpEmail.trim()) { toast.error("Please enter your email."); return; }
+    setFpLoading(true);
+    const res  = await fetch("/api/auth/forgot-password", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ action:"send_otp", email:fpEmail.trim() }),
+    });
+    const data = await res.json();
+    setFpLoading(false);
+    if (!res.ok) { toast.error(data.error || "Something went wrong."); return; }
+    setMaskedPhone(data.maskedPhone || "");
+    setForgotStep("otp");
+  }
+
+  async function handleResetPassword() {
+    if (!fpOtp.trim())   { toast.error("Please enter the OTP."); return; }
+    if (!fpNewPw)        { toast.error("Please enter a new password."); return; }
+    if (fpNewPw.length < 8) { toast.error("Password must be at least 8 characters."); return; }
+    if (fpNewPw !== fpConfirmPw) { toast.error("Passwords do not match."); return; }
+    setFpLoading(true);
+    const res  = await fetch("/api/auth/forgot-password", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ action:"reset", email:fpEmail.trim(), otp:fpOtp.trim(), newPassword:fpNewPw }),
+    });
+    const data = await res.json();
+    setFpLoading(false);
+    if (!res.ok) { toast.error(data.error || "Something went wrong."); return; }
+    setForgotStep("done");
+  }
+
+  // ── Forgot Password View ──────────────────────────────
+  if (forgotStep !== "idle") {
+    return (
+      <div style={C.wrap}>
+        <div style={C.box}>
+          <div style={C.logo}>
+            <div style={C.lname}>iProject<span style={C.lspan}>Master</span></div>
+            <div style={C.lsub}>Reset Password</div>
+          </div>
+
+          <div style={C.card}>
+            {forgotStep === "email" && (
+              <>
+                <p style={C.hint}>Enter your email address and we'll send a reset code to your WhatsApp number.</p>
+                <div style={C.fg}>
+                  <label style={C.lbl}>Email Address</label>
+                  <input style={C.inp} type="email" value={fpEmail} onChange={e=>setFpEmail(e.target.value)}
+                    placeholder="you@email.com" autoFocus />
+                </div>
+                <button style={{...C.btn,...(fpLoading?C.btnD:{})}} disabled={fpLoading} onClick={handleSendOtp}>
+                  {fpLoading ? "Sending..." : "Send OTP to WhatsApp →"}
+                </button>
+              </>
+            )}
+
+            {forgotStep === "otp" && (
+              <>
+                <p style={C.hint}>
+                  A 6-digit code was sent to your WhatsApp number ending in <strong>{maskedPhone}</strong>. Enter it below.
+                </p>
+                <div style={C.fg}>
+                  <label style={C.lbl}>OTP Code</label>
+                  <div style={C.otpRow}>
+                    <input style={{...C.inp, flex:1, letterSpacing:".3em", textAlign:"center" as const, fontSize:"1.1rem"}}
+                      type="text" inputMode="numeric" maxLength={6} value={fpOtp}
+                      onChange={e=>setFpOtp(e.target.value.replace(/\D/g,""))} placeholder="------" />
+                    <button onClick={handleSendOtp} disabled={fpLoading}
+                      style={{padding:".5rem .75rem",borderRadius:"10px",border:"1.5px solid #BAE6FD",background:"#fff",cursor:"pointer",fontSize:".75rem",fontWeight:700,color:"#0369A1",whiteSpace:"nowrap" as const}}>
+                      Resend
+                    </button>
+                  </div>
+                </div>
+                <div style={C.fg}>
+                  <label style={C.lbl}>New Password</label>
+                  <input style={C.inp} type="password" value={fpNewPw} onChange={e=>setFpNewPw(e.target.value)}
+                    placeholder="Min. 8 characters" />
+                </div>
+                <div style={C.fg}>
+                  <label style={C.lbl}>Confirm New Password</label>
+                  <input style={C.inp} type="password" value={fpConfirmPw} onChange={e=>setFpConfirmPw(e.target.value)}
+                    placeholder="Re-enter password" />
+                </div>
+                <button style={{...C.btn,...(fpLoading?C.btnD:{})}} disabled={fpLoading} onClick={handleResetPassword}>
+                  {fpLoading ? "Resetting..." : "Reset Password →"}
+                </button>
+              </>
+            )}
+
+            {forgotStep === "done" && (
+              <>
+                <div style={{textAlign:"center" as const, marginBottom:"1.25rem"}}>
+                  <div style={{fontSize:"2.5rem", marginBottom:".5rem"}}>✅</div>
+                  <div style={{fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#0C1A2E", marginBottom:".4rem"}}>Password Reset!</div>
+                  <p style={{fontSize:".83rem", color:"#5B7EA6"}}>Your password has been updated. You can now log in with your new password.</p>
+                </div>
+                <button style={C.btn} onClick={()=>{ setForgotStep("idle"); setFpEmail(""); setFpOtp(""); setFpNewPw(""); setFpConfirmPw(""); }}>
+                  Back to Login →
+                </button>
+              </>
+            )}
+
+            {forgotStep !== "done" && (
+              <div style={{textAlign:"center" as const, marginTop:"1rem"}}>
+                <button style={C.btnGhost} onClick={()=>setForgotStep("idle")}>← Back to Login</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Login View ────────────────────────────────────────
   return (
     <div style={C.wrap}>
       <div style={C.box}>
@@ -75,6 +205,11 @@ function LoginForm() {
                 <button type="button" style={C.eye} onClick={()=>setShowPw(!showPw)}>{showPw?"🙈":"👁"}</button>
               </div>
             </div>
+            <div style={{textAlign:"right" as const, marginTop:"-.5rem", marginBottom:".75rem"}}>
+              <button type="button" style={C.btnGhost} onClick={()=>{ setFpEmail(email); setForgotStep("email"); }}>
+                Forgot Password?
+              </button>
+            </div>
             {error && <p style={C.err}>{error}</p>}
             <button type="submit" style={{...C.btn,...(loading?C.btnD:{})}} disabled={loading}>
               {loading ? "Signing in..." : "Sign In →"}
@@ -89,8 +224,12 @@ function LoginForm() {
           </div>
         </div>
 
-        {/* Staff login link */}
-       
+        <div style={C.staffBox}>
+          <p style={C.staffTxt}>Are you a writer, analyst, QC or admin?</p>
+          <button style={C.staffBtn} onClick={()=>router.push("/staff/login")}>
+            👤 Staff Login
+          </button>
+        </div>
       </div>
     </div>
   );
