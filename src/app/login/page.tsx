@@ -51,7 +51,7 @@ function LoginForm() {
   const [fpNewPw,      setFpNewPw]      = useState("");
   const [fpConfirmPw,  setFpConfirmPw]  = useState("");
   const [fpLoading,    setFpLoading]    = useState(false);
-  const [maskedPhone,  setMaskedPhone]  = useState("");
+  
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -111,14 +111,14 @@ function LoginForm() {
           <div style={C.card}>
             {forgotStep === "email" && (
               <>
-                <p style={C.hint}>Enter your email address and we'll send a reset code to your WhatsApp number.</p>
+                <p style={C.hint}>Enter your email address and we'll send a reset code to your email address.</p>
                 <div style={C.fg}>
                   <label style={C.lbl}>Email Address</label>
                   <input style={C.inp} type="email" value={fpEmail} onChange={e=>setFpEmail(e.target.value)}
                     placeholder="you@email.com" autoFocus />
                 </div>
                 <button style={{...C.btn,...(fpLoading?C.btnD:{})}} disabled={fpLoading} onClick={handleSendOtp}>
-                  {fpLoading ? "Sending..." : "Send OTP to WhatsApp →"}
+                  {fpLoading ? "Sending..." : "Send Reset Code →"}
                 </button>
               </>
             )}
@@ -126,7 +126,7 @@ function LoginForm() {
             {forgotStep === "otp" && (
               <>
                 <p style={C.hint}>
-                  A 6-digit code was sent to your WhatsApp number ending in <strong>{maskedPhone}</strong>. Enter it below.
+                  A 6-digit code was sent to your email address . Enter it below.
                 </p>
                 <div style={C.fg}>
                   <label style={C.lbl}>OTP Code</label>
