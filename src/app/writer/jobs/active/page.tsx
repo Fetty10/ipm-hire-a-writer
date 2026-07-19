@@ -63,7 +63,7 @@ export default function WriterActiveJobs() {
     const res  = await fetch(`/api/staff/jobs?status=active&search=${encodeURIComponent(search)}`);
     const data = await res.json();
     if (data.success) {
-      setJobs(data.data);
+      setJobs(data.data||[]);
       const init:any = {};
       data.data.forEach((j:any) => { init[j.id] = { files:[], notes:"", obj:j.researchObjectives||"", hyp:j.hypotheses||"", scope:j.scopeOfStudy||"", submitting:false, uploading:false }; });
       setState(init);
@@ -117,7 +117,7 @@ export default function WriterActiveJobs() {
     upd(jobId,"files", (s?.files||[]).filter((_:any, i:number) => i !== idx));
   }
 
-  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
+  const initials = (session?.user?.name||"WR").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
   const nav = NAV.map(item=>item.href==="/writer/jobs/active"?{...item,badge:jobs.length}:item);
 
   return (
@@ -178,7 +178,7 @@ export default function WriterActiveJobs() {
               {job.correctionNotes && (
                 <div style={{...C.warn, background:"#F0F9FF", borderColor:"#BAE6FD"}}>
                   <div style={{...C.warnt, color:"#0369A1"}}>📋 Student's Original Request</div>
-                  {job.correctionNotes}
+                  <span style={{whiteSpace:"pre-wrap"}}>{job.correctionNotes}</span>
                 </div>
               )}
 
@@ -196,7 +196,7 @@ export default function WriterActiveJobs() {
               )}
 
               {job.specialInstructions && (
-                <div style={C.info}><div style={C.infot}>Student Instructions</div>{job.specialInstructions}</div>
+                <div style={C.info}><div style={C.infot}>Student Instructions</div><span style={{whiteSpace:"pre-wrap"}}>{job.specialInstructions}</span></div>
               )}
 
               {job.guidelineFileUrl && job.guidelineFileUrl.split(",").map((url:string, i:number) => (
