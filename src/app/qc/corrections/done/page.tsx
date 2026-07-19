@@ -67,7 +67,7 @@ export default function QCCorrectionsDone() {
                   </div>
                   {r.studentRequest && (
                     <div style={{marginTop:".75rem",padding:".6rem .85rem",background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:"8px",fontSize:".75rem",color:"#92400E"}}>
-                      <strong>Correction request:</strong> {r.studentRequest}
+                      <strong>Correction request:</strong> <span style={{whiteSpace:"pre-wrap"}}>{r.studentRequest}</span>
                     </div>
                   )}
                   {r.fileAfterUrl && (
