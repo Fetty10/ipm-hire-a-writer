@@ -48,7 +48,7 @@ export default function QCChecksActive() {
     const res  = await fetch("/api/qc/jobs?flow=checks&status=active");
     const data = await res.json();
     if (data.success) {
-      setJobs(data.data);
+      setJobs(data.data||[]);
       const init:any = {};
       data.data.forEach((j:any) => {
         init[j.id] = {
@@ -161,7 +161,7 @@ export default function QCChecksActive() {
               {job.specialInstructions && (
                 <div style={C.info}>
                   <div style={C.infot}>Student Instructions</div>
-                  <div style={C.infov}>{job.specialInstructions}</div>
+                  <div style={{...C.infov,whiteSpace:"pre-wrap"}}>{job.specialInstructions}</div>
                 </div>
               )}
 
