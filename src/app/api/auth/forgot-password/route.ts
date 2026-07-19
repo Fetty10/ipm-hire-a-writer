@@ -8,38 +8,36 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-const WA_TOKEN    = process.env.WHATSAPP_ACCESS_TOKEN!;
-const WA_PHONE_ID = process.env.WHATSAPP_PHONE_ID!;
-
-// In-memory OTP store (resets on cold start — acceptable for short-lived OTPs)
-// Key: email, Value: { otp, expiresAt }
+// In-memory OTP store — key: email, value: { otp, expiresAt }
 const otpStore = new Map<string, { otp:string; expiresAt:number }>();
 
-async function sendWhatsAppOTP(phone: string, otp: string, name: string): Promise<boolean> {
-  // Normalize phone to international format
-  const normalized = phone.replace(/\D/g, "");
-  const intl = normalized.startsWith("0") ? "234" + normalized.slice(1) : normalized;
-
-  const res = await fetch(`https://graph.facebook.com/v19.0/${WA_PHONE_ID}/messages`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${WA_TOKEN}`,
-      "Content-Type":  "application/json",
-    },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to:                intl,
-      type:              "text",
-      text: {
-        body: `Hi ${name.split(" ")[0]}, your iProjectMaster password reset code is:\n\n*${otp}*\n\nThis code expires in 10 minutes. Do not share it with anyone.`,
-      },
-    }),
+async function sendEmailOTP(email: string, otp: string, name: string): Promise<boolean> {
+  const { Resend } = await import("resend");
+  const resend = new Resend(process.env.RESEND_API_KEY!);
+  const { error } = await resend.emails.send({
+    from:    "iProjectMaster <noreply@hire.iprojectmaster.com>",
+    to:      email,
+    subject: "Your iProjectMaster Password Reset Code",
+    html: `
+      <div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:2rem;">
+        <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:#0C1A2E;margin-bottom:1.5rem;">
+          iProject<span style="color:#38BDF8;">Master</span>
+        </div>
+        <p style="color:#0C1A2E;font-size:.95rem;">Hi ${name.split(" ")[0]},</p>
+        <p style="color:#475569;font-size:.88rem;line-height:1.7;">
+          You requested a password reset. Use the code below to reset your password.
+          This code expires in <strong>10 minutes</strong>.
+        </p>
+        <div style="background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:12px;padding:1.5rem;text-align:center;margin:1.5rem 0;">
+          <div style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#0C1A2E;letter-spacing:.3em;">${otp}</div>
+        </div>
+        <p style="color:#94A3B8;font-size:.78rem;">
+          If you didn't request this, ignore this email — your password will not change.
+        </p>
+      </div>
+    `,
   });
-
-  const data = await res.json();
-  console.log("[OTP] Sending to:", intl, "Phone ID:", WA_PHONE_ID, "Token set:", !!WA_TOKEN);
-  console.log("[OTP] WhatsApp response status:", res.status, "data:", JSON.stringify(data));
-  return res.ok && !data.error;
+  return !error;
 }
 
 // POST /api/auth/forgot-password
@@ -76,9 +74,9 @@ export async function POST(req: NextRequest) {
 
     otpStore.set(cleanEmail, { otp, expiresAt });
 
-    const sent = await sendWhatsAppOTP(user.phone, otp, user.name);
+    const sent = await sendEmailOTP(cleanEmail, otp, user.name);
     if (!sent) {
-      return NextResponse.json({ error: "Failed to send OTP. Please try again or contact support." }, { status: 500 });
+      return NextResponse.json({ error: "Failed to send OTP email. Please try again or contact support." }, { status: 500 });
     }
 
     // Mask phone for display: 080****5678
