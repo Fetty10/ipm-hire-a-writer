@@ -174,7 +174,7 @@ export default function AnalystActiveJobs() {
               {job.correctionNotes && (
                 <div style={{...C.infoBox, background:"#F0F9FF", border:"1px solid #BAE6FD"}}>
                   <div style={{...C.infoT, color:"#0369A1"}}>📋 Student's Original Request</div>
-                  <div style={{...C.infoV, color:"#0C4A6E"}}>{job.correctionNotes}</div>
+                  <div style={{...C.infoV, color:"#0C4A6E", whiteSpace:"pre-wrap"}}>{job.correctionNotes}</div>
                 </div>
               )}
 
@@ -194,7 +194,7 @@ export default function AnalystActiveJobs() {
               {job.specialInstructions && (
                 <div style={C.infoBox}>
                   <div style={C.infoT}>Student Instructions</div>
-                  <div style={C.infoV}>{job.specialInstructions}</div>
+                  <div style={{...C.infoV, whiteSpace:"pre-wrap"}}>{job.specialInstructions}</div>
                 </div>
               )}
 
