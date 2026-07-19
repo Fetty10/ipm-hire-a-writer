@@ -41,7 +41,7 @@ export default function QCCorrectionsPending() {
     setLoading(true);
     const res  = await fetch("/api/qc/jobs?flow=corrections&status=pending");
     const data = await res.json();
-    if (data.success) setJobs(data.data);
+    if (data.success) setJobs(data.data||[]);
     setLoading(false);
   }, []);
 
@@ -94,7 +94,7 @@ export default function QCCorrectionsPending() {
               {job.correctionNotes && (
                 <div style={C.warn}>
                   <div style={C.warnt}>Student's Correction Request</div>
-                  <p style={{fontSize:".82rem",color:"#854D0E",lineHeight:1.5}}>{job.correctionNotes}</p>
+                  <p style={{fontSize:".82rem",color:"#854D0E",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{job.correctionNotes}</p>
                 </div>
               )}
 
