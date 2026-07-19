@@ -69,7 +69,6 @@ function StaffLoginForm() {
     const data = await res.json();
     setFpLoading(false);
     if (!res.ok) { toast.error(data.error || "Something went wrong."); return; }
-    setMaskedPhone(data.maskedPhone || "");
     setForgotStep("otp");
   }
 
