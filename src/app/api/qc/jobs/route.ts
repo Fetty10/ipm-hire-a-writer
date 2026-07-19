@@ -48,7 +48,20 @@ export async function GET(req: NextRequest) {
     status: { in: statusFilter },
     ...(flow === "corrections"
       ? { correctionNotes: { not: null } }
-      : { correctionNotes: null }),
+      : {
+          correctionNotes: null,
+          // Exclude chapters that were corrections (have CorrectionHistory records)
+          ...(status === "cleared" ? {
+            NOT: {
+              id: {
+                in: await prisma.$queryRaw<{id:string}[]>`
+                  SELECT "orderChapterId" as id FROM "CorrectionHistory"
+                  WHERE "resolvedById" = ${session.user.id}
+                `.then(r => r.map(x => x.id))
+              }
+            }
+          } : {})
+        }),
     ...(search
       ? { order: { topic: { contains: search, mode: "insensitive" } } }
       : {}),
