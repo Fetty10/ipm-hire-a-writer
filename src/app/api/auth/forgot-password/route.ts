@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-const WA_TOKEN    = process.env.WHATSAPP_TOKEN!;
+const WA_TOKEN    = process.env.WHATSAPP_ACCESS_TOKEN!;
 const WA_PHONE_ID = process.env.WHATSAPP_PHONE_ID!;
 
 // In-memory OTP store (resets on cold start — acceptable for short-lived OTPs)
