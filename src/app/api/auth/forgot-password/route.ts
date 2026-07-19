@@ -37,6 +37,8 @@ async function sendWhatsAppOTP(phone: string, otp: string, name: string): Promis
   });
 
   const data = await res.json();
+  console.log("[OTP] Sending to:", intl, "Phone ID:", WA_PHONE_ID, "Token set:", !!WA_TOKEN);
+  console.log("[OTP] WhatsApp response status:", res.status, "data:", JSON.stringify(data));
   return res.ok && !data.error;
 }
 
