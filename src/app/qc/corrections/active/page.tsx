@@ -55,7 +55,7 @@ export default function QCCorrectionsActive() {
     const res  = await fetch("/api/qc/jobs?flow=corrections&status=active");
     const data = await res.json();
     if (data.success) {
-      setJobs(data.data);
+      setJobs(data.data||[]);
       const init:any = {};
       data.data.forEach((j:any) => { init[j.id] = { files:[], notes:"", uploading:false, submitting:false, escalateOpen:false, escType:"corrections", escNotes:"", escalating:false }; });
       setState(init);
@@ -151,7 +151,7 @@ export default function QCCorrectionsActive() {
               {job.correctionNotes && (
                 <div style={C.warn}>
                   <div style={C.warnt}>Student's Request (for reference)</div>
-                  <p style={{fontSize:".82rem",color:"#854D0E",lineHeight:1.5}}>{job.correctionNotes}</p>
+                  <p style={{fontSize:".82rem",color:"#854D0E",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{job.correctionNotes}</p>
                 </div>
               )}
 
