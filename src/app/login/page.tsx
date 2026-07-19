@@ -26,9 +26,6 @@ const C = {
   foot:  { textAlign:"center" as const, marginTop:"1.25rem" },
   flink: { background:"none", border:"none", color:"#0369A1", fontWeight:700, cursor:"pointer", fontSize:".82rem" },
   div:   { textAlign:"center" as const, margin:"1.25rem 0", color:"#5B7EA6", fontSize:".78rem" },
-  staffBox: { background:"#F0F9FF", border:"1px solid #BAE6FD", borderRadius:"12px", padding:"1rem 1.25rem", textAlign:"center" as const, marginTop:"1rem" },
-  staffTxt: { fontSize:".78rem", color:"#5B7EA6", marginBottom:".6rem" },
-  staffBtn: { display:"inline-flex", alignItems:"center", gap:".4rem", padding:".5rem 1.1rem", borderRadius:"10px", border:"1.5px solid #0C1A2E", background:"none", color:"#0C1A2E", fontSize:".78rem", fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
   hint:  { fontSize:".75rem", color:"#5B7EA6", marginBottom:"1rem", lineHeight:1.5 },
   otpRow:{ display:"flex", gap:".5rem" },
 };
@@ -222,13 +219,6 @@ function LoginForm() {
               <button style={C.flink} onClick={()=>router.push("/register")}>Create account</button>
             </p>
           </div>
-        </div>
-
-        <div style={C.staffBox}>
-          <p style={C.staffTxt}>Are you a writer, analyst, QC or admin?</p>
-          <button style={C.staffBtn} onClick={()=>router.push("/staff/login")}>
-            👤 Staff Login
-          </button>
         </div>
       </div>
     </div>
