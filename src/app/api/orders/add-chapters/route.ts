@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   );
 
   const unavailableNums   = [...new Set([...existingChapterNums, ...pendingNums])];
-  const availableChapters = [1,2,3,4,5].filter(n => !unavailableNums.includes(n));
+  const availableChapters = [1,2,3,4,5,6].filter(n => !unavailableNums.includes(n));
 
   return NextResponse.json({
     success: true,
