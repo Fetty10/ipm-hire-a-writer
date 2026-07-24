@@ -17,7 +17,7 @@ const faqs = [
   {
     category:"Plans & Pricing",
     items:[
-      { q:"What is the difference between Basic, Standard, and Professional?", a:"Basic is a flat price covering all 5 chapters at once — no correction support. Standard and Professional are per-chapter and include supervisor correction handling and your school's guideline. Professional adds a plagiarism and AI detection check before delivery." },
+      { q:"What is the difference between Basic, Standard, and Professional?", a:"Basic is a flat price covering all 6 chapters at once — no correction support. Standard and Professional are per-chapter and include supervisor correction handling and your school's guideline. Professional adds a plagiarism and AI detection check before delivery." },
       { q:"Can I choose which chapters to order?", a:"Yes — on Standard and Professional plans you select exactly which chapters you need. You can start with Chapter 1 and add more as your project progresses." },
       { q:"Are there extra charges after I pay?", a:"No hidden charges. What you see on the pricing page is what you pay. Corrections are included in Standard and Professional plans at no extra cost." },
       { q:"Do you handle other academic writing beyond projects?", a:"Yes. We handle Seminar papers, Proposals, Journal Writing, Journal Sourcing, PowerPoint presentations, and Assignments. See our pricing page for full details." },
