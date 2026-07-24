@@ -17,7 +17,7 @@ interface OtherService {
 }
 
 const PLAN_META: Record<string,{ tag:string; desc:string; features:string[]; notIncluded:string[]; border:string; badge:string|null; badgeBg:string; dark:boolean; }> = {
-  BASIC:            { tag:"Full project, one price",    desc:"One flat payment covers your entire project (Chapters 1–5). Best if you want everything done at once.", features:["All 5 chapters included","Writer + Analyst assigned"], notIncluded:["Corrections","Guideline usage"], border:"#BAE6FD", badge:null, badgeBg:"", dark:false },
+  BASIC:            { tag:"Full project, one price",    desc:"One flat payment covers your entire project (Chapters 1–6). Best if you want everything done at once.", features:["All 6 chapters included","Writer + Analyst assigned"], notIncluded:["Corrections","Guideline usage"], border:"#BAE6FD", badge:null, badgeBg:"", dark:false },
   STANDARD:         { tag:"Pay per chapter",            desc:"Pay for only the chapters you need. Supervisor corrections handled. Your school format applied.", features:["Pay per chapter","Writer + Analyst assigned","Supervisor corrections handled","School guideline applied"], notIncluded:["Plagiarism check"], border:"#38BDF8", badge:"Most Popular", badgeBg:"#38BDF8", dark:false },
   PROFESSIONAL:     { tag:"Pay per chapter + QC",       desc:"Everything in Standard, plus plagiarism and AI detection check before delivery.", features:["Pay per chapter","Writer + Analyst assigned","Supervisor corrections handled","School guideline applied","Plagiarism & AI check included"], notIncluded:[], border:"#818CF8", badge:"Best Value", badgeBg:"#818CF8", dark:false },
   PHD_PROFESSIONAL: { tag:"Doctoral standard",          desc:"Tailored specifically for PhD writing with doctoral-level rigour and plagiarism check.", features:["Per chapter","Specialist PhD writer assigned","Supervisor corrections handled","School guideline applied","Plagiarism & AI check included"], notIncluded:[], border:"#0C1A2E", badge:"PhD Only", badgeBg:"#475569", dark:true },
@@ -211,7 +211,7 @@ export default function PricingPage() {
                 </table>
               </div>
               <p style={{ fontSize:".72rem", color:"#5B7EA6", marginTop:".75rem" }}>
-                * "/ch" = per chapter. Basic plan covers all 5 chapters at one flat price.
+                * "/ch" = per chapter. Basic plan covers all 6 chapters at one flat price.
                 {!geo.isNigeria && ` Prices in ${geo.currency}.`}
               </p>
             </div>
