@@ -413,7 +413,7 @@ export default function AdminBankTransfers() {
                 <div style={C.fg}>
                   <label style={C.lbl}>Chapters Selected</label>
                   <div style={C.chapGrid}>
-                    {[1,2,3,4,5].map(n => (
+                    {[1,2,3,4,5,6].map(n => (
                       <button key={n} type="button"
                         style={{...C.chap,...(editForm.selectedChapters.includes(n)?C.chapA:{})}}
                         onClick={()=>setEditForm(f=>({
