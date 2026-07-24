@@ -57,7 +57,7 @@ export default function StudentInProgress() {
   function loadData() {
     fetch("/api/student/orders?filter=active")
       .then(r=>r.json())
-      .then(d=>{ if(d.success) setOrders(d.data); })
+      .then(d=>{ if(d.success) setOrders(d.data||[]); })
       .finally(()=>setLoading(false));
     fetch("/api/student/chapter-requests")
       .then(r=>r.json())
@@ -114,7 +114,7 @@ export default function StudentInProgress() {
           </div>
         ) : orders.map((order:any)=>{
           const curr = STATUS_STEPS[order.status]||0;
-          const hasAllChapters = order.totalChapters >= 5;
+          const hasAllChapters = order.totalChapters >= 6;
           return (
             <div key={order.id} style={C.card}>
               <div style={C.ohead}>
