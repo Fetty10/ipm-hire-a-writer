@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 
-const CH_LABELS = ["","Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5"];
+const CH_LABELS = ["","Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5","Chapter 6"];
 const PLAN_LBL:Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Pro"};
 
 const C = {
