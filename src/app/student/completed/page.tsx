@@ -71,7 +71,7 @@ export default function StudentCompleted() {
         ) : orders.map((o:any)=>{
           const delivered     = o.chapters.filter((ch:any)=>ch.status==="DELIVERED");
           const isFullyDone   = o.status==="DELIVERED";
-          const hasAllChapters= o.totalChapters >= 5;
+          const hasAllChapters= o.totalChapters >= 6;
           return (
             <div key={o.id} style={C.card}>
               <div style={C.head}>
