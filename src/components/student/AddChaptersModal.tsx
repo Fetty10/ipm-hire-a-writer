@@ -157,13 +157,13 @@ export default function AddChaptersModal({ orderId, onClose }: Props) {
 
               {info.availableChapters.length === 0 ? (
                 <div style={{textAlign:"center",padding:"1.5rem",color:"#5B7EA6",fontSize:".85rem"}}>
-                  All 5 chapters have already been ordered for this topic.
+                  All 6 chapters have already been ordered for this topic.
                 </div>
               ) : (
                 <>
                   <label style={C.lbl}>Select Chapters to Add</label>
                   <div style={C.chips}>
-                    {[1,2,3,4,5].map(n => {
+                    {[1,2,3,4,5,6].map(n => {
                       const already = info.existingChapters.includes(n);
                       const pending = (info.pendingChapters||[]).includes(n);
                       const locked  = already || pending;
