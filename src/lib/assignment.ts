@@ -12,7 +12,7 @@ import { AssigneeRole, ChapterStatus, DegreeGroup, Role } from "@prisma/client";
 // Exception dept: Writer → ALL chapters
 // ─────────────────────────────────────────────────────────────
 
-const WRITER_CHAPTERS  = [1, 2, 5];
+const WRITER_CHAPTERS  = [1, 2, 5, 6];
 const ANALYST_CHAPTERS = [3, 4];
 
 // Chapter 1 always requires preliminary uploads (in non-exception depts)
