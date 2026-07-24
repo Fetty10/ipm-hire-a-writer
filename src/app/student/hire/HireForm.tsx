@@ -45,7 +45,7 @@ export function HireForm({
     topic:           "TOPIC_SUGGESTION",
     assignment:      "HIRE_WRITER",
   };
-  const CHAPTER_LABELS = ["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5"];
+  const CHAPTER_LABELS = ["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5","Chapter 6"];
   const PLAN_DISPLAY: Record<string,string> = {BASIC:"Basic",STANDARD:"Standard",PROFESSIONAL:"Professional",PHD_PROFESSIONAL:"PhD Professional"};
   
   function toServiceType(svc: string): string {
