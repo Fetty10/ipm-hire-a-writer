@@ -285,15 +285,13 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   }
 
   // ── Find best staff for each role ────────────────────────
-  // Pass orderId as a tiebreak seed so simultaneous orders that see
-  // identical job counts still get distributed to different staff.
-  const writerId = await getStaffWithFewestJobs(Role.WRITER);
-
+  // Only select a writer if there are writer chapters to assign
+  const writerNeeded = chaptersToCreate.some(ch => ch.role === Role.WRITER);
   const needsAnalyst = !isException && isProjectService &&
     ANALYST_CHAPTERS.some(n => requestedNums.includes(n));
-  const analystId = needsAnalyst
-    ? await getStaffWithFewestJobs(Role.ANALYST)
-    : null;
+
+  const writerId  = writerNeeded  ? await getStaffWithFewestJobs(Role.WRITER)  : null;
+  const analystId = needsAnalyst  ? await getStaffWithFewestJobs(Role.ANALYST) : null;
 
   // ── Create OrderChapter records ──────────────────────────
   for (const ch of chaptersToCreate) {
