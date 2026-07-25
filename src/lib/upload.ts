@@ -14,6 +14,8 @@ export const ALLOWED_MIME_TYPES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
+  "application/zip",
+  "application/x-zip-compressed",
 ];
 
 export const ADMIN_LEGACY_MIME_TYPES = [
