@@ -215,6 +215,7 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   // ── Determine what chapters to create ────────────────────
   // Flat services (seminar, proposal, topic etc.) get 1 chapter → Writer only
   const isProjectService = order.serviceType === "HIRE_WRITER" || !order.serviceType;
+  const isFlatSingleAssignment = isProjectService && !order.selectedChapters && order.plan?.pricingType === "FLAT";
   const SERVICE_LABELS: Record<string,string> = {
     PROPOSAL_SEMINAR:      "Seminar / Proposal",
     JOURNAL_WRITING:       "Journal / Article",
@@ -227,7 +228,9 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   const requestedNums: number[] = isProjectService
     ? (order.selectedChapters
         ? order.selectedChapters.split(",").map(Number).filter(Boolean)
-        : [1, 2, 3, 4, 5])
+        : order.plan?.pricingType === "FLAT"
+          ? [1] // Flat plan with no chapters selected = single assignment to one writer
+          : [1, 2, 3, 4, 5, 6])
     : [1]; // flat services always just 1 chapter
 
   const chaptersToCreate: Array<{
@@ -243,7 +246,7 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
     for (const num of requestedNums) {
       chaptersToCreate.push({
         chapterNumber:  num,
-        chapterLabel:   isProjectService ? `Chapter ${num}` : (SERVICE_LABELS[order.serviceType] || `Chapter ${num}`),
+        chapterLabel:   isProjectService ? (isFlatSingleAssignment ? "Assignment" : `Chapter ${num}`) : (SERVICE_LABELS[order.serviceType] || `Chapter ${num}`),
         role:           Role.WRITER,
         assigneeRole:   AssigneeRole.WRITER,
         requiresPrelim: isProjectService && num === PRELIM_REQUIRED_CHAPTER,
@@ -313,7 +316,10 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   // ── Notify assigned staff ─────────────────────────────────
   const notified = new Set<string>();
 
-  if (writerId && !notified.has(writerId)) {
+  const writerHasChapters = chaptersToCreate.some(ch => ch.role === Role.WRITER);
+  const analystHasChapters = chaptersToCreate.some(ch => ch.role === Role.ANALYST);
+
+  if (writerId && writerHasChapters && !notified.has(writerId)) {
     const writer = await prisma.user.findUnique({ where: { id: writerId }, select: { email: true, name: true } });
     await prisma.notification.create({
       data: {
@@ -338,8 +344,6 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
     }
     notified.add(writerId);
   }
-
-  const analystHasChapters = chaptersToCreate.some(ch => ch.role === Role.ANALYST);
 
   if (analystId && analystHasChapters && !notified.has(analystId)) {
     const analyst = await prisma.user.findUnique({ where: { id: analystId }, select: { email: true, name: true } });
