@@ -104,7 +104,7 @@ export default function StudentCorrections() {
   }
   function openPicker(){
     const inp=document.createElement("input"); inp.type="file"; inp.multiple=true;
-    inp.accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.mp3,.m4a,.wav,.ogg,.webm,.aac";
+    inp.accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.mp3,.m4a,.wav,.ogg,.webm,.aac,.zip";
     inp.onchange=async(e)=>{
       const files=Array.from((e.target as HTMLInputElement).files||[]);
       for(const f of files) await handleAttachFile(f);
