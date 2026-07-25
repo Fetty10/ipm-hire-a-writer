@@ -8,7 +8,7 @@ import { AssigneeRole, ChapterStatus, DegreeGroup, Role } from "@prisma/client";
 
 // ─────────────────────────────────────────────────────────────
 // CHAPTER DEFINITIONS
-// Standard split: Writer → Ch 1,2,5 | Analyst → Ch 3,4
+// Standard split: Writer → Ch 1,2,5,6 | Analyst → Ch 3,4
 // Exception dept: Writer → ALL chapters
 // ─────────────────────────────────────────────────────────────
 
