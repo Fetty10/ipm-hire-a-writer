@@ -8,7 +8,7 @@ import { AssigneeRole, ChapterStatus, DegreeGroup, Role } from "@prisma/client";
 
 // ─────────────────────────────────────────────────────────────
 // CHAPTER DEFINITIONS
-// Standard split: Writer → Ch 1,2,5,6 | Analyst → Ch 3,4
+// Standard split: Writer → Ch 1,2,5 | Analyst → Ch 3,4
 // Exception dept: Writer → ALL chapters
 // ─────────────────────────────────────────────────────────────
 
@@ -215,7 +215,6 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   // ── Determine what chapters to create ────────────────────
   // Flat services (seminar, proposal, topic etc.) get 1 chapter → Writer only
   const isProjectService = order.serviceType === "HIRE_WRITER" || !order.serviceType;
-  const isFlatSingleAssignment = isProjectService && !order.selectedChapters && order.plan?.pricingType === "FLAT";
   const SERVICE_LABELS: Record<string,string> = {
     PROPOSAL_SEMINAR:      "Seminar / Proposal",
     JOURNAL_WRITING:       "Journal / Article",
@@ -228,10 +227,8 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   const requestedNums: number[] = isProjectService
     ? (order.selectedChapters
         ? order.selectedChapters.split(",").map(Number).filter(Boolean)
-        : order.plan?.pricingType === "FLAT"
-          ? [1] // Flat plan with no chapters selected = single assignment to one writer
-          : [1, 2, 3, 4, 5, 6])
-    : [1]; // flat services always just 1 chapter
+        : [1, 2, 3, 4, 5, 6]) // Basic flat plan = all chapters
+    : [1]; // flat services (assignment, seminar etc) always just 1 chapter
 
   const chaptersToCreate: Array<{
     chapterNumber: number;
@@ -246,7 +243,7 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
     for (const num of requestedNums) {
       chaptersToCreate.push({
         chapterNumber:  num,
-        chapterLabel:   isProjectService ? (isFlatSingleAssignment ? "Assignment" : `Chapter ${num}`) : (SERVICE_LABELS[order.serviceType] || `Chapter ${num}`),
+        chapterLabel:   isProjectService ? `Chapter ${num}` : (SERVICE_LABELS[order.serviceType] || `Chapter ${num}`),
         role:           Role.WRITER,
         assigneeRole:   AssigneeRole.WRITER,
         requiresPrelim: isProjectService && num === PRELIM_REQUIRED_CHAPTER,
