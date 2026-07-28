@@ -227,7 +227,7 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   const requestedNums: number[] = isProjectService
     ? (order.selectedChapters
         ? order.selectedChapters.split(",").map(Number).filter(Boolean)
-        : [1, 2, 3, 4, 5, 6]) // Basic flat plan = all chapters
+        : [1, 2, 3, 4, 5]) // Basic flat plan = chapters 1-5
     : [1]; // flat services (assignment, seminar etc) always just 1 chapter
 
   const chaptersToCreate: Array<{
