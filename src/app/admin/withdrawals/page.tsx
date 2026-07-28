@@ -26,14 +26,22 @@ const C = {
 };
 
 export default function AdminWithdrawals() {
-  const [pending, setPending] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [acting,  setActing]  = useState<string|null>(null);
+  const [pending,  setPending]  = useState<any[]>([]);
+  const [summary,  setSummary]  = useState<any>(null);
+  const [loading,  setLoading]  = useState(true);
+  const [acting,   setActing]   = useState<string|null>(null);
 
   async function load() {
-    const res  = await fetch("/api/admin/overview");
-    const data = await res.json();
-    if(data.success) setPending(data.data.pendingWds||[]);
+    const [overviewRes, earningsRes] = await Promise.all([
+      fetch("/api/admin/overview"),
+      fetch("/api/admin/earnings-summary"),
+    ]);
+    const overviewData = await overviewRes.json();
+    if (overviewData.success) setPending(overviewData.data.pendingWds||[]);
+    if (earningsRes.ok) {
+      const earningsData = await earningsRes.json();
+      if (earningsData.success) setSummary(earningsData.data);
+    }
     setLoading(false);
   }
   useEffect(()=>{ load(); },[]);
@@ -52,6 +60,25 @@ export default function AdminWithdrawals() {
       <div style={C.page}>
         <h1 style={C.h1}>Withdrawal Requests</h1>
         <p style={C.sub}>Approve → Paystack auto-transfers instantly to staff bank account.</p>
+
+        {/* Earnings Summary */}
+        {summary && (
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".75rem",marginBottom:"1.5rem"}}>
+            {[
+              {label:"Total Earned",   val:summary.totalKobo,     color:"#0C1A2E"},
+              {label:"Available",      val:summary.availableKobo, color:"#0284C7"},
+              {label:"Total Withdrawn",val:summary.withdrawnKobo, color:"#16A34A"},
+              {label:"Left to Withdraw",val:summary.availableKobo,color:"#D97706"},
+            ].map(s=>(
+              <div key={s.label} style={{background:"#fff",borderRadius:"14px",border:"1.5px solid #E0F2FE",padding:"1rem",textAlign:"center" as const}}>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:"1.1rem",fontWeight:800,color:s.color}}>
+                  ₦{((s.val||0)/100).toLocaleString()}
+                </div>
+                <div style={{fontSize:".72rem",color:"#5B7EA6",marginTop:"3px",fontWeight:600}}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
         : pending.length===0 ? (
