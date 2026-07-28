@@ -224,11 +224,6 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
     POWERPOINT:            "PowerPoint",
     HIRE_WRITER:           "Assignment",
   };
-    JOURNAL_SOURCING:      "Journal Sourcing",
-    TOPIC_SUGGESTION:      "Topic Coining",
-    CASE_STUDY_ADJUSTMENT: "Case Study",
-    COMPLETE_PROJECT:      "Complete Project",
-  };
 
   const requestedNums: number[] = isProjectService
     ? (order.selectedChapters
