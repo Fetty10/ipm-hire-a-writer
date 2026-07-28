@@ -214,10 +214,16 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
 
   // ── Determine what chapters to create ────────────────────
   // Flat services (seminar, proposal, topic etc.) get 1 chapter → Writer only
-  const isProjectService = order.serviceType === "HIRE_WRITER" || !order.serviceType;
+  const NON_PROJECT_SERVICES = ["PROPOSAL_SEMINAR", "JOURNAL_WRITING", "JOURNAL_SOURCING", "TOPIC_SUGGESTION", "POWERPOINT"];
+  const isProjectService = !NON_PROJECT_SERVICES.includes(order.serviceType) && (order.serviceType === "HIRE_WRITER" || !order.serviceType);
   const SERVICE_LABELS: Record<string,string> = {
     PROPOSAL_SEMINAR:      "Seminar / Proposal",
     JOURNAL_WRITING:       "Journal / Article",
+    JOURNAL_SOURCING:      "Journal Sourcing",
+    TOPIC_SUGGESTION:      "Topic Suggestion",
+    POWERPOINT:            "PowerPoint",
+    HIRE_WRITER:           "Assignment",
+  };
     JOURNAL_SOURCING:      "Journal Sourcing",
     TOPIC_SUGGESTION:      "Topic Coining",
     CASE_STUDY_ADJUSTMENT: "Case Study",
