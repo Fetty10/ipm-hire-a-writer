@@ -77,7 +77,7 @@ function StaffDetailDrawer({ staffId, onClose }: { staffId: string; onClose: () 
   );
   if (!data) return null;
 
-  const { staff, jobHistory, statusCounts, earningsSummary, withdrawals } = data;
+  const { staff, jobHistory, statusCounts, earningsSummary, withdrawals, qcWorkload, qcHistory, qcCorrectionsHistory } = data;
 
   return (
     <>
@@ -139,6 +139,67 @@ function StaffDetailDrawer({ staffId, onClose }: { staffId: string; onClose: () 
               {Object.keys(statusCounts).length === 0 && <p style={{fontSize:".78rem",color:"#5B7EA6"}}>No jobs assigned yet.</p>}
             </div>
           </div>
+
+          {/* QC Workload — only for QC role */}
+          {staff.role === "QC" && qcWorkload && (
+            <div style={C.section}>
+              <div style={C.sTitle}>🔍 QC Workload</div>
+              <div style={C.grid4}>
+                <div style={C.statBox}><div style={{...C.statVal,color:"#5B21B6"}}>{qcWorkload.qcActiveChecks}</div><div style={C.statLbl}>Active Checks</div></div>
+                <div style={C.statBox}><div style={{...C.statVal,color:"#D97706"}}>{qcWorkload.qcActiveCorrections}</div><div style={C.statLbl}>Active Corrections</div></div>
+                <div style={C.statBox}><div style={{...C.statVal,color:"#065F46"}}>{qcWorkload.qcClearedChecks}</div><div style={C.statLbl}>Checks Cleared</div></div>
+                <div style={C.statBox}><div style={{...C.statVal,color:"#0369A1"}}>{qcWorkload.qcSentCorrections}</div><div style={C.statLbl}>Corrections Sent</div></div>
+              </div>
+            </div>
+          )}
+
+          {/* QC Checks & Corrections History */}
+          {staff.role === "QC" && qcHistory?.length > 0 && (
+            <div style={C.section}>
+              <div style={C.sTitle}>📋 QC Checks History ({qcHistory.length})</div>
+              <div style={{maxHeight:"240px",overflowY:"auto" as const}}>
+                {qcHistory.map((j:any) => (
+                  <div key={j.id} style={C.jobRow}>
+                    <div style={{minWidth:0,flex:1}}>
+                      <div style={C.jobTopic}>{j.chapterLabel} — {j.topic}</div>
+                      <div style={C.jobMeta}>
+                        {j.isCorrection ? "🔧 Correction" : "🔍 Plag/AI Check"} ·{" "}
+                        {j.startedAt ? new Date(j.startedAt).toLocaleDateString("en-NG",{day:"numeric",month:"short"}) : ""}
+                      </div>
+                    </div>
+                    <span style={{...C.badge,...(STATUS_COLORS[j.status]||{bg:"#F1F5F9",color:"#64748B"})}}>{j.status.replace(/_/g," ")}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* QC Corrections Sent History */}
+          {staff.role === "QC" && qcCorrectionsHistory?.length > 0 && (
+            <div style={C.section}>
+              <div style={C.sTitle}>✅ Corrections Sent ({qcCorrectionsHistory.length})</div>
+              <div style={{maxHeight:"240px",overflowY:"auto" as const}}>
+                {qcCorrectionsHistory.map((r:any) => (
+                  <div key={r.id} style={C.jobRow}>
+                    <div style={{minWidth:0,flex:1}}>
+                      <div style={C.jobTopic}>{r.chapterLabel} — {r.topic}</div>
+                      <div style={C.jobMeta}>
+                        {r.resolvedAt ? new Date(r.resolvedAt).toLocaleDateString("en-NG",{day:"numeric",month:"short",year:"numeric"}) : ""}
+                        {r.studentRequest ? ` · ${r.studentRequest.slice(0,60)}${r.studentRequest.length>60?"...":""}` : ""}
+                      </div>
+                    </div>
+                    {r.fileAfterUrl && (
+                      <a href={`/api/download/guideline?url=${encodeURIComponent(r.fileAfterUrl.split(",")[0])}&label=file`}
+                        target="_blank" rel="noreferrer"
+                        style={{fontSize:".72rem",color:"#0369A1",fontWeight:700,whiteSpace:"nowrap" as const}}>
+                        ⬇ File
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Job History */}
           <div style={C.section}>
