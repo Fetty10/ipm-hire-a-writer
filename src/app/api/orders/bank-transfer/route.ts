@@ -216,6 +216,15 @@ export async function PATCH(req: NextRequest) {
   await assignChaptersForOrder(orderId);
   await prisma.order.update({ where: { id: orderId }, data: { status: "IN_PROGRESS" } });
 
+  // Log admin activity
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO "AdminActivityLog" (id, "userId", action, entity, "entityId", detail, "amountKobo", "ipAddress", "createdAt")
+    VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, NOW())
+  `, session.user.id, "CONFIRM_BANK_TRANSFER", "Order", orderId,
+     `Confirmed bank transfer for "${order.topic}" (${order.client?.name})`,
+     order.amountPaidKobo || 0, ip);
+
   await prisma.notification.create({
     data: {
       userId:  order.clientId,
