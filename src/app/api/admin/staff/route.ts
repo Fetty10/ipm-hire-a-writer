@@ -8,7 +8,7 @@ import { sendAccountApprovedEmail, sendAccountDeclinedEmail } from "@/lib/email"
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || ![Role.MAIN_ADMIN, Role.SUB_ADMIN].includes(session.user.role)) {
+  if (!session?.user || session.user.role !== Role.MAIN_ADMIN) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -127,6 +127,14 @@ export async function PATCH(req: NextRequest) {
   const fn = actions[action];
   if (!fn) return NextResponse.json({ error: "Invalid action." }, { status: 400 });
   await fn();
+
+  // Log admin activity
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO "AdminActivityLog" (id, "userId", action, entity, "entityId", detail, "amountKobo", "ipAddress", "createdAt")
+    VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, NOW())
+  `, session.user.id, action.toUpperCase() + "_STAFF", "User", staffId,
+     `${action} ${staff.role} "${staff.name}"`, 0, ip);
 
   return NextResponse.json({ success: true, message: `Staff ${action}d successfully.` });
 }
