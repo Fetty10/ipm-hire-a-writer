@@ -1,6 +1,6 @@
 "use client";
 // src/components/admin/AdminLayout.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { clsx } from "clsx";
@@ -34,6 +34,13 @@ export function AdminLayout({ children, badges = {}, mainAdminOnly = false }: {
   const [open, setOpen] = useState(false);
 
   const isMainAdmin = session?.user?.role === "MAIN_ADMIN";
+
+  // Redirect if session invalidated (suspended/deleted)
+  useEffect(() => {
+    if (session && !session.user?.id) {
+      router.push("/staff/login");
+    }
+  }, [session, router]);
 
   // Filter nav items based on role
   const MAIN_ADMIN_ONLY_PATHS = [
