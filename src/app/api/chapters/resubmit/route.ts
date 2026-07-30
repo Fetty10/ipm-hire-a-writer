@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 // src/app/api/chapters/resubmit/route.ts
-// Allows a writer/analyst to override their submitted file before QC clears it
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -22,25 +21,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "chapterId and fileUrl are required." }, { status: 400 });
   }
 
-  // Find the chapter and verify it belongs to this staff member
   const chapter = await prisma.orderChapter.findUnique({
     where:  { id: chapterId },
-    select: { id:true, status:true, assignedToId:true, chapterLabel:true, order:{ select:{ topic:true } } },
+    select: { id:true, status:true, assignedToId:true, routedToQcId:true, chapterLabel:true, order:{ select:{ topic:true } } },
   });
 
   if (!chapter) return NextResponse.json({ error: "Chapter not found." }, { status: 404 });
-  if (chapter.assignedToId !== session.user.id) {
-    return NextResponse.json({ error: "This chapter is not assigned to you." }, { status: 403 });
-  }
-  if (chapter.status === "QC_CLEARED") {
-    return NextResponse.json({ error: "This chapter has already been QC cleared and cannot be resubmitted." }, { status: 400 });
+
+  const isQC = role === Role.QC;
+
+  // Verify ownership
+  if (isQC) {
+    if (chapter.routedToQcId !== session.user.id) {
+      return NextResponse.json({ error: "This chapter is not assigned to you." }, { status: 403 });
+    }
+  } else {
+    if (chapter.assignedToId !== session.user.id) {
+      return NextResponse.json({ error: "This chapter is not assigned to you." }, { status: 403 });
+    }
+    // Writers/Analysts can't resubmit after QC clears
+    if (chapter.status === "QC_CLEARED") {
+      return NextResponse.json({ error: "This chapter has already been QC cleared and cannot be resubmitted." }, { status: 400 });
+    }
   }
 
-  // Update both submittedFileUrl and deliveredFileUrl so the new file is served everywhere
-  await prisma.orderChapter.update({
-    where: { id: chapterId },
-    data:  { submittedFileUrl: fileUrl, deliveredFileUrl: fileUrl } as any,
-  });
+  // Update the correct file field based on role
+  if (isQC) {
+    // QC resubmit — update qcFileUrl and deliveredFileUrl
+    await prisma.orderChapter.update({
+      where: { id: chapterId },
+      data:  { qcFileUrl: fileUrl, deliveredFileUrl: fileUrl } as any,
+    });
+  } else {
+    // Writer/Analyst resubmit — update submittedFileUrl and deliveredFileUrl
+    await prisma.orderChapter.update({
+      where: { id: chapterId },
+      data:  { submittedFileUrl: fileUrl, deliveredFileUrl: fileUrl } as any,
+    });
+  }
 
   // Notify admin
   const admins = await prisma.user.findMany({
@@ -52,7 +70,7 @@ export async function POST(req: NextRequest) {
       data: admins.map(a => ({
         userId:  a.id,
         title:   "↩ Chapter Resubmitted",
-        message: `${chapter.chapterLabel} for "${chapter.order.topic}" has been resubmitted by the writer with a corrected file.`,
+        message: `${chapter.chapterLabel} for "${chapter.order.topic}" has been resubmitted by ${role.toLowerCase()} with a corrected file.`,
         type:    "INFO" as const,
       })),
     });
