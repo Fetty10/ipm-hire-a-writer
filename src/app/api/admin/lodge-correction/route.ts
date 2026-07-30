@@ -172,6 +172,14 @@ export async function POST(req: NextRequest) {
       });
     } catch (e) { console.error("[EMAIL] Lodge correction QC notify:", e); }
 
+    // Log admin activity
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "AdminActivityLog" (id, "userId", action, entity, "entityId", detail, "amountKobo", "ipAddress", "createdAt")
+      VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, NOW())
+    `, session.user.id, "LODGE_CORRECTION", "OrderChapter", chapter.id,
+       `Lodged correction for "${topic}" assigned to ${qc.name}`, 0, ip);
+
     return NextResponse.json({
       success:        true,
       message:        `Correction lodged and assigned to ${qc.name}. ${isNewAccount ? `Account created and credentials emailed to ${student.email}.` : `Existing account found for ${student.email}.`}`,
