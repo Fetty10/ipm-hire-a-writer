@@ -78,6 +78,19 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id   = token.id   as string;
         session.user.role = token.role as Role;
+
+        // Real-time check — kick out suspended or deleted admins immediately
+        if ([Role.MAIN_ADMIN, Role.SUB_ADMIN].includes(token.role as Role)) {
+          try {
+            const user = await prisma.user.findUnique({
+              where:  { id: token.id as string },
+              select: { isApproved:true, isSuspended:true },
+            });
+            if (!user || !user.isApproved || user.isSuspended) {
+              return { ...session, user: { ...session.user, id: "", role: "" as any } };
+            }
+          } catch (e) { console.error("[SESSION CHECK]", e); }
+        }
       }
       return session;
     },
