@@ -10,7 +10,7 @@ import { Role } from "@prisma/client";
 
 export async function GET(req: NextRequest, { params }: { params: { staffId: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || ![Role.MAIN_ADMIN, Role.SUB_ADMIN].includes(session.user.role)) {
+  if (!session?.user || session.user.role !== Role.MAIN_ADMIN) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
