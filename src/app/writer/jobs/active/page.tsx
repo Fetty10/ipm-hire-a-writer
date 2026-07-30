@@ -240,7 +240,7 @@ export default function WriterActiveJobs() {
                       onClick={()=>{
                         if(s.uploading) return;
                         const inp=document.createElement("input");
-                        inp.type="file"; inp.accept=".pdf,.doc,.docx";
+                        inp.type="file"; inp.accept=".pdf,.doc,.docx,.ppt,.pptx";
                         inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};
                         inp.click();
                       }}>
@@ -256,7 +256,7 @@ export default function WriterActiveJobs() {
                   style={s.files?.length ? C.upzoneOk : C.upzone}
                   onClick={()=>{
                     const inp=document.createElement("input");
-                    inp.type="file"; inp.accept=".pdf,.doc,.docx";
+                    inp.type="file"; inp.accept=".pdf,.doc,.docx,.ppt,.pptx";
                     inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};
                     inp.click();
                   }}>
