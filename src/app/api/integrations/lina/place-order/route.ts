@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 
       const svcValueMap: Record<string,string> = {
         PROPOSAL_SEMINAR:"seminar", JOURNAL_WRITING:"journal",
-        JOURNAL_SOURCING:"journal_sourcing", TOPIC_SUGGESTION:"topic", POWERPOINT:"power_point",
+        JOURNAL_SOURCING:"journal_sourcing", TOPIC_SUGGESTION:"topic", POWERPOINT:"power_point", ASSIGNMENT:"assignment", ASSIGNMENT:"assignment",
         HIRE_WRITER:"assignment",
       };
       const svcValue = svcValueMap[finalServiceType] || finalServiceType.toLowerCase();
