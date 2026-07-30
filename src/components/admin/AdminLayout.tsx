@@ -15,6 +15,7 @@ const NAV = [
   { label: "Students",      icon: "🎓", href: "/admin/students",             section: "Staff"     },
   { label: "Withdrawals",   icon: "💸", href: "/admin/withdrawals",          section: "Staff"     },
   { label: "Activity Monitor", icon: "🔍", href: "/admin/activity",          section: "Staff"     },
+  { label: "Create Sub-Admin", icon: "➕", href: "/admin/create-subadmin",   section: "Staff"     },
   { label: "Pay Rates",     icon: "💰", href: "/admin/settings/payrates",       section: "Settings"  },
   { label: "Plans & Pricing",icon:"💳", href: "/admin/settings/plans",          section: "Settings"  },
   { label: "Other Services", icon:"🛠️", href: "/admin/settings/other-services", section: "Settings"  },
@@ -39,7 +40,7 @@ export function AdminLayout({ children, badges = {}, mainAdminOnly = false }: {
     "/admin/staff/list", "/admin/staff/approvals",
     "/admin/settings/plans", "/admin/settings/payrates",
     "/admin/settings/other-services", "/admin/settings/departments",
-    "/admin/activity", "/admin/withdrawals",
+    "/admin/activity", "/admin/withdrawals", "/admin/create-subadmin",
   ];
   const visibleNav = NAV.filter(item =>
     isMainAdmin || !MAIN_ADMIN_ONLY_PATHS.includes(item.href)
