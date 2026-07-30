@@ -9,26 +9,41 @@ const NAV = [
   { label: "Overview",      icon: "📊", href: "/admin/dashboard",           section: "Overview"  },
   { label: "All Orders",    icon: "📦", href: "/admin/orders",               section: "Overview"  },
   { label: "Lodge Correction",icon:"🔧",href: "/admin/lodge-correction",    section: "Overview"  },
+  { label: "Bank Transfers",icon:"🏦", href: "/admin/bank-transfers",           section: "Overview"  },
   { label: "Approvals",     icon: "⏳", href: "/admin/staff/approvals",      section: "Staff"     },
   { label: "All Staff",     icon: "👥", href: "/admin/staff/list",           section: "Staff"     },
   { label: "Students",      icon: "🎓", href: "/admin/students",             section: "Staff"     },
   { label: "Withdrawals",   icon: "💸", href: "/admin/withdrawals",          section: "Staff"     },
+  { label: "Activity Monitor", icon: "🔍", href: "/admin/activity",          section: "Staff"     },
   { label: "Pay Rates",     icon: "💰", href: "/admin/settings/payrates",       section: "Settings"  },
   { label: "Plans & Pricing",icon:"💳", href: "/admin/settings/plans",          section: "Settings"  },
   { label: "Other Services", icon:"🛠️", href: "/admin/settings/other-services", section: "Settings"  },
   { label: "Exception Courses", icon:"🏛️", href: "/admin/settings/departments", section: "Settings"  },
-  { label: "Bank Transfers",icon:"🏦", href: "/admin/bank-transfers",           section: "Overview"  },
   { label: "Settings",      icon: "⚙️", href: "/admin/settings",                section: "Settings"  },
 ];
 
-export function AdminLayout({ children, badges = {} }: {
+export function AdminLayout({ children, badges = {}, mainAdminOnly = false }: {
   children: React.ReactNode;
   badges?: Record<string, number>;
+  mainAdminOnly?: boolean;
 }) {
   const pathname = usePathname();
   const router   = useRouter();
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
+
+  const isMainAdmin = session?.user?.role === "MAIN_ADMIN";
+
+  // Filter nav items based on role
+  const MAIN_ADMIN_ONLY_PATHS = [
+    "/admin/staff/list", "/admin/staff/approvals",
+    "/admin/settings/plans", "/admin/settings/payrates",
+    "/admin/settings/other-services", "/admin/settings/departments",
+    "/admin/activity", "/admin/withdrawals",
+  ];
+  const visibleNav = NAV.filter(item =>
+    isMainAdmin || !MAIN_ADMIN_ONLY_PATHS.includes(item.href)
+  );
 
   const sections = ["Overview", "Staff", "Settings"];
 
@@ -47,10 +62,13 @@ export function AdminLayout({ children, badges = {} }: {
         </div>
 
         <nav className="flex flex-col flex-1 overflow-y-auto gap-px">
-          {sections.map(section => (
+          {sections.map(section => {
+            const items = visibleNav.filter(n => n.section === section);
+            if (!items.length) return null;
+            return (
             <div key={section}>
               <p className="text-[.58rem] font-700 uppercase tracking-widest text-white/30 px-2 py-1 mt-2">{section}</p>
-              {NAV.filter(n => n.section === section).map(item => {
+              {items.map(item => {
                 const active = pathname === item.href || pathname.startsWith(item.href + "/");
                 const badge  = badges[item.href] || 0;
                 return (
@@ -66,7 +84,8 @@ export function AdminLayout({ children, badges = {} }: {
                 );
               })}
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         <div className="mt-auto pt-3 border-t border-white/10">
@@ -89,7 +108,15 @@ export function AdminLayout({ children, badges = {} }: {
           <button onClick={() => setOpen(true)} className="text-sky-400 text-xl p-1">☰</button>
           <span className="font-clash text-white text-[.9rem] font-800">iProject<span className="text-sky-400">Master</span> <span className="text-sky-400 text-[.7rem]">Admin</span></span>
         </header>
-        <main className="flex-1 p-4 lg:p-6 overflow-x-hidden">{children}</main>
+        <main className="flex-1 p-4 lg:p-6 overflow-x-hidden">
+          {mainAdminOnly && !isMainAdmin ? (
+            <div style={{textAlign:"center",padding:"4rem 1rem"}}>
+              <div style={{fontSize:"3rem",marginBottom:"1rem"}}>🔒</div>
+              <div style={{fontFamily:"'Syne',sans-serif",fontSize:"1.25rem",fontWeight:800,color:"#0C1A2E",marginBottom:".5rem"}}>Access Restricted</div>
+              <p style={{color:"#5B7EA6",fontSize:".88rem"}}>This section is only accessible to the Super Admin.</p>
+            </div>
+          ) : children}
+        </main>
       </div>
     </div>
   );
