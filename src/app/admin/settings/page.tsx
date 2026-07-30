@@ -58,13 +58,6 @@ export default function AdminSettings() {
             <button type="submit" style={C.btnP} disabled={saving}>{saving?"Updating...":"Update Password"}</button>
           </form>
         </div>
-
-        <div style={C.warn}>
-          <div style={C.wt}>⚠ Default Admin Credentials</div>
-          <div>Email: admin@iprojectmaster.com</div>
-          <div>Password: Admin@IPM2025!</div>
-          <div style={{marginTop:".5rem",color:"#EF4444",fontWeight:700}}>Change these immediately if you haven't already.</div>
-        </div>
       </div>
     </AdminLayout>
   );
