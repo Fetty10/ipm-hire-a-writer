@@ -82,4 +82,29 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+
+  events: {
+    async signIn({ user }) {
+      try {
+        const u = user as any;
+        if ([Role.MAIN_ADMIN, Role.SUB_ADMIN].includes(u.role)) {
+          await prisma.$executeRawUnsafe(`
+            INSERT INTO "SessionLog" (id, "userId", event, "createdAt")
+            VALUES (gen_random_uuid()::text, $1, $2, NOW())
+          `, u.id, "LOGIN");
+        }
+      } catch (e) { console.error("[SESSION LOG]", e); }
+    },
+    async signOut({ token }) {
+      try {
+        const t = token as any;
+        if (t?.id && [Role.MAIN_ADMIN, Role.SUB_ADMIN].includes(t.role)) {
+          await prisma.$executeRawUnsafe(`
+            INSERT INTO "SessionLog" (id, "userId", event, "createdAt")
+            VALUES (gen_random_uuid()::text, $1, $2, NOW())
+          `, t.id, "LOGOUT");
+        }
+      } catch (e) { console.error("[SESSION LOG]", e); }
+    },
+  },
 };
