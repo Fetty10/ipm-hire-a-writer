@@ -43,7 +43,7 @@ export function HireForm({
     journal:         "JOURNAL_WRITING",
     journal_sourcing:"JOURNAL_SOURCING",
     topic:           "TOPIC_SUGGESTION",
-    assignment:      "HIRE_WRITER",
+    assignment:      "ASSIGNMENT",
     power_point:     "POWERPOINT",
   };
   const CHAPTER_LABELS = ["Chapter 1","Chapter 2","Chapter 3","Chapter 4","Chapter 5","Chapter 6"];
