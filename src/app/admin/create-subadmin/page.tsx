@@ -41,6 +41,28 @@ export default function AdminCreateSubAdmin() {
 
   useState(() => { loadAdmins(); });
 
+  async function handleAction(staffId: string, action: string, name: string) {
+    if (action === "delete") {
+      if (!window.confirm(`Permanently delete ${name}'s account?\n\nThis cannot be undone.`)) return;
+    } else if (action === "suspend") {
+      if (!window.confirm(`Suspend ${name}'s account? They will lose access immediately.`)) return;
+    }
+    try {
+      const res  = await fetch("/api/admin/staff", {
+        method:"PATCH", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ staffId, action }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(
+          action === "delete" ? `${name}'s account deleted.` :
+          action === "suspend" ? `${name} suspended.` : `${name} reinstated.`
+        );
+        loadAdmins();
+      } else toast.error(data.error || "Something went wrong.");
+    } catch { toast.error("Network error. Please try again."); }
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.password) {
@@ -111,9 +133,11 @@ export default function AdminCreateSubAdmin() {
         {/* Existing sub-admins */}
         {loaded && admins.length > 0 && (
           <div style={C.list}>
-            <div style={C.lhdr}><span>Name</span><span>Email</span><span>Status</span></div>
+            <div style={{...C.lhdr, gridTemplateColumns:"1fr 1fr auto auto auto"}}>
+              <span>Name</span><span>Email</span><span>Status</span><span></span><span></span>
+            </div>
             {admins.map((a:any) => (
-              <div key={a.id} style={C.lrow}>
+              <div key={a.id} style={{...C.lrow, gridTemplateColumns:"1fr 1fr auto auto auto"}}>
                 <div>
                   <div style={{fontWeight:600,color:"#0C1A2E"}}>{a.name}</div>
                   <div style={{fontSize:".72rem",color:"#5B7EA6"}}>{a.phone}</div>
@@ -122,6 +146,18 @@ export default function AdminCreateSubAdmin() {
                 <span style={{...C.badge,...(a.isSuspended?{background:"#FEE2E2",color:"#991B1B"}:{background:"#D1FAE5",color:"#065F46"})}}>
                   {a.isSuspended ? "Suspended" : "Active"}
                 </span>
+                <button
+                  onClick={()=>handleAction(a.id, a.isSuspended ? "unsuspend" : "suspend", a.name)}
+                  style={{padding:"3px 10px",borderRadius:"8px",border:"none",cursor:"pointer",fontSize:".72rem",fontWeight:700,
+                    background: a.isSuspended ? "#D1FAE5" : "#FEF9C3",
+                    color:      a.isSuspended ? "#065F46"  : "#854D0E"}}>
+                  {a.isSuspended ? "♻️ Reinstate" : "🚫 Suspend"}
+                </button>
+                <button
+                  onClick={()=>handleAction(a.id, "delete", a.name)}
+                  style={{padding:"3px 10px",borderRadius:"8px",border:"none",cursor:"pointer",fontSize:".72rem",fontWeight:700,background:"#FEE2E2",color:"#991B1B"}}>
+                  🗑 Delete
+                </button>
               </div>
             ))}
           </div>
