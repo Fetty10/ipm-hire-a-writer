@@ -40,7 +40,7 @@ export default function QCChecksCleared() {
       if (file.size > 20 * 1024 * 1024) { toast.error("Max 20MB"); return; }
       setResubmitting(job.id);
       try {
-        const fd = new FormData(); fd.append("file", file); fd.append("folder", "chapters/submitted");
+        const fd = new FormData(); fd.append("file", file); fd.append("folder", "chapters/qc-cleared");
         const upRes  = await fetch("/api/upload", { method:"POST", body:fd });
         const upData = await upRes.json();
         if (!upRes.ok) { toast.error(upData.error || "Upload failed."); return; }
