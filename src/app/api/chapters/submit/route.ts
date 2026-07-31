@@ -198,8 +198,11 @@ export async function POST(req: NextRequest) {
         userId:         session.user.id,
         orderChapterId: chapterId,
         amountKobo:     earnAmount,
-        status:         "PENDING", // becomes AVAILABLE after delivery
-      },
+        // Writer/Analyst gets paid immediately on submission — 
+        // if going to QC their work is done; if direct delivery same applies
+        status:         "AVAILABLE",
+        availableAt:    new Date(),
+      } as any,
     });
   }
 
