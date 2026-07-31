@@ -73,6 +73,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Prevent duplicate pending withdrawals
+  const existingPending = await prisma.withdrawal.findFirst({
+    where: { userId: session.user.id, status: "PENDING" },
+  });
+  if (existingPending) {
+    return NextResponse.json(
+      { error: "You already have a pending withdrawal request. Please wait for it to be processed before making another." },
+      { status: 400 }
+    );
+  }
+
   // Save bank details on user for future use
   await prisma.user.update({
     where: { id: session.user.id },
