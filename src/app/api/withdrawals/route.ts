@@ -183,7 +183,6 @@ export async function PATCH(req: NextRequest) {
       });
 
       const recipientData = await recipientRes.json();
-      console.log("[PAYSTACK RECIPIENT RESPONSE]", JSON.stringify(recipientData));
       if (!recipientData.status) {
         throw new Error(recipientData.message || "Failed to create transfer recipient");
       }
@@ -207,7 +206,6 @@ export async function PATCH(req: NextRequest) {
       });
 
       const transferData = await transferRes.json();
-      console.log("[PAYSTACK TRANSFER RESPONSE]", JSON.stringify(transferData));
       if (!transferData.status) {
         throw new Error(transferData.message || "Transfer failed");
       }
