@@ -54,7 +54,11 @@ export async function GET(req: NextRequest) {
         _sum: { amountKobo: true },
       }),
     ]);
-    return { ...s, activeJobs, totalEarnedNaira: (totalEarned._sum.amountKobo || 0) / 100 };
+    const availableEarned = await prisma.earning.aggregate({
+      where:  { userId: s.id, status: "AVAILABLE" },
+      _sum:   { amountKobo: true },
+    });
+    return { ...s, activeJobs, totalEarnedNaira: (totalEarned._sum.amountKobo || 0) / 100, availableNaira: (availableEarned._sum.amountKobo || 0) / 100 };
   }));
 
   return NextResponse.json({ success: true, data: enriched });
@@ -95,6 +99,9 @@ export async function PATCH(req: NextRequest) {
     decline: async () => {
       await prisma.user.delete({ where: { id: staffId } });
       await sendAccountDeclinedEmail({ to: staff.email, name: staff.name, role: staff.role, reason });
+    },
+    delete: async () => {
+      await prisma.user.delete({ where: { id: staffId } });
     },
     suspend: async () => {
       await prisma.user.update({
