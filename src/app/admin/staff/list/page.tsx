@@ -306,7 +306,7 @@ export default function StaffList() {
               <div style={{overflowX:"auto"}}>
                 <table style={C.table}>
                   <thead>
-                    <tr>{["Name","Phone","Email","Role","Active Jobs","Total Earned","Status","Actions"].map(h=><th key={h} style={C.th}>{h}</th>)}</tr>
+                    <tr>{["Name","Phone","Email","Role","Active Jobs","Available Balance","Status","Actions"].map(h=><th key={h} style={C.th}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {filtered.map((s:any)=>(
@@ -318,7 +318,7 @@ export default function StaffList() {
                         <td style={{...C.td,color:"#5B7EA6",maxWidth:"160px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}} onClick={()=>setSelectedStaff(s.id)}>{s.email}</td>
                         <td style={C.td} onClick={()=>setSelectedStaff(s.id)}><span style={{...C.badge,background:"#E0F2FE",color:"#0369A1"}}>{s.role}</span></td>
                         <td style={{...C.td,textAlign:"center" as const}} onClick={()=>setSelectedStaff(s.id)}>{s.activeJobs||0}</td>
-                        <td style={{...C.td,fontWeight:700,color:"#0284C7",whiteSpace:"nowrap" as const}} onClick={()=>setSelectedStaff(s.id)}>₦{(s.totalEarnedNaira||0).toLocaleString()}</td>
+                        <td style={{...C.td,fontWeight:700,color:"#0284C7",whiteSpace:"nowrap" as const}} onClick={()=>setSelectedStaff(s.id)}>₦{(s.availableNaira||0).toLocaleString()}</td>
                         <td style={C.td} onClick={()=>setSelectedStaff(s.id)}>
                           <span style={{...C.badge,...(s.isSuspended
                             ?{background:"#FEE2E2",color:"#991B1B"}
