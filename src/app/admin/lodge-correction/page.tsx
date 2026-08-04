@@ -11,7 +11,7 @@ const DEG_OPTIONS = [
   { value:"PHD",         label:"PhD"              },
 ];
 
-const ACCEPTED = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.webp,.zip";
+const ACCEPTED = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.webp,.zip,.mp3,.m4a,.wav,.ogg,.aac,.webm";
 const MAX_FILES = 10;
 
 const C = {
@@ -255,7 +255,7 @@ export default function AdminLodgeCorrection() {
 
               {/* File Upload */}
               <div style={C.secHdr}>📎 Upload Client's Files</div>
-              <div style={C.hint}>Up to {MAX_FILES} files · PDF, Word, Excel, PowerPoint, images (JPG/PNG), ZIP · 20MB each</div>
+              <div style={C.hint}>Up to {MAX_FILES} files · PDF, Word, Excel, PowerPoint, images (JPG/PNG), audio (MP3/WAV/M4A), ZIP · 20MB each</div>
               <div style={{marginTop:".75rem",marginBottom:".5rem"}}>
                 <input ref={fileInputRef} type="file" accept={ACCEPTED} multiple style={{display:"none"}}
                   onChange={e => handleFiles(e.target.files)} />
