@@ -100,9 +100,16 @@ export async function DELETE(req: NextRequest) {
   }
 
   // 2. Pending chapter requests
-  await (prisma as any).pendingChapterRequest.deleteMany({
-    where: { order: { clientId: studentId } },
-  });
+  const orderIds = (await prisma.order.findMany({
+    where:  { clientId: studentId },
+    select: { id: true },
+  })).map(o => o.id);
+
+  if (orderIds.length > 0) {
+    await (prisma as any).pendingChapterRequest.deleteMany({
+      where: { orderId: { in: orderIds } },
+    });
+  }
 
   // 3. Order chapters
   await prisma.orderChapter.deleteMany({
@@ -115,10 +122,7 @@ export async function DELETE(req: NextRequest) {
   // 5. Notifications
   await prisma.notification.deleteMany({ where: { userId: studentId } });
 
-  // 6. Password reset tokens
-  await (prisma as any).passwordResetToken.deleteMany({ where: { userId: studentId } });
-
-  // 7. Finally the student account itself
+  // 6. Finally the student account itself
   await prisma.user.delete({ where: { id: studentId } });
 
   return NextResponse.json({
