@@ -289,9 +289,10 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   const needsAnalyst = !isException && isProjectService &&
     ANALYST_CHAPTERS.some(n => requestedNums.includes(n));
 
-  // Use preferred staff if admin specified, otherwise use normal rotation
-  const preferredWriterId  = (order as any).preferredWriterId  || null;
-  const preferredAnalystId = (order as any).preferredAnalystId || null;
+  // Use preferred staff if admin specified (stored in adminNote), otherwise use normal rotation
+  const adminNote = (order as any).adminNote || "";
+  const preferredWriterId  = adminNote.match(/preferred_writer:([^\|]+)/)?.[1] || null;
+  const preferredAnalystId = adminNote.match(/preferred_analyst:([^\|]+)/)?.[1] || null;
 
   const writerId  = writerNeeded
     ? (preferredWriterId || await getStaffWithFewestJobs(Role.WRITER))
