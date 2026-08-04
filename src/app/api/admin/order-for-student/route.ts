@@ -91,8 +91,10 @@ export async function POST(req: NextRequest) {
         amountPaidKobo:        amountKobo,
         requiresPlagiarismCheck: plan?.includesPlagiarismCheck || false,
         requiresAiCheck:       plan?.includesPlagiarismCheck || false,
-        preferredWriterId:     writerId || null,
-        preferredAnalystId:    analystId || null,
+        adminNote:             [
+          writerId   ? `preferred_writer:${writerId}`   : null,
+          analystId  ? `preferred_analyst:${analystId}` : null,
+        ].filter(Boolean).join("|") || null,
       } as any,
     });
 
