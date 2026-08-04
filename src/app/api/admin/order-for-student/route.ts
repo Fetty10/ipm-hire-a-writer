@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user || ![Role.MAIN_ADMIN, Role.SUB_ADMIN].includes(session.user.role as Role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,6 +27,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "studentId, topic, degreeGroup and paymentMethod are required." }, { status: 400 });
   }
 
+  const isProjectService = serviceType === "HIRE_WRITER" || !serviceType;
+  if (isProjectService && !planId) {
+    return NextResponse.json({ error: "Plan is required for project orders." }, { status: 400 });
+  }
+
   // Verify student exists
   const student = await prisma.user.findUnique({
     where:  { id: studentId },
@@ -36,7 +42,6 @@ export async function POST(req: NextRequest) {
   }
 
   // Resolve plan + amount
-  const isProjectService = serviceType === "HIRE_WRITER" || !serviceType;
   let plan: any = null;
   let amountKobo = 0;
 
@@ -147,4 +152,9 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ error: "Invalid payment method." }, { status: 400 });
+
+  } catch (err: any) {
+    console.error("[ORDER FOR STUDENT]", err?.message);
+    return NextResponse.json({ error: err?.message || "Something went wrong." }, { status: 500 });
+  }
 }
