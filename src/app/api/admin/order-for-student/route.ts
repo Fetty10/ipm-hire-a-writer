@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
     studentId, topic, department, degreeGroup,
     planId, serviceType, selectedChapters,
     specialInstructions, guidelineFileUrl, paymentMethod,
+    writerId, analystId,
   } = body;
 
   if (!studentId || !topic?.trim() || !degreeGroup || !paymentMethod) {
@@ -85,6 +86,8 @@ export async function POST(req: NextRequest) {
         amountPaidKobo:        amountKobo,
         requiresPlagiarismCheck: plan?.includesPlagiarismCheck || false,
         requiresAiCheck:       plan?.includesPlagiarismCheck || false,
+        preferredWriterId:     writerId || null,
+        preferredAnalystId:    analystId || null,
       } as any,
     });
 
