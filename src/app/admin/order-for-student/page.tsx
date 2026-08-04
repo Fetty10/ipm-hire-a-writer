@@ -47,8 +47,19 @@ export default function AdminOrderForStudent() {
     paymentMethod: "BANK_TRANSFER",
     guidelineFileUrl: "",
   });
+  const [writers,   setWriters]   = useState<any[]>([]);
+  const [analysts,  setAnalysts]  = useState<any[]>([]);
+  const [writerId,  setWriterId]  = useState("");
+  const [analystId, setAnalystId] = useState("");
   const [uploading, setUploading] = useState(false);
   const [result,    setResult]    = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/staff?role=WRITER&filter=active")
+      .then(r=>r.json()).then(d=>{ if(d.success) setWriters(d.data||[]); });
+    fetch("/api/admin/staff?role=ANALYST&filter=active")
+      .then(r=>r.json()).then(d=>{ if(d.success) setAnalysts(d.data||[]); });
+  }, []);
 
   function upd(k: string, v: any) { setForm(f => ({...f, [k]: v})); }
 
@@ -126,6 +137,8 @@ export default function AdminOrderForStudent() {
           specialInstructions: form.specialInstructions.trim() || undefined,
           guidelineFileUrl:    form.guidelineFileUrl || undefined,
           paymentMethod:       form.paymentMethod,
+          writerId:            writerId || undefined,
+          analystId:           analystId || undefined,
         }),
       });
       const data = await res.json();
@@ -256,6 +269,30 @@ export default function AdminOrderForStudent() {
                 <option value="PAYSTACK">Paystack (generate payment link)</option>
                 <option value="FLUTTERWAVE">Flutterwave (international)</option>
               </select>
+            </div>
+
+            {/* Optional staff assignment */}
+            <div style={{background:"#F8FAFC",border:"1.5px solid #E0F2FE",borderRadius:"12px",padding:"1rem",marginBottom:"1rem"}}>
+              <div style={{fontSize:".72rem",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:".08em",color:"#5B7EA6",marginBottom:".75rem"}}>
+                Optional: Assign Specific Staff
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".75rem"}}>
+                <div>
+                  <label style={C.lbl}>Writer <span style={{fontWeight:400,textTransform:"none" as const,color:"#94A3B8"}}>(optional)</span></label>
+                  <select style={C.sel} value={writerId} onChange={e=>setWriterId(e.target.value)}>
+                    <option value="">Auto-assign</option>
+                    {writers.map((w:any) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={C.lbl}>Analyst <span style={{fontWeight:400,textTransform:"none" as const,color:"#94A3B8"}}>(optional)</span></label>
+                  <select style={C.sel} value={analystId} onChange={e=>setAnalystId(e.target.value)}>
+                    <option value="">Auto-assign</option>
+                    {analysts.map((a:any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{fontSize:".72rem",color:"#94A3B8",marginTop:".5rem"}}>Leave as "Auto-assign" to use the normal rotation.</div>
             </div>
 
             <button style={{...C.btn,...(loading?C.btnD:{})}} disabled={loading} onClick={handleSubmit}>
