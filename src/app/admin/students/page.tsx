@@ -83,7 +83,7 @@ export default function AdminStudents() {
     setOrders([]);
     const res  = await fetch(`/api/admin/orders?clientId=${student.id}`);
     const data = await res.json();
-    if (data.success) setOrders(data.data || []);
+    if (data.success) setOrders(data.data?.orders || data.data || []);
     setLoadingOrders(false);
   }
 
