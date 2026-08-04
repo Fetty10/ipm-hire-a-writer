@@ -289,8 +289,16 @@ export async function assignChaptersForOrder(orderId: string): Promise<void> {
   const needsAnalyst = !isException && isProjectService &&
     ANALYST_CHAPTERS.some(n => requestedNums.includes(n));
 
-  const writerId  = writerNeeded  ? await getStaffWithFewestJobs(Role.WRITER)  : null;
-  const analystId = needsAnalyst  ? await getStaffWithFewestJobs(Role.ANALYST) : null;
+  // Use preferred staff if admin specified, otherwise use normal rotation
+  const preferredWriterId  = (order as any).preferredWriterId  || null;
+  const preferredAnalystId = (order as any).preferredAnalystId || null;
+
+  const writerId  = writerNeeded
+    ? (preferredWriterId || await getStaffWithFewestJobs(Role.WRITER))
+    : null;
+  const analystId = needsAnalyst
+    ? (preferredAnalystId || await getStaffWithFewestJobs(Role.ANALYST))
+    : null;
 
   // ── Create OrderChapter records ──────────────────────────
   for (const ch of chaptersToCreate) {
