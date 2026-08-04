@@ -9,6 +9,7 @@ const NAV = [
   { label: "Overview",      icon: "📊", href: "/admin/dashboard",           section: "Overview"  },
   { label: "All Orders",    icon: "📦", href: "/admin/orders",               section: "Overview"  },
   { label: "Lodge Correction",icon:"🔧",href: "/admin/lodge-correction",    section: "Overview"  },
+  { label: "Order for Student",icon:"📋",href: "/admin/order-for-student",   section: "Overview"  },
   { label: "Bank Transfers",icon:"🏦", href: "/admin/bank-transfers",           section: "Overview"  },
   { label: "Approvals",     icon: "⏳", href: "/admin/staff/approvals",      section: "Staff"     },
   { label: "All Staff",     icon: "👥", href: "/admin/staff/list",           section: "Staff"     },
@@ -30,14 +31,14 @@ export function AdminLayout({ children, badges = {}, mainAdminOnly = false }: {
 }) {
   const pathname = usePathname();
   const router   = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
 
   const isMainAdmin = session?.user?.role === "MAIN_ADMIN";
 
-  // Redirect if session invalidated (suspended/deleted)
+  // Redirect if session invalidated (suspended/deleted) — only when session has finished loading
   useEffect(() => {
-    if (session && !session.user?.id) {
+    if (session !== undefined && session !== null && session.user && !session.user.id) {
       router.push("/staff/login");
     }
   }, [session, router]);
