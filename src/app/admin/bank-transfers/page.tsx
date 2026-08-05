@@ -200,8 +200,12 @@ export default function AdminBankTransfers() {
   }
 
   async function saveEdit() {
-    if (!editForm.topic.trim() || !editForm.degreeGroup || !editForm.planId) {
-      toast.error("Topic, degree level and plan are required."); return;
+    const isProjectSvc = !editForm.serviceType || editForm.serviceType === "HIRE_WRITER";
+    if (!editForm.topic.trim() || !editForm.degreeGroup) {
+      toast.error("Topic and degree level are required."); return;
+    }
+    if (isProjectSvc && !editForm.planId) {
+      toast.error("Plan is required for project orders."); return;
     }
     setEditSaving(true);
     try {
