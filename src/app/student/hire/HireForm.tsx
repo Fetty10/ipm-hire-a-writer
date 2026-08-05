@@ -135,7 +135,16 @@ export function HireForm({
     if (!degreeGroup) { setPlans([]); return; }
     fetch(`/api/plans?degreeGroup=${degreeGroup}`)
       .then(r => r.json())
-      .then(d => { if (d.success) setPlans(d.data); });
+      .then(d => {
+        if (d.success) {
+          setPlans(d.data);
+          // Reset planId if it's no longer valid for this degree group
+          if (planId && !d.data.find((p: Plan) => p.id === planId)) {
+            setPlanId("");
+            setSelChapters([]);
+          }
+        }
+      });
   }, [degreeGroup]);
 
   const isProject       = service === "project";
