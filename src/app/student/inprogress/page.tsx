@@ -137,6 +137,34 @@ export default function StudentInProgress() {
                 )}
               </div>
 
+              {/* Order details — read only */}
+              <details style={{marginBottom:"1rem"}}>
+                <summary style={{fontSize:".78rem",color:"#0369A1",fontWeight:700,cursor:"pointer",listStyle:"none",display:"flex",alignItems:"center",gap:".3rem"}}>
+                  📋 View Order Details
+                </summary>
+                <div style={{background:"#F8FAFC",borderRadius:"10px",padding:".85rem 1rem",marginTop:".5rem",fontSize:".78rem",color:"#475569",lineHeight:1.8}}>
+                  <div><strong>Topic:</strong> {order.topic}</div>
+                  {order.department && <div><strong>Department:</strong> {order.department}</div>}
+                  <div><strong>Degree:</strong> {order.degreeGroup?.replace(/_/g," ")}</div>
+                  {order.planName && <div><strong>Plan:</strong> {order.planName?.replace(/_/g," ")}</div>}
+                  {order.selectedChapters && <div><strong>Chapters:</strong> {order.selectedChapters.split(",").map((c:string)=>`Chapter ${c}`).join(", ")}</div>}
+                  {order.specialInstructions && <div><strong>Instructions:</strong> <span style={{whiteSpace:"pre-wrap"}}>{order.specialInstructions}</span></div>}
+                  {order.guidelineFileUrl && (
+                    <div><strong>Guideline Files:</strong>{" "}
+                      {order.guidelineFileUrl.split(",").filter(Boolean).map((url:string,i:number,arr:string[])=>(
+                        <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=Guideline`}
+                          target="_blank" rel="noreferrer" style={{color:"#0369A1",fontWeight:600,marginRight:".5rem"}}>
+                          📎 File{arr.length>1?` ${i+1}`:""}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{marginTop:".5rem",fontSize:".72rem",color:"#94A3B8"}}>
+                    To make changes to your order details, please contact support.
+                  </div>
+                </div>
+              </details>
+
               {/* Unpaid order — retry payment notice */}
               {isUnpaid(order) && (
                 <div style={{background:"#FEF2F2",border:"1px solid #FCA5A5",borderRadius:"10px",padding:".85rem 1rem",marginBottom:"1rem"}}>
