@@ -224,7 +224,7 @@ export async function PATCH(req: NextRequest) {
 
   // ── Edit order details (before confirming bank transfer) ──
   if (action === "edit_order") {
-    const { topic, department, degreeGroup, planId, selectedChapters, specialInstructions, guidelineFileUrl } = body;
+    const { topic, department, degreeGroup, planId, selectedChapters, specialInstructions, guidelineFileUrl, serviceType } = body;
     if (!topic?.trim() || !degreeGroup || !planId) {
       return NextResponse.json({ error: "Topic, degree level and plan are required." }, { status: 400 });
     }
@@ -249,6 +249,7 @@ export async function PATCH(req: NextRequest) {
         topic:               topic.trim(),
         department:          department?.trim() || "",
         degreeGroup:         degreeGroup as any,
+        serviceType:         serviceType as any || undefined,
         planId,
         selectedChapters:    selectedChapters || null,
         specialInstructions: specialInstructions || null,
