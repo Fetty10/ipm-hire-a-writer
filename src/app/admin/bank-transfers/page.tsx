@@ -66,7 +66,7 @@ export default function AdminBankTransfers() {
   const [plans,       setPlans]       = useState<any[]>([]);
   const [editForm,    setEditForm]    = useState({
     topic:"", department:"", degreeGroup:"", planId:"", selectedChapters:[] as number[],
-    specialInstructions:"", guidelineFileUrl:"",
+    specialInstructions:"", guidelineFileUrl:"", serviceType:"HIRE_WRITER",
   });
 
   async function loadOrders() {
@@ -186,6 +186,7 @@ export default function AdminBankTransfers() {
         : latest.chapters?.map((ch:any) => ch.chapterNumber).filter(Boolean) || [],
       specialInstructions: latest.specialInstructions || "",
       guidelineFileUrl:    latest.guidelineFileUrl || "",
+      serviceType:         latest.serviceType || "HIRE_WRITER",
     });
     setEditOrder(latest);
   }
@@ -215,6 +216,7 @@ export default function AdminBankTransfers() {
           selectedChapters:    editForm.selectedChapters.sort().join(","),
           specialInstructions: editForm.specialInstructions.trim() || null,
           guidelineFileUrl:    editForm.guidelineFileUrl.trim() || null,
+          serviceType:         editForm.serviceType,
         }),
       });
       const data = await res.json();
@@ -384,6 +386,21 @@ export default function AdminBankTransfers() {
             </div>
 
             <div style={{display:"flex",flexDirection:"column" as const,gap:".85rem"}}>
+              {/* Service Type */}
+              <div style={C.fg}>
+                <label style={C.lbl}>Service Type</label>
+                <select style={C.sel} value={editForm.serviceType || "HIRE_WRITER"}
+                  onChange={e=>setEditForm(f=>({...f,serviceType:e.target.value,planId:"",selectedChapters:[]}))}>
+                  <option value="HIRE_WRITER">Full Project (Hire a Writer)</option>
+                  <option value="PROPOSAL_SEMINAR">Seminar / Proposal</option>
+                  <option value="JOURNAL_WRITING">Journal Writing</option>
+                  <option value="JOURNAL_SOURCING">Journal Sourcing</option>
+                  <option value="TOPIC_SUGGESTION">Topic Coining</option>
+                  <option value="ASSIGNMENT">Assignment</option>
+                  <option value="POWERPOINT">PowerPoint</option>
+                </select>
+              </div>
+
               {/* Topic */}
               <div style={C.fg}>
                 <label style={C.lbl}>Project Topic</label>
@@ -409,8 +426,8 @@ export default function AdminBankTransfers() {
                 </select>
               </div>
 
-              {/* Plan */}
-              {plans.length > 0 && (
+              {/* Plan — only for project service */}
+              {editForm.serviceType === "HIRE_WRITER" && plans.length > 0 && (
                 <div style={C.fg}>
                   <label style={C.lbl}>Plan</label>
                   <select style={C.sel} value={editForm.planId}
@@ -425,8 +442,8 @@ export default function AdminBankTransfers() {
                 </div>
               )}
 
-              {/* Chapter selection (per-chapter plans only) */}
-              {isPerChapter && editForm.planId && (
+              {/* Chapter selection (per-chapter plans only, project service only) */}
+              {editForm.serviceType === "HIRE_WRITER" && isPerChapter && editForm.planId && (
                 <div style={C.fg}>
                   <label style={C.lbl}>Chapters Selected</label>
                   <div style={C.chapGrid}>
