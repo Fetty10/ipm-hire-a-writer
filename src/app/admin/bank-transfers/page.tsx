@@ -41,6 +41,7 @@ const C = {
 };
 
 const DEG:Record<string,string> = { OND_HND_NCE:"HND/OND", BSC_BED_BA:"BSc/BEd", PGD_MSC_PHD:"PGD/MSc", PHD:"PhD" };
+const PLAN_DISPLAY:Record<string,string> = { BASIC:"Basic", STANDARD:"Standard", PROFESSIONAL:"Professional", PHD_PROFESSIONAL:"PhD Professional" };
 const DEG_OPTIONS = [
   { value:"OND_HND_NCE", label:"HND / OND / NCE" },
   { value:"BSC_BED_BA",  label:"BSc / BEd / BA"  },
@@ -328,7 +329,7 @@ export default function AdminBankTransfers() {
                   <div style={{minWidth:0}}>
                     <div style={C.title}>{o.topic}</div>
                     <div style={C.meta}>{o.client?.name} · {o.client?.phone}</div>
-                    <div style={C.meta}>{DEG[o.degreeGroup]||o.degreeGroup} · {o.planName}</div>
+                    <div style={C.meta}>{DEG[o.degreeGroup]||o.degreeGroup} · {PLAN_DISPLAY[o.planName]||o.planName}</div>
                     {o.bankTransferReference && (
                       <div style={{marginTop:"4px"}}><span style={C.ref}>{o.bankTransferReference}</span></div>
                     )}
@@ -375,7 +376,7 @@ export default function AdminBankTransfers() {
                 <div><strong>Topic:</strong> {editOrder.topic}</div>
                 <div><strong>Department:</strong> {editOrder.department || "—"}</div>
                 <div><strong>Degree:</strong> {DEG[editOrder.degreeGroup]||editOrder.degreeGroup}</div>
-                <div><strong>Plan:</strong> {editOrder.planName || "—"}</div>
+                <div><strong>Plan:</strong> {PLAN_DISPLAY[editOrder.planName]||editOrder.planName||"—"}</div>
                 {editOrder.chapters?.length > 0 && (
                   <div><strong>Chapters:</strong> {editOrder.chapters.map((ch:any)=>ch.chapterLabel||`Ch ${ch.chapterNumber}`).join(", ")}</div>
                 )}
@@ -435,7 +436,7 @@ export default function AdminBankTransfers() {
                     <option value="">Select plan...</option>
                     {plans.map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.planName} — ₦{(p.priceKobo/100).toLocaleString()}{p.pricingType==="PER_CHAPTER"?"/ch":" flat"}
+                        {PLAN_DISPLAY[p.planName]||p.planName} — ₦{(p.priceKobo/100).toLocaleString()}{p.pricingType==="PER_CHAPTER"?"/ch":" flat"}
                       </option>
                     ))}
                   </select>
