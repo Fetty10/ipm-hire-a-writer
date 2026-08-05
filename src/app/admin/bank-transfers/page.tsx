@@ -366,6 +366,23 @@ export default function AdminBankTransfers() {
               Fix any mistakes the student made. Changes are saved to the database before payment is confirmed.
             </div>
 
+            {/* Student's original submission */}
+            <div style={{background:"#FFFBEB",border:"1.5px solid #FDE68A",borderRadius:"12px",padding:"1rem",marginBottom:"1.25rem",fontSize:".78rem"}}>
+              <div style={{fontWeight:700,color:"#92400E",marginBottom:".5rem"}}>📋 What the Student Submitted</div>
+              <div style={{color:"#78350F",lineHeight:1.7}}>
+                <div><strong>Topic:</strong> {editOrder.topic}</div>
+                <div><strong>Department:</strong> {editOrder.department || "—"}</div>
+                <div><strong>Degree:</strong> {DEG[editOrder.degreeGroup]||editOrder.degreeGroup}</div>
+                <div><strong>Plan:</strong> {editOrder.planName || "—"}</div>
+                {editOrder.chapters?.length > 0 && (
+                  <div><strong>Chapters:</strong> {editOrder.chapters.map((ch:any)=>ch.chapterLabel||`Ch ${ch.chapterNumber}`).join(", ")}</div>
+                )}
+                {editOrder.specialInstructions && (
+                  <div><strong>Instructions:</strong> {editOrder.specialInstructions}</div>
+                )}
+              </div>
+            </div>
+
             <div style={{display:"flex",flexDirection:"column" as const,gap:".85rem"}}>
               {/* Topic */}
               <div style={C.fg}>
