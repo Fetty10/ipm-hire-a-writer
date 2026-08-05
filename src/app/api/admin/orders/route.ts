@@ -247,6 +247,18 @@ export async function PATCH(req: NextRequest) {
       if (plan.pricingType === "PER_CHAPTER" && chapters.length > 0) {
         newAmount = Number(plan.priceKobo) * chapters.length;
       }
+    } else if (!isProjectSvc && serviceType) {
+      // Lookup price from OtherService table
+      const svcValueMap: Record<string,string> = {
+        PROPOSAL_SEMINAR:"seminar", JOURNAL_WRITING:"journal",
+        JOURNAL_SOURCING:"journal_sourcing", TOPIC_SUGGESTION:"topic",
+        ASSIGNMENT:"assignment", POWERPOINT:"power_point",
+      };
+      const svcValue = svcValueMap[serviceType] || serviceType.toLowerCase();
+      const svc = await (prisma as any).otherService.findFirst({ where: { value: svcValue, isActive: true } });
+      const degKey: Record<string,string> = { OND_HND_NCE:"OND", BSC_BED_BA:"BSC", PGD_MSC_PHD:"PGD", PHD:"PHD" };
+      const dk = degKey[degreeGroup] || "BSC";
+      newAmount = svc?.[`price${dk}`] || 0;
     }
 
     await prisma.order.update({
