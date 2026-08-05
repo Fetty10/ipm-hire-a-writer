@@ -225,22 +225,28 @@ export async function PATCH(req: NextRequest) {
   // ── Edit order details (before confirming bank transfer) ──
   if (action === "edit_order") {
     const { topic, department, degreeGroup, planId, selectedChapters, specialInstructions, guidelineFileUrl, serviceType } = body;
-    if (!topic?.trim() || !degreeGroup || !planId) {
-      return NextResponse.json({ error: "Topic, degree level and plan are required." }, { status: 400 });
+    const isProjectSvc = !serviceType || serviceType === "HIRE_WRITER";
+    if (!topic?.trim() || !degreeGroup) {
+      return NextResponse.json({ error: "Topic and degree level are required." }, { status: 400 });
+    }
+    if (isProjectSvc && !planId) {
+      return NextResponse.json({ error: "Plan is required for project orders." }, { status: 400 });
     }
 
     // Recalculate amount based on new plan + chapters
-    const plans = await prisma.$queryRaw<any[]>`
-      SELECT id, "pricingType", "priceKobo"
-      FROM "Plan" WHERE id = ${planId} LIMIT 1
-    `;
-    const plan = plans[0];
-    if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 404 });
-
-    const chapters = selectedChapters ? selectedChapters.split(",").filter(Boolean) : [];
-    let newAmount = Number(plan.priceKobo);
-    if (plan.pricingType === "PER_CHAPTER" && chapters.length > 0) {
-      newAmount = Number(plan.priceKobo) * chapters.length;
+    let newAmount = 0;
+    if (isProjectSvc && planId) {
+      const plans = await prisma.$queryRaw<any[]>`
+        SELECT id, "pricingType", "priceKobo"
+        FROM "Plan" WHERE id = ${planId} LIMIT 1
+      `;
+      const plan = plans[0];
+      if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 404 });
+      const chapters = selectedChapters ? selectedChapters.split(",").filter(Boolean) : [];
+      newAmount = Number(plan.priceKobo);
+      if (plan.pricingType === "PER_CHAPTER" && chapters.length > 0) {
+        newAmount = Number(plan.priceKobo) * chapters.length;
+      }
     }
 
     await prisma.order.update({
@@ -250,7 +256,7 @@ export async function PATCH(req: NextRequest) {
         department:          department?.trim() || "",
         degreeGroup:         degreeGroup as any,
         serviceType:         serviceType as any || undefined,
-        planId,
+        planId:              isProjectSvc ? planId : undefined,
         selectedChapters:    selectedChapters || null,
         specialInstructions: specialInstructions || null,
         guidelineFileUrl:    guidelineFileUrl || null,
