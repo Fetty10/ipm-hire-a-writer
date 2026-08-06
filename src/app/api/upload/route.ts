@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
           ? "Allowed: PDF, Word, Excel, PowerPoint, images (JPG/PNG/WebP), audio files (MP3/WAV) and ZIP."
           : isRichFolder
             ? "Allowed: PDF, Word, images (JPG/PNG/GIF/WebP) and voice notes (MP3/M4A/WAV/OGG)."
-            : "Only PDF, Word (.docx), PowerPoint (.pptx) and ZIP files are allowed." },
+            : "Only PDF, Word, PowerPoint, Excel, images, audio and ZIP files are allowed." },
       { status: 400 }
     );
   }
