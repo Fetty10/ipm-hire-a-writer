@@ -16,8 +16,13 @@ export const ALLOWED_MIME_TYPES = [
   "application/msword",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
   "application/zip",
   "application/x-zip-compressed",
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+  "audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg", "audio/aac", "audio/webm",
+  "text/plain",
 ];
 
 export const ADMIN_LEGACY_MIME_TYPES = [
