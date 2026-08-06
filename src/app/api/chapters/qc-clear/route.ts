@@ -179,15 +179,8 @@ export async function POST(req: NextRequest) {
       topic:        chapter.order.topic,
       chapterLabel: chapter.chapterLabel,
     });
-  } else {
-    await sendChapterDeliveredEmail({
-      to:           chapter.order.client.email,
-      name:         chapter.order.client.name,
-      topic:        chapter.order.topic,
-      chapterLabel: chapter.chapterLabel,
-      orderId:      chapter.orderId,
-    });
   }
+  // Note: delivery email for non-correction chapters is sent inside deliverChapterToClient above
 
   return NextResponse.json({
     success: true,
