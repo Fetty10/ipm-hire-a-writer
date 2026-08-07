@@ -31,7 +31,7 @@ export const authOptions: NextAuthOptions = {
         const portal = credentials.portal || "student"; // default to student
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: credentials.email.trim().toLowerCase() },
         });
 
         if (!user) return null;
