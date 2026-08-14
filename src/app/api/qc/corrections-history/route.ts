@@ -6,7 +6,31 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { correctionHistoryId, fileAfterUrl } = await req.json();
+  if (!correctionHistoryId || !fileAfterUrl) {
+    return NextResponse.json({ error: "correctionHistoryId and fileAfterUrl are required." }, { status: 400 });
+  }
+
+  // Verify this correction belongs to the QC making the request
+  const record = await prisma.$queryRawUnsafe<any[]>(`
+    SELECT id, "resolvedById" FROM "CorrectionHistory" WHERE id = $1 LIMIT 1
+  `, correctionHistoryId);
+
+  if (!record[0]) return NextResponse.json({ error: "Correction not found." }, { status: 404 });
+  if (record[0].resolvedById !== session.user.id) {
+    return NextResponse.json({ error: "You can only replace files for your own corrections." }, { status: 403 });
+  }
+
+  await prisma.$executeRawUnsafe(`
+    UPDATE "CorrectionHistory" SET "fileAfterUrl" = $1 WHERE id = $2
+  `, fileAfterUrl, correctionHistoryId);
+
+  return NextResponse.json({ success: true, message: "File replaced successfully." });
+}
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
