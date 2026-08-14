@@ -16,12 +16,13 @@ const C = {
 
 export default function QCCorrectionsDone() {
   const { data: session } = useSession();
-  const [records,  setRecords]  = useState<any[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState("");
-  const [page,     setPage]     = useState(1);
-  const [pages,    setPages]    = useState(1);
-  const [total,    setTotal]    = useState(0);
+  const [records,      setRecords]      = useState<any[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState("");
+  const [page,         setPage]         = useState(1);
+  const [pages,        setPages]        = useState(1);
+  const [total,        setTotal]        = useState(0);
+  const [resubmitting, setResubmitting] = useState<string|null>(null);
 
   const initials = (session?.user?.name||"QC").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
   const nav = (QC_NAV||[]).map((item:any) => item.href === "/qc/corrections/done" ? {...item, badge: total} : item);
@@ -34,6 +35,35 @@ export default function QCCorrectionsDone() {
   }, [page, search]);
 
   useEffect(() => { load(); }, [load]);
+
+  async function handleResubmit(r: any) {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = ".pdf,.doc,.docx,.ppt,.pptx,.zip";
+    inp.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      if (file.size > 20*1024*1024) { alert("Max 20MB"); return; }
+      setResubmitting(r.id);
+      try {
+        // Upload new file
+        const fd = new FormData(); fd.append("file", file); fd.append("folder", "chapters/corrections");
+        const upRes  = await fetch("/api/upload", { method:"POST", body:fd });
+        const upData = await upRes.json();
+        if (!upRes.ok) { alert(upData.error || "Upload failed."); return; }
+
+        // Update CorrectionHistory fileAfterUrl
+        const res  = await fetch("/api/qc/corrections-history", {
+          method:"PATCH", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ correctionHistoryId: r.id, fileAfterUrl: upData.url }),
+        });
+        const data = await res.json();
+        if (res.ok) { alert("File replaced successfully."); load(); }
+        else alert(data.error || "Failed to replace file.");
+      } catch { alert("Something went wrong."); }
+      finally { setResubmitting(null); }
+    };
+    inp.click();
+  }
 
   return (
     <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
@@ -71,15 +101,25 @@ export default function QCCorrectionsDone() {
                     </div>
                   )}
                   {r.fileAfterUrl && (
-                    <div style={{marginTop:".5rem"}}>
+                    <div style={{marginTop:".5rem",display:"flex",alignItems:"center",gap:".75rem",flexWrap:"wrap" as const}}>
                       {r.fileAfterUrl.split(",").map((url:string,i:number,arr:string[])=>(
                         <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=file`}
                           target="_blank" rel="noreferrer"
-                          style={{display:"inline-block",marginRight:".5rem",fontSize:".72rem",color:"#0369A1",fontWeight:700}}>
+                          style={{fontSize:".72rem",color:"#0369A1",fontWeight:700}}>
                           ⬇ Corrected File{arr.length>1?` ${i+1}`:""}
                         </a>
                       ))}
+                      <button onClick={()=>handleResubmit(r)} disabled={resubmitting===r.id}
+                        style={{padding:"3px 10px",borderRadius:"8px",border:"none",cursor:"pointer",fontSize:".72rem",fontWeight:700,background:"#EDE9FE",color:"#5B21B6",whiteSpace:"nowrap" as const,opacity:resubmitting===r.id?0.5:1}}>
+                        {resubmitting===r.id?"Uploading...":"↩ Replace File"}
+                      </button>
                     </div>
+                  )}
+                  {!r.fileAfterUrl && (
+                    <button onClick={()=>handleResubmit(r)} disabled={resubmitting===r.id}
+                      style={{marginTop:".5rem",padding:"3px 10px",borderRadius:"8px",border:"none",cursor:"pointer",fontSize:".72rem",fontWeight:700,background:"#EDE9FE",color:"#5B21B6",whiteSpace:"nowrap" as const,opacity:resubmitting===r.id?0.5:1}}>
+                      {resubmitting===r.id?"Uploading...":"↩ Upload Corrected File"}
+                    </button>
                   )}
                 </div>
               ))}
