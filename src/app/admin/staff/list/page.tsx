@@ -250,7 +250,27 @@ export default function StaffList() {
   const [status,  setStatus]  = useState("all");
   const [search,  setSearch]  = useState("");
   const [acting,  setActing]  = useState<string|null>(null);
-  const [modal,   setModal]   = useState<any>(null);
+  const [modal,     setModal]     = useState<any>(null);
+  const [payTarget, setPayTarget] = useState<any|null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [paying,    setPaying]    = useState(false);
+
+  async function handleDirectPay() {
+    if (!payTarget || !payAmount || isNaN(Number(payAmount)) || Number(payAmount) <= 0) {
+      toast.error("Enter a valid amount."); return;
+    }
+    setPaying(true);
+    const res  = await fetch("/api/admin/direct-pay", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ staffId: payTarget.id, amountNaira: Number(payAmount) }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast.success(`₦${Number(payAmount).toLocaleString()} marked as paid to ${payTarget.name}.`);
+      setPayTarget(null); setPayAmount(""); load();
+    } else toast.error(data.error || "Something went wrong");
+    setPaying(false);
+  }
   const [reason,  setReason]  = useState("");
   const [selectedStaff, setSelectedStaff] = useState<string|null>(null);
 
@@ -327,13 +347,22 @@ export default function StaffList() {
                           </span>
                         </td>
                         <td style={C.td}>
-                          {s.isSuspended
-                            ? <button style={C.btnG} disabled={acting===s.id} onClick={(e)=>{e.stopPropagation();act(s.id,"unsuspend");}}>
-                                {acting===s.id?"...":"✓ Reactivate"}
+                          <div style={{display:"flex",gap:".4rem",flexWrap:"wrap" as const}}>
+                            {s.isSuspended
+                              ? <button style={C.btnG} disabled={acting===s.id} onClick={(e)=>{e.stopPropagation();act(s.id,"unsuspend");}}>
+                                  {acting===s.id?"...":"✓ Reactivate"}
+                                </button>
+                              : <button style={C.btnY} onClick={(e)=>{e.stopPropagation();setModal({id:s.id,name:s.name});}}>
+                                  Suspend
+                                </button>}
+                            {["WRITER","ANALYST","QC"].includes(s.role) && (
+                              <button
+                                onClick={(e)=>{e.stopPropagation();setPayTarget(s);setPayAmount(String(Math.floor(s.availableNaira||0)));}}
+                                style={{padding:".35rem .75rem",borderRadius:"8px",background:"#D1FAE5",color:"#065F46",border:"none",cursor:"pointer",fontSize:".72rem",fontWeight:700,whiteSpace:"nowrap" as const}}>
+                                💸 Pay
                               </button>
-                            : <button style={C.btnY} onClick={(e)=>{e.stopPropagation();setModal({id:s.id,name:s.name});}}>
-                                Suspend
-                              </button>}
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -355,6 +384,42 @@ export default function StaffList() {
                   {acting===modal.id?"Suspending...":"Confirm Suspend"}
                 </button>
                 <button style={C.btnN} onClick={()=>{ setModal(null); setReason(""); }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pay Modal */}
+        {payTarget && (
+          <div style={C.modal} onClick={e=>{if(e.target===e.currentTarget){setPayTarget(null);setPayAmount("");}}}>
+            <div style={C.mCard}>
+              <div style={C.mTitle}>💸 Pay {payTarget.name}</div>
+              <div style={{fontSize:".78rem",color:"#5B7EA6",marginBottom:"1rem"}}>
+                Available Balance: <strong style={{color:"#0284C7"}}>₦{(payTarget.availableNaira||0).toLocaleString()}</strong>
+              </div>
+              {payTarget.bankName ? (
+                <div style={{background:"#F0F9FF",borderRadius:"10px",padding:".75rem 1rem",marginBottom:"1rem",fontSize:".78rem"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:".25rem"}}><span style={{color:"#5B7EA6"}}>Bank</span><span style={{fontWeight:600}}>{payTarget.bankName}</span></div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:".25rem"}}><span style={{color:"#5B7EA6"}}>Account</span><span style={{fontWeight:600}}>{payTarget.accountNumber}</span></div>
+                  <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#5B7EA6"}}>Name</span><span style={{fontWeight:600}}>{payTarget.accountName}</span></div>
+                </div>
+              ) : (
+                <div style={{background:"#FFFBEB",borderRadius:"10px",padding:".75rem 1rem",marginBottom:"1rem",fontSize:".78rem",color:"#92400E"}}>
+                  ⚠ No bank details on file. Staff must update their bank details first.
+                </div>
+              )}
+              <div style={{marginBottom:"1rem"}}>
+                <label style={{fontSize:".68rem",fontWeight:700,textTransform:"uppercase" as const,letterSpacing:".08em",color:"#0C1A2E",display:"block",marginBottom:".4rem"}}>Amount to Pay (₦)</label>
+                <input type="number" value={payAmount} onChange={e=>setPayAmount(e.target.value)}
+                  style={{width:"100%",padding:".65rem 1rem",borderRadius:"10px",border:"1.5px solid #BAE6FD",fontSize:".85rem",outline:"none",boxSizing:"border-box" as const}}
+                  placeholder="Enter amount..." />
+                <div style={{fontSize:".72rem",color:"#5B7EA6",marginTop:".3rem"}}>Transfer this amount to their bank first, then click confirm.</div>
+              </div>
+              <div style={C.mbtns}>
+                <button style={{...C.btnG,flex:1}} disabled={paying} onClick={handleDirectPay}>
+                  {paying?"Updating...":"✓ Confirm Payment"}
+                </button>
+                <button style={C.btnN} onClick={()=>{setPayTarget(null);setPayAmount("");}}>Cancel</button>
               </div>
             </div>
           </div>
