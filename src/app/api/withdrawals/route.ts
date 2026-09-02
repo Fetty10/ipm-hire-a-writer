@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
 }
 
 // ─────────────────────────────────────────
-// PATCH — Admin approves → Paystack Transfer
+// PATCH — Admin marks withdrawal as paid manually
 // ─────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -150,7 +150,7 @@ export async function PATCH(req: NextRequest) {
   if (action === "decline") {
     await prisma.withdrawal.update({
       where: { id: withdrawalId },
-      data:  { status: "REJECTED", adminNote, processedAt: new Date(), processedById: session.user.id },
+      data:  { status: "REJECTED", adminNote, processedAt: new Date(), processedById: session.user.id } as any,
     });
     await prisma.notification.create({
       data: {
@@ -163,144 +163,64 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, message: "Withdrawal declined." });
   }
 
-  if (action === "approve") {
-    // ── Fire Paystack Transfer ────────────────────────────
-    try {
-      // Step 1: Create transfer recipient
-      const recipientRes = await fetch("https://api.paystack.co/transferrecipient", {
-        method:  "POST",
-        headers: {
-          Authorization:  `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type:           "nuban",
-          name:           withdrawal.accountName,
-          account_number: withdrawal.accountNumber,
-          bank_code:      await getBankCode(withdrawal.bankName),
-          currency:       "NGN",
-        }),
-      });
+  if (action === "mark_paid") {
+    // Deduct from earnings (oldest first)
+    await markEarningsWithdrawn(withdrawal.userId, withdrawal.amountKobo);
 
-      const recipientData = await recipientRes.json();
-      if (!recipientData.status) {
-        throw new Error(recipientData.message || "Failed to create transfer recipient");
-      }
+    await prisma.withdrawal.update({
+      where: { id: withdrawalId },
+      data:  { status: "PAID", processedAt: new Date(), processedById: session.user.id } as any,
+    });
 
-      const recipientCode = recipientData.data.recipient_code;
+    await prisma.notification.create({
+      data: {
+        userId:  withdrawal.userId,
+        title:   "Withdrawal Paid 💰",
+        message: `Your withdrawal of ₦${(withdrawal.amountKobo / 100).toLocaleString()} has been paid to your ${withdrawal.bankName} account.`,
+        type:    "SUCCESS",
+      },
+    });
 
-      // Step 2: Initiate transfer
-      const transferRes = await fetch("https://api.paystack.co/transfer", {
-        method:  "POST",
-        headers: {
-          Authorization:  `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          source:    "balance",
-          amount:    withdrawal.amountKobo,
-          recipient: recipientCode,
-          reason:    `iProjectMaster withdrawal — ${withdrawal.user.name}`,
-          reference: `ipm_wd_${withdrawalId}_${Date.now()}`,
-        }),
-      });
+    await sendWithdrawalPaidEmail({
+      to:          withdrawal.user.email,
+      name:        withdrawal.user.name,
+      amountNaira: withdrawal.amountKobo / 100,
+      bankName:    withdrawal.bankName,
+    });
 
-      const transferData = await transferRes.json();
-      if (!transferData.status) {
-        throw new Error(transferData.message || "Transfer failed");
-      }
-
-      // ── Deduct from earnings ──────────────────────────────
-      // Mark available earnings as withdrawn (oldest first)
-      const availableEarnings = await prisma.earning.findMany({
-        where:   { userId: withdrawal.userId, status: "AVAILABLE" },
-        orderBy: { createdAt: "asc" },
-      });
-
-      let remaining = withdrawal.amountKobo;
-      for (const earning of availableEarnings) {
-        if (remaining <= 0) break;
-        if (earning.amountKobo <= remaining) {
-          await prisma.earning.update({
-            where: { id: earning.id },
-            data:  { status: "WITHDRAWN" },
-          });
-          remaining -= earning.amountKobo;
-        } else {
-          // Partial — split the earning record
-          await prisma.earning.update({
-            where: { id: earning.id },
-            data:  { amountKobo: earning.amountKobo - remaining, status: "AVAILABLE" },
-          });
-          await prisma.earning.create({
-            data: {
-              userId:         earning.userId,
-              orderChapterId: earning.orderChapterId,
-              amountKobo:     remaining,
-              status:         "WITHDRAWN",
-            },
-          });
-          remaining = 0;
-        }
-      }
-
-      // ── Update withdrawal record ──────────────────────────
-      await prisma.withdrawal.update({
-        where: { id: withdrawalId },
-        data: {
-          status:        "PAID",
-          processedAt:   new Date(),
-          processedById: session.user.id,
-        },
-      });
-
-      // ── Notify staff ──────────────────────────────────────
-      await prisma.notification.create({
-        data: {
-          userId:  withdrawal.userId,
-          title:   "Withdrawal Successful 💰",
-          message: `Your withdrawal of ₦${(withdrawal.amountKobo / 100).toLocaleString()} has been sent to your ${withdrawal.bankName} account via Paystack.`,
-          type:    "SUCCESS",
-        },
-      });
-
-      await sendWithdrawalPaidEmail({
-        to:          withdrawal.user.email,
-        name:        withdrawal.user.name,
-        amountNaira: withdrawal.amountKobo / 100,
-        bankName:    withdrawal.bankName,
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: `₦${(withdrawal.amountKobo / 100).toLocaleString()} transferred to ${withdrawal.user.name} via Paystack.`,
-      });
-
-    } catch (err: any) {
-      console.error("[PAYSTACK TRANSFER ERROR]", err);
-      return NextResponse.json(
-        { error: `Transfer failed: ${err.message}` },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({
+      success: true,
+      message: `₦${(withdrawal.amountKobo / 100).toLocaleString()} marked as paid to ${withdrawal.user.name}.`,
+    });
   }
 
   return NextResponse.json({ error: "Invalid action." }, { status: 400 });
 }
 
 // ─────────────────────────────────────────
-// Helper: Get Paystack bank code from name
+// Helper: Mark earnings as withdrawn
 // ─────────────────────────────────────────
-async function getBankCode(bankName: string): Promise<string> {
-  const res = await fetch("https://api.paystack.co/bank?country=nigeria&perPage=100", {
-    headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+async function markEarningsWithdrawn(userId: string, amountKobo: number) {
+  const availableEarnings = await prisma.earning.findMany({
+    where:   { userId, status: "AVAILABLE" },
+    orderBy: { createdAt: "asc" },
   });
-  const data = await res.json();
-  const banks: { name: string; code: string }[] = data.data || [];
-  const match = banks.find((b) =>
-    b.name.toLowerCase().includes(bankName.toLowerCase()) ||
-    bankName.toLowerCase().includes(b.name.toLowerCase())
-  );
-  if (!match) throw new Error(`Bank not found: ${bankName}`);
-  return match.code;
+
+  let remaining = amountKobo;
+  for (const earning of availableEarnings) {
+    if (remaining <= 0) break;
+    if (earning.amountKobo <= remaining) {
+      await prisma.earning.update({ where: { id: earning.id }, data: { status: "WITHDRAWN" } });
+      remaining -= earning.amountKobo;
+    } else {
+      await prisma.earning.update({
+        where: { id: earning.id },
+        data:  { amountKobo: earning.amountKobo - remaining },
+      });
+      await prisma.earning.create({
+        data: { userId, orderChapterId: earning.orderChapterId, amountKobo: remaining, status: "WITHDRAWN" },
+      });
+      remaining = 0;
+    }
+  }
 }
