@@ -122,6 +122,14 @@ export default function QCCorrectionsActive() {
   const initials = (session?.user?.name||"QC").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"QC";
   const nav = (QC_NAV||[]).map(item=>item.href==="/qc/corrections/active"?{...item,badge:jobs.length}:item);
 
+
+  function getFileName(url: string, maxLen: number = 30): string {
+    const raw = url.split("/").pop()?.split("?")[0] || "file";
+    // Remove timestamp suffix (13-digit number at end before extension)
+    const clean = raw.replace(/_\d{13}(\.\w+)$/, "$1").replace(/_/g, " ");
+    const name = clean.length > maxLen ? clean.slice(0, maxLen) + "…" : clean;
+    return name;
+  }
   return (
     <StaffLayout navItems={nav} role="Quality Control" initials={initials}>
       <div style={C.page}>
@@ -160,7 +168,7 @@ export default function QCCorrectionsActive() {
                 {job.submittedFileUrl && <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer" style={C.flink}>⬇ {job.chapterLabel} — Original Delivered Version</a>}
                 {job.guidelineFileUrl && job.guidelineFileUrl.split(",").map((u:string,i:number,arr:string[]) => (
                   <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(u.trim())}&label=file`} target="_blank" rel="noreferrer" style={C.flink}>
-                    ⬇ Client File{arr.length>1?` ${i+1}`:""}
+                    ⬇ {getFileName(url.trim())}
                   </a>
                 ))}
                 {!job.submittedFileUrl && !job.guidelineFileUrl && <p style={{fontSize:".78rem",color:"#5B7EA6",fontStyle:"italic"}}>No original files available.</p>}
@@ -196,7 +204,7 @@ export default function QCCorrectionsActive() {
                     onClick={()=>{
                       if(s.uploading) return;
                       const inp=document.createElement("input");
-                      inp.type="file"; inp.accept=".pdf,.doc,.docx";
+                      inp.type="file"; inp.accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.gif,.mp3,.m4a,.wav,.zip";
                       inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};
                       inp.click();
                     }}>
