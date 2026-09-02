@@ -219,7 +219,7 @@ export default function QCChecksActive() {
 
               {/* Upload cleared file */}
               <div style={{border:"2px dashed "+(s.fileUrl?"#4ADE80":"#BAE6FD"),borderRadius:"12px",padding:"1.25rem",textAlign:"center" as const,cursor:"pointer",background:s.fileUrl?"rgba(74,222,128,.04)":"#F0F9FF",marginBottom:".9rem"}}
-                onClick={()=>{const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};inp.click();}}>
+                onClick={()=>{const inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.gif,.mp3,.m4a,.wav,.zip";inp.onchange=(e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(f)handleUpload(job.id,f);};inp.click();}}>
                 {s.uploading
                   ? <div><div style={{fontSize:"1.5rem",marginBottom:".4rem"}}>⏳</div><div style={{fontSize:".82rem",fontWeight:600,color:"#0C1A2E"}}>Uploading...</div></div>
                   : s.fileUrl
