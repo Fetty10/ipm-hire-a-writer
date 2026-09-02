@@ -83,6 +83,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Cancel any existing pending withdrawal request for this staff
+  const pendingWithdrawal = await prisma.withdrawal.findFirst({
+    where: { userId: staffId, status: "PENDING" },
+  });
+  if (pendingWithdrawal) {
+    await prisma.withdrawal.update({
+      where: { id: pendingWithdrawal.id },
+      data:  { status: "PAID", processedAt: new Date(), processedById: session.user.id } as any,
+    });
+  }
+
   // Notify staff
   await prisma.notification.create({
     data: {
