@@ -27,7 +27,7 @@ const ROLE_FOLDERS: Record<Role, UploadFolder[]> = {
 };
 
 // Folders where images and audio are also allowed (corrections evidence)
-const RICH_MEDIA_FOLDERS = ["orders/corrections", "orders/supervisor-notes"];
+const RICH_MEDIA_FOLDERS = ["orders/corrections", "orders/supervisor-notes", "chapters/qc-cleared", "chapters/corrections"];
 // Folders where all file types are allowed (student guidelines + admin legacy)
 const FULL_MEDIA_FOLDERS = ["orders/guidelines", "admin/legacy-files"];
 // Admin legacy folder accepts a much broader range of file types
