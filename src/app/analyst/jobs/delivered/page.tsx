@@ -2,6 +2,7 @@
 // src/app/analyst/jobs/delivered/page.tsx
 export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
+import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
 import { StaffLayout } from "@/components/staff/StaffLayout";
 
@@ -66,6 +67,8 @@ export default function AnalystDeliveredJobs() {
     };
     inp.click();
   }
+
+  const load = useCallback(async () => {
     setLoading(true);
     const res  = await fetch(`/api/staff/jobs?status=delivered&search=${encodeURIComponent(search)}&page=${page}`);
     const data = await res.json();
