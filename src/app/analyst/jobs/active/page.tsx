@@ -114,6 +114,14 @@ export default function AnalystActiveJobs() {
   const initials = (session?.user?.name||"AN").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"AN";
   const nav = NAV.map(item=>item.href==="/analyst/jobs/active"?{...item,badge:jobs.length}:item);
 
+
+  function getFileName(url: string, maxLen: number = 30): string {
+    const raw = url.split("/").pop()?.split("?")[0] || "file";
+    // Remove timestamp suffix (13-digit number at end before extension)
+    const clean = raw.replace(/_\d{13}(\.\w+)$/, "$1").replace(/_/g, " ");
+    const name = clean.length > maxLen ? clean.slice(0, maxLen) + "…" : clean;
+    return name;
+  }
   return (
     <StaffLayout navItems={nav} role="Analyst" initials={initials}>
       <div style={C.page}>
@@ -214,9 +222,9 @@ export default function AnalystActiveJobs() {
               )}
 
               {job.guidelineFileUrl && job.guidelineFileUrl.split(",").map((url:string,i:number)=>(
-                <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(url.trim())}&label=${encodeURIComponent(job.guidelineFileUrl.split(",").length>1?`Guideline ${i+1} ${job.topic}`:`Guideline ${job.topic}`)}`} target="_blank" rel="noreferrer"
+                <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(u.trim())}&label=${encodeURIComponent(job.guidelineFileUrl.split(",").length>1?`Guideline ${i+1} ${job.topic}`:`Guideline ${job.topic}`)}`} target="_blank" rel="noreferrer"
                   style={{display:"inline-flex",alignItems:"center",gap:".3rem",fontSize:".78rem",fontWeight:600,color:"#0369A1",textDecoration:"none",marginBottom:"1rem",marginRight:"1rem"}}>
-                  📎 {job.guidelineFileUrl.split(",").length>1?`Guideline ${i+1}`:"Download Guideline"}
+                  📎 {getFileName(u.trim())}
                 </a>
               ))}
 
