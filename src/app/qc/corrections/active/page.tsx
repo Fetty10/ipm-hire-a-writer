@@ -168,7 +168,7 @@ export default function QCCorrectionsActive() {
                 {job.submittedFileUrl && <a href={`/api/download?chapterId=${job.id}`} target="_blank" rel="noreferrer" style={C.flink}>⬇ {job.chapterLabel} — Original Delivered Version</a>}
                 {job.guidelineFileUrl && job.guidelineFileUrl.split(",").map((u:string,i:number,arr:string[]) => (
                   <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(u.trim())}&label=file`} target="_blank" rel="noreferrer" style={C.flink}>
-                    ⬇ {getFileName(url.trim())}
+                    ⬇ {getFileName(u.trim())}
                   </a>
                 ))}
                 {!job.submittedFileUrl && !job.guidelineFileUrl && <p style={{fontSize:".78rem",color:"#5B7EA6",fontStyle:"italic"}}>No original files available.</p>}
