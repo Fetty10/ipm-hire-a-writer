@@ -56,7 +56,7 @@ export default function WriterCorrections() {
     const res  = await fetch(`/api/staff/jobs?status=corrections&page=${page}`);
     const data = await res.json();
     if (data.success) {
-      setJobs(data.data);
+      setJobs(data.data||[]);
       setTotal(data.total || 0);
       setPages(data.pages || 1);
     }
@@ -65,7 +65,7 @@ export default function WriterCorrections() {
 
   useEffect(() => { load(); }, [load]);
 
-  const initials = session?.user?.name?.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
+  const initials = (session?.user?.name||"WR").split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()||"WR";
 
   return (
     <StaffLayout navItems={NAV} role="Writer" initials={initials}>
@@ -101,6 +101,19 @@ export default function WriterCorrections() {
                     <div style={{...C.noteBox, ...C.qcNote}}>
                       <div style={C.noteLbl}>🔧 QC's Instructions</div>
                       {job.qcEscalationNotes}
+                    </div>
+                  )}
+
+                  {isActive && job.qcFileUrl && (
+                    <div style={{margin:".5rem 0"}}>
+                      <div style={{fontSize:".72rem",fontWeight:700,color:"#5B21B6",marginBottom:".3rem"}}>📎 QC's Partial Work File</div>
+                      {job.qcFileUrl.split(",").filter(Boolean).map((u:string,i:number,arr:string[])=>(
+                        <a key={i} href={`/api/download/guideline?url=${encodeURIComponent(u.trim())}&label=QC+File`}
+                          target="_blank" rel="noreferrer"
+                          style={{display:"inline-block",marginRight:".5rem",marginBottom:".25rem",padding:"3px 10px",borderRadius:"8px",background:"#EDE9FE",color:"#5B21B6",fontSize:".75rem",fontWeight:700,textDecoration:"none"}}>
+                          ⬇ Download QC File{arr.length>1?` ${i+1}`:""}
+                        </a>
+                      ))}
                     </div>
                   )}
                   {isActive && job.correctionNotes && (
