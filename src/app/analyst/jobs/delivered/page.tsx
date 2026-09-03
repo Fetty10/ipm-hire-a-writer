@@ -99,7 +99,7 @@ export default function AnalystDeliveredJobs() {
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-sky-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
         </div>
 
-        ) : loading ? (
+        {loading ? (
           <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div>
         ) : jobs.length === 0 ? (
           <div className="text-center py-16">
