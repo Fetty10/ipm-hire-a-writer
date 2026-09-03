@@ -57,7 +57,7 @@ export default function QCCorrectionsActive() {
     if (data.success) {
       setJobs(data.data||[]);
       const init:any = {};
-      data.data.forEach((j:any) => { init[j.id] = { files:[], notes:"", uploading:false, submitting:false, escalateOpen:false, escType:"corrections", escNotes:"", escalating:false }; });
+      data.data.forEach((j:any) => { init[j.id] = { files:[], notes:"", uploading:false, submitting:false, escalateOpen:false, escType:"corrections", escNotes:"", escalating:false, escFileUrl:"", escUploading:false }; });
       setState(init);
     }
     setLoading(false);
@@ -106,7 +106,7 @@ export default function QCCorrectionsActive() {
     const s = state[jobId];
     if (!s.escNotes.trim()) { toast.error("Please provide instructions for the writer."); return; }
     upd(jobId,"escalating",true);
-    const res  = await fetch("/api/chapters/qc-escalate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId:jobId,escalationType:s.escType,instructionsForWriter:s.escNotes})});
+    const res  = await fetch("/api/chapters/qc-escalate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chapterId:jobId,escalationType:s.escType,instructionsForWriter:s.escNotes,qcFileUrl:s.escFileUrl||undefined})});
     const data = await res.json();
     if (res.ok) { toast.success(data.message); setJobs(prev=>prev.filter(j=>j.id!==jobId)); }
     else toast.error(data.error || "Something went wrong");
@@ -235,6 +235,40 @@ export default function QCCorrectionsActive() {
                       <option value="full_rewrite">Request full chapter rewrite</option>
                     </select>
                     <textarea style={C.escTa} rows={3} placeholder="Be specific about what the writer needs to fix..." value={s.escNotes} onChange={e=>upd(job.id,"escNotes",e.target.value)} />
+
+                    {/* Optional file upload for QC partial work */}
+                    <div style={{marginBottom:".75rem"}}>
+                      <div style={{fontSize:".72rem",color:"#5B7EA6",marginBottom:".4rem",fontWeight:600}}>
+                        📎 Attach file for writer <span style={{fontWeight:400}}>(optional — upload if you've done part of the correction)</span>
+                      </div>
+                      {s.escFileUrl ? (
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:"8px",padding:".4rem .75rem",fontSize:".78rem"}}>
+                          <span style={{color:"#065F46",fontWeight:600}}>📎 File attached</span>
+                          <button onClick={()=>upd(job.id,"escFileUrl","")} style={{background:"none",border:"none",cursor:"pointer",color:"#EF4444",fontSize:".8rem"}}>✕ Remove</button>
+                        </div>
+                      ) : (
+                        <div onClick={async ()=>{
+                          const inp = document.createElement("input");
+                          inp.type="file"; inp.accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.zip";
+                          inp.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (!file) return;
+                            if (file.size > 20*1024*1024) { alert("Max 20MB"); return; }
+                            upd(job.id,"escUploading",true);
+                            const fd = new FormData(); fd.append("file",file); fd.append("folder","chapters/corrections");
+                            const res = await fetch("/api/upload",{method:"POST",body:fd});
+                            const data = await res.json();
+                            if (res.ok) upd(job.id,"escFileUrl",data.url);
+                            else alert(data.error||"Upload failed.");
+                            upd(job.id,"escUploading",false);
+                          };
+                          inp.click();
+                        }} style={{border:"2px dashed #BAE6FD",borderRadius:"8px",padding:".6rem",textAlign:"center" as const,cursor:s.escUploading?"not-allowed":"pointer",background:"#F8FCFF",fontSize:".75rem",color:"#5B7EA6"}}>
+                          {s.escUploading?"⏳ Uploading...":"📎 Click to attach file for writer"}
+                        </div>
+                      )}
+                    </div>
+
                     <button style={C.escBtn} disabled={s.escalating} onClick={()=>handleEscalate(job.id)}>
                       {s.escalating?"Sending...":"🔧 Send Back to Writer →"}
                     </button>
