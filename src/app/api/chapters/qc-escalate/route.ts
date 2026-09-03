@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     chapterId,
     escalationType,       // "corrections" | "section_rewrite" | "full_rewrite"
     instructionsForWriter,
+    qcFileUrl,
   } = await req.json();
 
   if (!chapterId || !instructionsForWriter) {
@@ -76,9 +77,9 @@ export async function POST(req: NextRequest) {
       status:            ChapterStatus.IN_PROGRESS,
       qcEscalationNotes: instructionsForWriter,
       isEscalatedCorrection: true,
-      isCorrectionHistory:   true, // permanent — for the Corrections tab history
-      // Clear old QC fields so it needs to go through QC again
-      qcFileUrl:      null,
+      isCorrectionHistory:   true,
+      // Store QC's partial work file for the writer
+      qcFileUrl:      qcFileUrl || null,
       qcClearedAt:    null,
     } as any,
   });
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
       userId:  originalStaffId,
       orderId: chapter.orderId,
       title:   `🔧 ${chapter.chapterLabel} — Correction Required`,
-      message: `QC has reviewed your ${chapter.chapterLabel} for "${chapter.order.topic}" and requires ${label}. Please log in to see the detailed instructions and resubmit. Note: withdrawals are paused until this is resolved.`,
+      message: `QC has reviewed your ${chapter.chapterLabel} for "${chapter.order.topic}" and requires ${label}. Please log in to see the detailed instructions${qcFileUrl ? " and download the QC's partial work file" : ""} and resubmit. Note: withdrawals are paused until this is resolved.`,
       type: "ACTION_REQUIRED",
     },
   });
