@@ -1,4 +1,7 @@
 export const dynamic = "force-dynamic";
+// src/app/api/payments/webhook/route.ts
+// Flutterwave webhook — handles charge.completed events
+
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
@@ -6,48 +9,51 @@ import { assignChaptersForOrder, assignSpecificChapters } from "@/lib/assignment
 
 export async function POST(req: NextRequest) {
   const body      = await req.text();
-  const signature = req.headers.get("x-paystack-signature");
-  const secret = process.env.PAYSTACK_SECRET_KEY!;
-  const hash   = crypto.createHmac("sha512", secret).update(body).digest("hex");
+  const signature = req.headers.get("verif-hash");
 
-  if (hash !== signature) {
+  // Flutterwave uses a secret hash you set in the dashboard
+  // (FLW_WEBHOOK_HASH env var) rather than an HMAC
+  const secret = process.env.FLW_WEBHOOK_HASH!;
+  if (signature !== secret) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   const event = JSON.parse(body);
 
-  if (event.event === "charge.success") {
-    const { reference, amount, metadata } = event.data;
+  // Flutterwave fires "charge.completed" for successful payments
+  if (event.event === "charge.completed" && event.data?.status === "successful") {
+    const { tx_ref, amount, meta, customer } = event.data;
 
-    // Normalise metadata
-    let meta: any = {};
-    if (typeof metadata === "string") {
-      try { meta = JSON.parse(metadata); } catch { meta = {}; }
-    } else if (metadata && typeof metadata === "object") {
-      meta = metadata;
+    // Normalise meta
+    let parsedMeta: any = {};
+    if (typeof meta === "string") {
+      try { parsedMeta = JSON.parse(meta); } catch { parsedMeta = {}; }
+    } else if (meta && typeof meta === "object") {
+      parsedMeta = meta;
     }
 
-    const isAdd             = meta?.isAddChapters === true || meta?.isAddChapters === "true";
-    const addChs            = Array.isArray(meta?.addChapters)
-      ? meta.addChapters.map(Number).filter((n: number) => !isNaN(n))
-      : [];
-    const isNewRegistration = meta?.isNewRegistration === true || meta?.isNewRegistration === "true";
+    // amount from Flutterwave is in Naira — convert to kobo
+    const amountKobo = Math.round(amount * 100);
 
-    // ── New registration via register page ───────────────────
-    // Account is created here (after payment) not before, so cancelling
-    // payment leaves no orphaned account.
+    const isAdd             = parsedMeta?.isAddChapters === true || parsedMeta?.isAddChapters === "true";
+    const addChs            = Array.isArray(parsedMeta?.addChapters)
+      ? parsedMeta.addChapters.map(Number).filter((n: number) => !isNaN(n))
+      : [];
+    const isNewRegistration = parsedMeta?.isNewRegistration === true || parsedMeta?.isNewRegistration === "true";
+
+    // ── New registration via register page ───────────────────────
     if (isNewRegistration) {
       const { name, email, phone, password, planId, topic, department, degreeGroup,
               specialInstructions, guidelineFileUrl, selectedChapters, serviceType,
-              requiresPlagiarismCheck } = meta;
+              requiresPlagiarismCheck } = parsedMeta;
 
       // Idempotency — webhook can fire twice
       let user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
       if (!user) {
         const bcrypt = await import("bcryptjs");
-        const hash   = await bcrypt.hash(password, 10);
+        const hashed = await bcrypt.hash(password, 10);
         user = await prisma.user.create({
-          data: { name, email, phone, password: hash, role: "CLIENT" as any, isApproved: true } as any,
+          data: { name, email, phone, password: hashed, role: "CLIENT" as any, isApproved: true } as any,
         });
       }
 
@@ -71,8 +77,8 @@ export async function POST(req: NextRequest) {
           selectedChapters:      selectedChapters || null,
           serviceType:           serviceType || "HIRE_WRITER",
           status:                "PAYMENT_CONFIRMED",
-          paystackReference:     reference,
-          amountPaidKobo:        amount,
+          flutterwaveReference:  tx_ref,
+          amountPaidKobo:        amountKobo,
           paidAt:                new Date(),
           requiresPlagiarismCheck: !!requiresPlagiarismCheck,
           requiresAiCheck:       !!requiresPlagiarismCheck,
@@ -85,7 +91,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, note: "New registration order created." });
     }
 
-    const orderId = meta?.orderId as string;
+    const orderId = parsedMeta?.orderId as string;
     if (!orderId) {
       return NextResponse.json({ error: "No orderId in metadata" }, { status: 400 });
     }
@@ -95,17 +101,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // ── Add chapters — check BEFORE status guard ──────────────
+    // ── Add chapters ──────────────────────────────────────────────
     if (isAdd && addChs.length > 0) {
       await prisma.order.update({
         where: { id: orderId },
-        data:  { amountPaidKobo: { increment: amount } },
+        data:  { amountPaidKobo: { increment: amountKobo } },
       });
       await assignSpecificChapters(orderId, addChs);
       return NextResponse.json({ ok: true });
     }
 
-    // ── New order — guard against double processing ────────────
+    // ── New order — guard against double processing ───────────────
     if (order.status !== "PENDING_PAYMENT") {
       return NextResponse.json({ ok: true, note: "Already processed" });
     }
@@ -113,11 +119,11 @@ export async function POST(req: NextRequest) {
     await prisma.order.update({
       where: { id: orderId },
       data: {
-        paystackReference: reference,
-        amountPaidKobo:    amount,
-        paidAt:            new Date(),
-        status:            "PAYMENT_CONFIRMED",
-      },
+        flutterwaveReference: tx_ref,
+        amountPaidKobo:       amountKobo,
+        paidAt:               new Date(),
+        status:               "PAYMENT_CONFIRMED",
+      } as any,
     });
 
     await assignChaptersForOrder(orderId);
