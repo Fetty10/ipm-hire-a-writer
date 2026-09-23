@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
           selectedChapters:      selectedChapters || null,
           serviceType:           serviceType || "HIRE_WRITER",
           status:                "PAYMENT_CONFIRMED",
-          flutterwaveReference:  tx_ref,
+          paystackReference:  tx_ref,
           amountPaidKobo:        amountKobo,
           paidAt:                new Date(),
           requiresPlagiarismCheck: !!requiresPlagiarismCheck,
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     await prisma.order.update({
       where: { id: orderId },
       data: {
-        flutterwaveReference: tx_ref,
+        paystackReference: tx_ref,
         amountPaidKobo:       amountKobo,
         paidAt:               new Date(),
         status:               "PAYMENT_CONFIRMED",
