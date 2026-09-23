@@ -113,38 +113,26 @@ export interface EarningsSummary {
 }
 
 // ─────────────────────────────────────────
-// PAYSTACK
+// FLUTTERWAVE
 // ─────────────────────────────────────────
 
-export interface PaystackInitResponse {
-  status:  boolean;
+export interface FlutterwaveInitResponse {
+  status:  string;   // "success" | "error"
   message: string;
   data: {
-    authorization_url: string;
-    access_code:       string;
-    reference:         string;
+    link: string;    // payment page URL to redirect student to
   };
 }
 
-export interface PaystackTransferResponse {
-  status:  boolean;
-  message: string;
+export interface FlutterwaveWebhookEvent {
+  event: string;     // "charge.completed"
   data: {
-    transfer_code: string;
-    id:            number;
-    status:        string;
-  };
-}
-
-export interface PaystackWebhookEvent {
-  event: string;
-  data: {
-    reference:  string;
-    amount:     number;
-    metadata?:  { orderId?: string; [key: string]: unknown };
-    status:     string;
-    customer:   { email: string };
-    transfer_code?: string;
+    tx_ref:   string;
+    amount:   number;  // in Naira
+    currency: string;
+    status:   string;  // "successful"
+    meta:     { orderId?: string; [key: string]: unknown } | string;
+    customer: { email: string; name: string };
   };
 }
 
