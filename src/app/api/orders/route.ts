@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 // src/app/api/orders/route.ts
-// POST — student places a new order and gets a Paystack payment URL
-// Supports both project orders (planId) and flat/other services
+// POST — student places a new order and gets a Flutterwave payment URL
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -48,7 +47,7 @@ export async function POST(req: NextRequest) {
     plan = await prisma.plan.findFirst({ orderBy: { updatedAt: "asc" } });
     if (!plan) return NextResponse.json({ error: "No plans configured." }, { status: 400 });
 
-    const svcValueMap: Record<string,string> = {
+    const svcValueMap: Record<string, string> = {
       PROPOSAL_SEMINAR: "seminar",
       JOURNAL_WRITING:  "journal",
       JOURNAL_SOURCING: "journal_sourcing",
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     const svc = await (prisma as any).otherService.findFirst({ where: { value: svcValue, isActive: true } });
 
-    const priceMap: Record<string,number> = {
+    const priceMap: Record<string, number> = {
       OND_HND_NCE: svc?.priceOND || 0,
       BSC_BED_BA:  svc?.priceBSC || 0,
       PGD_MSC_PHD: svc?.pricePGD || 0,
@@ -68,9 +67,8 @@ export async function POST(req: NextRequest) {
     };
     amountKobo = priceMap[degreeGroup] || 0;
 
-    // Add plagiarism/AI check add-on if requested
     if (requiresPlagiarismCheck && svc) {
-      const addOnMap: Record<string,number> = {
+      const addOnMap: Record<string, number> = {
         OND_HND_NCE: (svc as any).plagiarismAddOnOND || 0,
         BSC_BED_BA:  (svc as any).plagiarismAddOnBSC || 0,
         PGD_MSC_PHD: (svc as any).plagiarismAddOnPGD || 0,
@@ -98,29 +96,42 @@ export async function POST(req: NextRequest) {
     } as any,
   });
 
-  // Initialize Paystack payment
-  const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
+  // ── Initialize Flutterwave payment ────────────────────────────
+  const amountNaira = amountKobo / 100;
+  const txRef = `ipm_order_${order.id}_${Date.now()}`;
+
+  const flwRes = await fetch("https://api.flutterwave.com/v3/payments", {
     method:  "POST",
     headers: {
-      Authorization:  `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      Authorization:  `Bearer ${process.env.FLW_SECRET_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      email:    session.user.email,
-      amount:   amountKobo,
-      currency: "NGN",
-      metadata: {
-        orderId:          order.id,
-        studentName:      session.user.name,
+      tx_ref:       txRef,
+      amount:       amountNaira,
+      currency:     "NGN",
+      redirect_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/inprogress`,
+      customer: {
+        email: session.user.email,
+        name:  session.user.name,
+      },
+      meta: {
+        orderId:           order.id,
+        studentName:       session.user.name,
         topic,
         chaptersRequested: chaptersRequested || [],
       },
-      callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/inprogress`,
+      customizations: {
+        title:       "iProjectMaster",
+        description: `Payment for: ${topic.substring(0, 60)}`,
+        logo:        `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`,
+      },
     }),
   });
 
-  const paystackData = await paystackRes.json();
-  if (!paystackData.status) {
+  const flwData = await flwRes.json();
+
+  if (flwData.status !== "success") {
     // Roll back order
     await prisma.order.delete({ where: { id: order.id } });
     return NextResponse.json(
@@ -130,9 +141,9 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    success:  true,
-    orderId:  order.id,
-    paymentUrl: paystackData.data.authorization_url,
-    reference:  paystackData.data.reference,
+    success:    true,
+    orderId:    order.id,
+    paymentUrl: flwData.data.link,
+    reference:  txRef,
   });
 }
