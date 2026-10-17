@@ -1,92 +1,137 @@
+export const dynamic = "force-dynamic";
 // src/app/api/payments/webhook/route.ts
-// Flutterwave webhook handler
-// Flutterwave sends a POST with header "verif-hash" (plain string, not HMAC)
-// Event we care about: charge.completed
+// Flutterwave webhook — handles charge.completed events
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma }                    from "@/lib/prisma";
-import { triggerAssignment }         from "@/lib/assignment";
+import crypto from "crypto";
+import { prisma } from "@/lib/prisma";
+import { assignChaptersForOrder, assignSpecificChapters } from "@/lib/assignment";
 
 export async function POST(req: NextRequest) {
-  try {
-    // ── Verify webhook secret ────────────────────────────────────────────────
-    const hash = req.headers.get("verif-hash");
-    if (!hash || hash !== process.env.FLW_WEBHOOK_HASH) {
-      console.warn("[webhook] Invalid verif-hash");
-      return NextResponse.json({ status: "ignored" }, { status: 200 });
-      // Return 200 so Flutterwave doesn't keep retrying; just silently ignore
-    }
+  const body      = await req.text();
+  const signature = req.headers.get("verif-hash");
 
-    const event = await req.json();
-    console.log("[webhook] event:", event?.event, event?.data?.tx_ref);
-
-    // ── Only handle successful charges ───────────────────────────────────────
-    if (event?.event !== "charge.completed") {
-      return NextResponse.json({ status: "ignored" });
-    }
-
-    const data = event.data;
-    if (data?.status !== "successful") {
-      console.log("[webhook] charge not successful, status:", data?.status);
-      return NextResponse.json({ status: "ignored" });
-    }
-
-    const txRef = data.tx_ref as string;
-    if (!txRef) {
-      return NextResponse.json({ status: "ignored" });
-    }
-
-    // ── Find the order ───────────────────────────────────────────────────────
-    // tx_ref is stored in paystackReference column (no migration needed)
-    const order = await prisma.order.findUnique({
-      where: { paystackReference: txRef },
-    });
-
-    if (!order) {
-      console.error("[webhook] Order not found for tx_ref:", txRef);
-      return NextResponse.json({ status: "not_found" }, { status: 200 });
-    }
-
-    if (order.paymentStatus === "PAID") {
-      // Already processed — idempotency guard
-      return NextResponse.json({ status: "already_processed" });
-    }
-
-    // ── Verify amount (Flutterwave sends amount in Naira) ────────────────────
-    const paidNaira     = Number(data.amount);
-    const expectedNaira = order.amountKobo / 100;
-
-    if (paidNaira < expectedNaira) {
-      console.error(
-        `[webhook] Amount mismatch: paid ₦${paidNaira}, expected ₦${expectedNaira}, order ${order.id}`
-      );
-      // Mark as suspicious but don't activate
-      await prisma.order.update({
-        where: { id: order.id },
-        data:  { paymentStatus: "FAILED", status: "CANCELLED" },
-      });
-      return NextResponse.json({ status: "amount_mismatch" });
-    }
-
-    // ── Mark as paid and trigger assignment ──────────────────────────────────
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        paymentStatus: "PAID",
-        status:        "ACTIVE",
-        paidAt:        new Date(),
-      },
-    });
-
-    // Trigger job assignment (writer, analyst, QC)
-    await triggerAssignment(order.id);
-
-    console.log("[webhook] Order activated:", order.id);
-    return NextResponse.json({ status: "ok" });
-
-  } catch (err: any) {
-    console.error("[webhook] Error:", err);
-    // Return 200 to prevent Flutterwave from hammering retries
-    return NextResponse.json({ status: "error" }, { status: 200 });
+  // Flutterwave uses a secret hash you set in the dashboard
+  // (FLW_WEBHOOK_HASH env var) rather than an HMAC
+  const secret = process.env.FLW_WEBHOOK_HASH!;
+  if (signature !== secret) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
+
+  const event = JSON.parse(body);
+
+  // Flutterwave fires "charge.completed" for successful payments
+  if (event.event === "charge.completed" && event.data?.status === "successful") {
+    const { tx_ref, amount, meta, customer } = event.data;
+
+    // Normalise meta
+    let parsedMeta: any = {};
+    if (typeof meta === "string") {
+      try { parsedMeta = JSON.parse(meta); } catch { parsedMeta = {}; }
+    } else if (meta && typeof meta === "object") {
+      parsedMeta = meta;
+    }
+
+    // amount from Flutterwave is in Naira — convert to kobo
+    const amountKobo = Math.round(amount * 100);
+
+    const isAdd             = parsedMeta?.isAddChapters === true || parsedMeta?.isAddChapters === "true";
+    const addChs            = Array.isArray(parsedMeta?.addChapters)
+      ? parsedMeta.addChapters.map(Number).filter((n: number) => !isNaN(n))
+      : [];
+    const isNewRegistration = parsedMeta?.isNewRegistration === true || parsedMeta?.isNewRegistration === "true";
+
+    // ── New registration via register page ───────────────────────
+    if (isNewRegistration) {
+      const { name, email, phone, password, planId, topic, department, degreeGroup,
+              specialInstructions, guidelineFileUrl, selectedChapters, serviceType,
+              requiresPlagiarismCheck } = parsedMeta;
+
+      // Idempotency — webhook can fire twice
+      let user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+      if (!user) {
+        const bcrypt = await import("bcryptjs");
+        const hashed = await bcrypt.hash(password, 10);
+        user = await prisma.user.create({
+          data: { name, email, phone, password: hashed, role: "CLIENT" as any, isApproved: true } as any,
+        });
+      }
+
+      const existingOrder = await prisma.order.findFirst({
+        where: { clientId: user.id, status: { not: "PENDING_PAYMENT" } },
+      });
+      if (existingOrder) {
+        return NextResponse.json({ ok: true, note: "Already processed" });
+      }
+
+      const plan = await prisma.plan.findFirst({ where: { isActive: true }, orderBy: { priceKobo: "asc" } });
+      if (!plan) return NextResponse.json({ error: "No plan found" }, { status: 500 });
+
+      const order = await prisma.order.create({
+        data: {
+          clientId:              user.id,
+          planId:                planId && planId !== "flat" ? planId : plan.id,
+          topic, department:     department || "", degreeGroup,
+          specialInstructions:   specialInstructions || null,
+          guidelineFileUrl:      guidelineFileUrl || null,
+          selectedChapters:      selectedChapters || null,
+          serviceType:           serviceType || "HIRE_WRITER",
+          status:                "PAYMENT_CONFIRMED",
+          paystackReference:  tx_ref,
+          amountPaidKobo:        amountKobo,
+          paidAt:                new Date(),
+          requiresPlagiarismCheck: !!requiresPlagiarismCheck,
+          requiresAiCheck:       !!requiresPlagiarismCheck,
+        } as any,
+      });
+
+      await assignChaptersForOrder(order.id);
+      await prisma.order.update({ where: { id: order.id }, data: { status: "IN_PROGRESS" } as any });
+
+      return NextResponse.json({ ok: true, note: "New registration order created." });
+    }
+
+    const orderId = parsedMeta?.orderId as string;
+    if (!orderId) {
+      return NextResponse.json({ error: "No orderId in metadata" }, { status: 400 });
+    }
+
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // ── Add chapters ──────────────────────────────────────────────
+    if (isAdd && addChs.length > 0) {
+      await prisma.order.update({
+        where: { id: orderId },
+        data:  { amountPaidKobo: { increment: amountKobo } },
+      });
+      await assignSpecificChapters(orderId, addChs);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── New order — guard against double processing ───────────────
+    if (order.status !== "PENDING_PAYMENT") {
+      return NextResponse.json({ ok: true, note: "Already processed" });
+    }
+
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        paystackReference: tx_ref,
+        amountPaidKobo:       amountKobo,
+        paidAt:               new Date(),
+        status:               "PAYMENT_CONFIRMED",
+      } as any,
+    });
+
+    await assignChaptersForOrder(orderId);
+    await prisma.order.update({
+      where: { id: orderId },
+      data:  { status: "IN_PROGRESS" },
+    });
+  }
+
+  return NextResponse.json({ ok: true });
 }
