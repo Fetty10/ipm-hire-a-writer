@@ -175,7 +175,7 @@ export default function WriterWithdraw() {
     <StaffLayout navItems={NAV} role="Writer" initials={initials}>
       <div style={C.page}>
         <h1 style={C.h1}>Request Withdrawal</h1>
-        <p style={C.sub}>Withdraw your available balance via Paystack.</p>
+        <p style={C.sub}>Withdraw your available balance via bank transfer.</p>
 
         {loading ? <div style={{textAlign:"center",padding:"3rem",color:"#5B7EA6"}}>Loading...</div> : (
           <>
@@ -204,7 +204,7 @@ export default function WriterWithdraw() {
                 <div style={C.success}>
                   <div style={C.sicon}>🎉</div>
                   <div style={C.stitle}>Withdrawal Requested!</div>
-                  <p style={C.ssub}>Your request is pending admin approval. Once approved, funds will be sent to your account via Paystack automatically.</p>
+                  <p style={C.ssub}>Your request is pending admin approval. Once approved, funds will be sent to your account via bank transfer.</p>
                 </div>
               </div>
             ) : (
