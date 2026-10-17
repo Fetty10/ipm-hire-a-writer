@@ -212,7 +212,7 @@ export async function sendWithdrawalPaidEmail(opts: {
     subject: `💰 Withdrawal of ₦${opts.amountNaira.toLocaleString()} Paid`,
     html: wrap(`
       <div class="title">Your Withdrawal Has Been Processed</div>
-      <p class="text">Hi ${opts.name}, your withdrawal request has been approved and <strong>₦${opts.amountNaira.toLocaleString()}</strong> has been sent to your <strong>${opts.bankName}</strong> account via Paystack.</p>
+      <p class="text">Hi ${opts.name}, your withdrawal request has been approved and <strong>₦${opts.amountNaira.toLocaleString()}</strong> has been sent to your <strong>${opts.bankName}</strong> account.</p>
       <p class="text">This may take a few minutes to reflect in your bank account depending on your bank.</p>
       <a href="${APP}/writer/withdraw" class="btn">View Earnings →</a>
     `),
