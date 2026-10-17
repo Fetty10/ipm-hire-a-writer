@@ -91,7 +91,7 @@ export default function WriterEarnings() {
               <div style={C.cta}>
                 <div>
                   <div style={C.ctaTxt}>₦{((summary?.availableKobo||0)/100).toLocaleString()} available to withdraw</div>
-                  <div style={C.ctaSub}>Admin approval required · Paystack auto-transfers once approved.</div>
+                  <div style={C.ctaSub}>Admin approval required · Manually processed once approved.</div>
                 </div>
                 <button style={C.btnP} onClick={()=>router.push("/analyst/withdraw")}>Withdraw →</button>
               </div>
