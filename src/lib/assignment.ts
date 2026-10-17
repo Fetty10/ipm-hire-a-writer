@@ -1,6 +1,6 @@
 // src/lib/assignment.ts
 // Core job assignment engine
-// Called after Paystack payment webhook confirms a payment
+// Called after Flutterwave payment webhook confirms a payment
 
 import { prisma } from "@/lib/prisma";
 import { sendChapterDeliveredEmail, sendJobAssignedEmail, sendQCCheckAssignedEmail, sendPrelimReadyEmail, sendLegacyCorrectionDeliveredEmail } from "@/lib/email";
