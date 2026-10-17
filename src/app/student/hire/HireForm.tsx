@@ -344,7 +344,7 @@ export function HireForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
-    if (mode === "register" && onPayload) { onPayload(buildPayload("PAYSTACK"), "PAYSTACK"); return; }
+    if (mode === "register" && onPayload) { onPayload(buildPayload("FLUTTERWAVE"), "FLUTTERWAVE"); return; }
     setLoading(true);
     try {
       const payload = buildPayload();
