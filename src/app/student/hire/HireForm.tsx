@@ -680,13 +680,13 @@ export function HireForm({
           {/* Account fields injected here in register mode */}
           {accountFields && accountFields}
 
-          {/* Pay with Paystack (Nigeria) or Flutterwave (International) */}
+          {/* Pay with Flutterwave (Nigeria) or Flutterwave (International) */}
           {geoInfo.isNigeria ? (
             <button type="submit" disabled={loading || !showSummary}
               className={`w-full py-4 rounded-xl font-700 text-sm transition-all flex items-center justify-center gap-2 ${
                 showSummary && !loading ? "bg-sky-400 text-navy-DEFAULT hover:bg-sky-500" : "bg-sky-100 text-navy-muted cursor-not-allowed"
               }`}>
-              {loading ? <><Spinner size="sm" /> Processing...</> : `💳 Pay ₦${total.toLocaleString()} with Paystack →`}
+              {loading ? <><Spinner size="sm" /> Processing...</> : `💳 Pay ₦${total.toLocaleString()} with Flutterwave →`}
             </button>
           ) : (
             <button type="button" disabled={loading || !showSummary}
