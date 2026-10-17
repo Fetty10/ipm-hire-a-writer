@@ -1,149 +1,177 @@
-export const dynamic = "force-dynamic";
 // src/app/api/orders/route.ts
-// POST — student places a new order and gets a Flutterwave payment URL
+// Creates a new order and initialises a Flutterwave payment (Nigerian students)
+// For international students, /api/payments/flutterwave handles payment separately.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
+import { getServerSession }          from "next-auth";
+import { authOptions }               from "@/lib/auth";
+import { prisma }                    from "@/lib/prisma";
+import { randomUUID }                from "crypto";
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== Role.CLIENT) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+// ─── Flutterwave v3 ───────────────────────────────────────────────────────────
+const FLW_BASE    = "https://api.flutterwave.com/v3";
+const FLW_KEY     = process.env.FLW_SECRET_KEY!;
+const APP_URL     = process.env.NEXT_PUBLIC_APP_URL || "https://hire.iprojectmaster.com";
 
-  const {
-    planId, topic, department, degreeGroup,
-    specialInstructions, guidelineFileUrl, chaptersRequested,
-    serviceType, requiresPlagiarismCheck,
-  } = await req.json();
+interface FlwInitResponse {
+  status: string;
+  message: string;
+  data: { link: string };
+}
 
-  if (!topic?.trim() || !department?.trim() || !degreeGroup) {
-    return NextResponse.json(
-      { error: "Topic, department and degree level are required." },
-      { status: 400 }
-    );
-  }
+async function initFlutterwavePayment(opts: {
+  txRef:    string;
+  amount:   number;        // Naira (whole number)
+  currency: string;        // "NGN"
+  email:    string;
+  name:     string;
+  phone?:   string;
+  meta:     Record<string, string | number | undefined>;
+}) {
+  const body = {
+    tx_ref:          opts.txRef,
+    amount:          opts.amount,
+    currency:        opts.currency,
+    redirect_url:    `${APP_URL}/api/payments/callback`,
+    customer: {
+      email:         opts.email,
+      name:          opts.name,
+      phonenumber:   opts.phone ?? "",
+    },
+    meta:            opts.meta,
+    customizations: {
+      title:  "iProjectMaster",
+      description: "Academic project writing service",
+      logo:   `${APP_URL}/logo.png`,
+    },
+  };
 
-  const isProjectService = planId && planId !== "flat";
-
-  let plan: any = null;
-  let amountKobo = 0;
-  let finalServiceType = "HIRE_WRITER";
-
-  if (isProjectService) {
-    plan = await prisma.plan.findUnique({ where: { id: planId } });
-    if (!plan || !plan.isActive) {
-      return NextResponse.json({ error: "Selected plan is not available." }, { status: 404 });
-    }
-    amountKobo = plan.priceKobo;
-    if (plan.pricingType === "PER_CHAPTER" && chaptersRequested?.length) {
-      amountKobo = plan.priceKobo * chaptersRequested.length;
-    }
-  } else {
-    // Flat/other service — find a placeholder plan for the FK, price from OtherService
-    plan = await prisma.plan.findFirst({ orderBy: { updatedAt: "asc" } });
-    if (!plan) return NextResponse.json({ error: "No plans configured." }, { status: 400 });
-
-    const svcValueMap: Record<string, string> = {
-      PROPOSAL_SEMINAR: "seminar",
-      JOURNAL_WRITING:  "journal",
-      JOURNAL_SOURCING: "journal_sourcing",
-      TOPIC_SUGGESTION: "topic",
-      HIRE_WRITER:      "assignment",
-    };
-    finalServiceType = (serviceType === "PROJECT" ? "HIRE_WRITER" : serviceType) || "HIRE_WRITER";
-    const svcValue = svcValueMap[finalServiceType] || finalServiceType?.toLowerCase();
-
-    const svc = await (prisma as any).otherService.findFirst({ where: { value: svcValue, isActive: true } });
-
-    const priceMap: Record<string, number> = {
-      OND_HND_NCE: svc?.priceOND || 0,
-      BSC_BED_BA:  svc?.priceBSC || 0,
-      PGD_MSC_PHD: svc?.pricePGD || 0,
-      PHD:         svc?.pricePHD || svc?.pricePGD || 0,
-    };
-    amountKobo = priceMap[degreeGroup] || 0;
-
-    if (requiresPlagiarismCheck && svc) {
-      const addOnMap: Record<string, number> = {
-        OND_HND_NCE: (svc as any).plagiarismAddOnOND || 0,
-        BSC_BED_BA:  (svc as any).plagiarismAddOnBSC || 0,
-        PGD_MSC_PHD: (svc as any).plagiarismAddOnPGD || 0,
-        PHD:         (svc as any).plagiarismAddOnPHD || 0,
-      };
-      amountKobo += addOnMap[degreeGroup] || 0;
-    }
-  }
-
-  // Create order (PENDING_PAYMENT)
-  const order = await prisma.order.create({
-    data: {
-      clientId:            session.user.id,
-      planId:              plan.id,
-      topic:               topic.trim(),
-      department:          department.trim(),
-      degreeGroup,
-      specialInstructions: specialInstructions?.trim() || null,
-      guidelineFileUrl:    guidelineFileUrl || null,
-      selectedChapters:    chaptersRequested?.length ? chaptersRequested.sort().join(",") : null,
-      serviceType:         isProjectService ? "HIRE_WRITER" : finalServiceType,
-      status:              "PENDING_PAYMENT",
-      requiresPlagiarismCheck: isProjectService ? plan.includesPlagiarismCheck : !!requiresPlagiarismCheck,
-      requiresAiCheck:         isProjectService ? plan.includesPlagiarismCheck : !!requiresPlagiarismCheck,
-    } as any,
-  });
-
-  // ── Initialize Flutterwave payment ────────────────────────────
-  const amountNaira = amountKobo / 100;
-  const txRef = `ipm_order_${order.id}_${Date.now()}`;
-
-  const flwRes = await fetch("https://api.flutterwave.com/v3/payments", {
+  const res = await fetch(`${FLW_BASE}/payments`, {
     method:  "POST",
     headers: {
-      Authorization:  `Bearer ${process.env.FLW_SECRET_KEY}`,
-      "Content-Type": "application/json",
+      "Content-Type":  "application/json",
+      "Authorization": `Bearer ${FLW_KEY}`,
     },
-    body: JSON.stringify({
-      tx_ref:       txRef,
-      amount:       amountNaira,
-      currency:     "NGN",
-      redirect_url: `${process.env.NEXT_PUBLIC_APP_URL}/student/inprogress`,
-      customer: {
-        email: session.user.email,
-        name:  session.user.name,
-      },
-      meta: {
-        orderId:           order.id,
-        studentName:       session.user.name,
-        topic,
-        chaptersRequested: chaptersRequested || [],
-      },
-      customizations: {
-        title:       "iProjectMaster",
-        description: `Payment for: ${topic.substring(0, 60)}`,
-        logo:        `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`,
-      },
-    }),
+    body: JSON.stringify(body),
   });
 
-  const flwData = await flwRes.json();
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Flutterwave error ${res.status}: ${text}`);
+  }
 
-  if (flwData.status !== "success") {
-    // Roll back order
-    await prisma.order.delete({ where: { id: order.id } });
+  const data: FlwInitResponse = await res.json();
+  if (data.status !== "success") throw new Error(data.message || "Flutterwave init failed");
+  return data.data.link;
+}
+
+// ─── POST /api/orders ─────────────────────────────────────────────────────────
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    const body = await req.json();
+    const {
+      planId,
+      topic,
+      department,
+      degreeGroup,
+      specialInstructions,
+      quantity,
+      requiresPlagiarismCheck,
+      guidelineFileUrl,
+      chaptersRequested,
+      serviceType,
+      currency = "NGN",
+      amount,           // total in whole Naira (frontend sends this)
+    } = body;
+
+    // ── Resolve amount in Naira ──────────────────────────────────────────────
+    // Frontend calculates total and sends it as `amount` in the display currency.
+    // For Nigeria (NGN) amounts are already in Naira. Convert if needed.
+    let amountNaira: number;
+    if (currency === "NGN") {
+      amountNaira = Math.round(Number(amount));
+    } else {
+      // Fallback: look up price from plan for non-NGN (shouldn't normally
+      // reach this path since international users use /api/payments/flutterwave)
+      const plan = planId && planId !== "flat"
+        ? await prisma.plan.findUnique({ where: { id: planId } })
+        : null;
+      amountNaira = plan ? Math.round(plan.priceKobo / 100) : Math.round(Number(amount));
+    }
+
+    if (!amountNaira || amountNaira <= 0) {
+      return NextResponse.json({ error: "Invalid payment amount." }, { status: 400 });
+    }
+
+    // ── Determine customer identity ──────────────────────────────────────────
+    let customerEmail: string;
+    let customerName:  string;
+    let userId:        string | null = null;
+
+    if (session?.user) {
+      customerEmail = session.user.email!;
+      customerName  = session.user.name  || "Student";
+      userId        = session.user.id    || null;
+    } else {
+      // Register flow — guest checkout; account details come from the
+      // registration form and are passed by the register page's onPayload handler
+      customerEmail = body.email       || "student@iprojectmaster.com";
+      customerName  = body.name        || "Student";
+    }
+
+    // ── Create order (PENDING) ───────────────────────────────────────────────
+    const txRef = `ipm-${randomUUID()}`;
+
+    const chaptersArray: number[] = Array.isArray(chaptersRequested)
+      ? chaptersRequested.map(Number)
+      : [];
+
+    // Resolve planId — "flat" means a flat-fee service (no plan row)
+    const resolvedPlanId = planId && planId !== "flat" ? planId : null;
+
+    const order = await prisma.order.create({
+      data: {
+        userId:                 userId,
+        planId:                 resolvedPlanId,
+        topic:                  topic || "",
+        department:             department || "",
+        degreeGroup:            degreeGroup || "",
+        serviceType:            serviceType || "HIRE_WRITER",
+        specialInstructions:    specialInstructions || null,
+        quantity:               quantity ? Number(quantity) : 1,
+        requiresPlagiarismCheck: requiresPlagiarismCheck || false,
+        guidelineFileUrl:       guidelineFileUrl || null,
+        chaptersRequested:      chaptersArray,
+        status:                 "PENDING",
+        paymentStatus:          "PENDING",
+        amountKobo:             amountNaira * 100,  // store in kobo for consistency
+        currency:               currency,
+        paystackReference:      txRef,              // reuse column — stores our tx_ref
+      },
+    });
+
+    // ── Initialise Flutterwave payment ───────────────────────────────────────
+    const paymentUrl = await initFlutterwavePayment({
+      txRef,
+      amount:   amountNaira,
+      currency: "NGN",
+      email:    customerEmail,
+      name:     customerName,
+      meta: {
+        orderId:   order.id,
+        serviceType,
+        degreeGroup,
+      },
+    });
+
+    return NextResponse.json({ success: true, paymentUrl, orderId: order.id });
+  } catch (err: any) {
+    console.error("[orders/POST]", err);
     return NextResponse.json(
       { error: "Payment initialization failed. Please try again." },
       { status: 500 }
     );
   }
-
-  return NextResponse.json({
-    success:    true,
-    orderId:    order.id,
-    paymentUrl: flwData.data.link,
-    reference:  txRef,
-  });
 }
