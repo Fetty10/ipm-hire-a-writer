@@ -10,7 +10,7 @@ import { randomUUID }                from "crypto";
 
 // ─── Flutterwave v3 ───────────────────────────────────────────────────────────
 const FLW_BASE    = "https://api.flutterwave.com/v3";
-const FLW_KEY     = process.env.FLW_SECRET_KEY!;
+const FLW_KEY     = process.env.FLUTTERWAVE_SECRET_KEY!;
 const APP_URL     = process.env.NEXT_PUBLIC_APP_URL || "https://hire.iprojectmaster.com";
 
 interface FlwInitResponse {
